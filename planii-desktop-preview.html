@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planii — aperçu desktop 2026</title>
+<style>
+  .app[data-theme="light"]{
+    --bg:#faf9f5; --surface:#ffffff; --surface-2:#f4f2ec; --sidebar:#f3f1ea;
+    --line:#e7e4db; --line-strong:#d7d4ca;
+    --text:#26251f; --muted:#6b6a63; --hint:#9a988f;
+    --accent:#534AB7; --accent-bg:#eeedfe;
+    --danger:#a32d2d; --danger-bg:#fdf1f1; --amber:#BA7517; --amber-bg:#fbf3e6;
+    --blue:#185FA5; --blue-bg:#eaf2fb; --ok:#0f6e56; --ok-bg:#e1f5ee;
+  }
+  .app[data-theme="dark"]{
+    --bg:#1b1a17; --surface:#222118; --surface-2:#2c2a22; --sidebar:#181712;
+    --line:#37352c; --line-strong:#484539;
+    --text:#f1efe8; --muted:#b4b2a9; --hint:#88867d;
+    --accent:#afa9ec; --accent-bg:#2b2758;
+    --danger:#f09595; --danger-bg:#3a1a1a; --amber:#efa927; --amber-bg:#3a2a10;
+    --blue:#85B7EB; --blue-bg:#12233a; --ok:#5dcaa5; --ok-bg:#123027;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#d9d7d0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:26px 18px 44px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .hint{font-size:13px;color:#57564f;text-align:center;max-width:900px;line-height:1.5}
+  .win{width:1180px;max-width:100%;border-radius:14px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.3);border:1px solid #c9c7bf}
+  .chrome{background:#e9e7e0;display:flex;align-items:center;gap:14px;padding:10px 14px;border-bottom:1px solid #d6d4cc}
+  .dots{display:flex;gap:7px} .dots i{width:12px;height:12px;border-radius:50%;display:block}
+  .dots i:nth-child(1){background:#ec6a5e} .dots i:nth-child(2){background:#f4be4f} .dots i:nth-child(3){background:#61c454}
+  .url{flex:1;background:#fff;border-radius:8px;padding:6px 12px;font-size:12.5px;color:#6b6a63;text-align:center;max-width:340px;margin:0 auto}
+  .app{display:flex;height:720px;background:var(--bg);color:var(--text);position:relative}
+  .ic{flex:none;display:inline-block} .ic svg{width:100%;height:100%;display:block}
+  /* sidebar */
+  .side{width:236px;flex:none;background:var(--sidebar);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px 12px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;padding:6px 8px 12px}
+  .brand .lg{width:28px;height:28px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+  .brand .lg b{width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:7px 0 0 rgba(255,255,255,.55);display:block}
+  .search{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--muted);font-size:13px;margin-bottom:12px;cursor:pointer}
+  .search .k{margin-left:auto;font-size:11px;background:var(--surface-2);border-radius:5px;padding:1px 6px;font-weight:700}
+  .side .nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+  .side .nav a .ic{width:18px;height:18px}
+  .side .nav a:hover{background:var(--surface-2)}
+  .side .nav a.on{background:var(--accent-bg);color:var(--accent)}
+  .side .lbl{font-size:11px;font-weight:800;color:var(--hint);letter-spacing:.05em;margin:16px 10px 6px}
+  .side .proj{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;font-size:13.5px;color:var(--muted);cursor:pointer}
+  .side .proj:hover{background:var(--surface-2)} .side .proj.on{background:var(--surface-2);color:var(--text)} .side .proj .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:8px;border-top:1px solid var(--line)}
+  .side .foot .ava{width:30px;height:30px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:grid;place-items:center;font-weight:800;font-size:12px}
+  .side .foot .nm{font-size:13px;font-weight:700;flex:1}
+  .tbtn{border:none;background:none;color:var(--muted);width:32px;height:32px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
+  .tbtn:hover{background:var(--surface-2)} .tbtn .ic{width:19px;height:19px}
+  /* main */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .top{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line)}
+  .top h1{font-size:19px;font-weight:800;margin:0;flex:1}
+  .vtabs{display:flex;gap:3px;background:var(--surface-2);border-radius:10px;padding:3px}
+  .vtabs.hide{display:none}
+  .vtabs button{border:none;background:none;color:var(--muted);font-size:13px;font-weight:700;padding:6px 13px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .vtabs button .ic{width:15px;height:15px} .vtabs button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .newb{border:none;background:var(--accent);color:#fff;font-size:13.5px;font-weight:700;padding:9px 15px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px}
+  .newb .ic{width:16px;height:16px}
+  .content{flex:1;overflow:auto;padding:8px 0}
+  .view{display:none} .view.on{display:block}
+  /* list view */
+  .grp{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.04em;padding:14px 24px 6px}
+  .trow{display:flex;align-items:center;gap:14px;padding:11px 24px;border-bottom:1px solid var(--line);cursor:pointer}
+  .trow:hover{background:var(--surface-2)} .trow:hover .more{opacity:1}
+  .ring{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--line-strong);background:transparent;cursor:pointer}
+  .ring.done{background:var(--ok);border-color:var(--ok)}
+  .pflag{flex:none;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:6px}
+  .pf1{color:var(--danger);background:var(--danger-bg)} .pf2{color:var(--amber);background:var(--amber-bg)}
+  .pf3{color:var(--accent);background:var(--accent-bg)} .pf4{color:var(--blue);background:var(--blue-bg)}
+  .pf5{color:var(--ok);background:var(--ok-bg)} .pf6{color:var(--muted);background:var(--surface-2)}
+  .tt{flex:1;min-width:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trow.dn .tt{text-decoration:line-through;color:var(--hint)}
+  .tmeta{display:flex;align-items:center;gap:16px;font-size:12.5px;font-weight:600;color:var(--muted)}
+  .tmeta .m{display:inline-flex;align-items:center;gap:5px} .tmeta .m .ic{width:14px;height:14px}
+  .tmeta .m.red{color:var(--danger)} .tmeta .m.purple{color:var(--accent)}
+  .tag{background:var(--surface-2);color:var(--muted);border-radius:99px;padding:2px 9px;font-size:12px;font-weight:700}
+  .more{opacity:0;border:none;background:none;color:var(--hint);width:28px;height:28px;border-radius:7px;cursor:pointer;display:grid;place-items:center;transition:opacity .1s}
+  .more:hover{background:var(--line)} .more .ic{width:18px;height:18px}
+  /* board view */
+  .board{display:flex;gap:16px;padding:18px 22px;align-items:flex-start;overflow-x:auto}
+  .col{flex:1;min-width:230px;background:var(--surface-2);border-radius:12px;padding:12px}
+  .col h4{margin:0 0 10px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px}
+  .col h4 .c{color:var(--muted);font-weight:700}
+  .kc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:9px;box-shadow:0 1px 2px rgba(0,0,0,.04);cursor:pointer}
+  .kc:hover{border-color:var(--line-strong)}
+  .kc .kt{font-size:14px;font-weight:600;margin-bottom:8px}
+  .kc .kf{display:flex;align-items:center;gap:8px}
+  .kc .kf .who{margin-left:auto;width:22px;height:22px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:grid;place-items:center;font-size:10px;font-weight:800}
+  /* projects grid */
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px 22px}
+  .pcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;cursor:pointer}
+  .pcard:hover{border-color:var(--line-strong)}
+  .pcard .nm{font-size:16px;font-weight:700} .pcard .sub{font-size:12.5px;color:var(--muted);margin:3px 0 10px}
+  .bar{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden} .bar>i{display:block;height:100%;background:var(--accent)}
+  /* leaderboard */
+  .rankwrap{padding:18px 22px}
+  .banner{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;font-weight:600}
+  .rank{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--surface)}
+  .rank.first{border-color:var(--accent);background:var(--accent-bg)}
+  .rank .num{font-size:19px;font-weight:800;color:var(--muted);width:26px;text-align:center}
+  .rank .info{flex:1} .rank .nm{font-weight:700;font-size:15px} .rank .sc{font-size:12px;color:var(--muted);margin-top:2px}
+  .tagb{background:var(--accent-bg);color:var(--accent);font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;margin-left:6px}
+  .rank .rp{font-weight:800;color:var(--accent);font-size:18px;text-align:right} .rank .rp span{display:block;font-size:10px;color:var(--muted);font-weight:700}
+  /* agenda view — cellules égales */
+  .cal{padding:16px 22px}
+  .cal .mh{font-size:16px;font-weight:800;margin-bottom:10px}
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px}
+  .dow div{font-size:11px;font-weight:800;color:var(--muted);text-align:center}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .cell{height:96px;border:1px solid var(--line);border-radius:10px;padding:7px;background:var(--surface);overflow:hidden;display:flex;flex-direction:column;cursor:pointer}
+  .cell:hover{border-color:var(--line-strong)}
+  .cell.out{opacity:.4} .cell.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .cell .dnum{font-size:12px;font-weight:700;color:var(--muted);text-align:right;flex:none}
+  .cell.today .dnum{color:var(--accent)}
+  .ev{font-size:10.5px;font-weight:700;border-radius:5px;padding:3px 6px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .ev.p1{background:var(--danger-bg);color:var(--danger)} .ev.p2{background:var(--amber-bg);color:var(--amber)} .ev.p3{background:var(--accent-bg);color:var(--accent)}
+  /* detail panel */
+  .detail{width:340px;flex:none;border-left:1px solid var(--line);background:var(--surface);display:none;flex-direction:column}
+  .detail.on{display:flex}
+  .dhead{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .dhead .tt{font-size:17px;font-weight:700;flex:1} .dhead .x{cursor:pointer;color:var(--muted)}
+  .drow{display:flex;align-items:center;gap:13px;padding:13px 18px;border-bottom:1px solid var(--line);font-size:14px}
+  .drow .ic{width:18px;height:18px;color:var(--muted)} .drow .lb{color:var(--muted);width:92px} .drow .vv{flex:1;font-weight:600}
+  .dsub{padding:14px 18px} .dsub h5{margin:0 0 8px;font-size:12px;font-weight:800;color:var(--muted)}
+  .dtask{display:flex;align-items:center;gap:9px;font-size:13.5px;padding:5px 0}
+  .dtask .r{width:15px;height:15px;border-radius:50%;border:2px solid var(--line-strong)}
+  /* overlays (cmd palette + new) */
+  .ovl{position:absolute;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-start;justify-content:center;z-index:30;padding-top:90px}
+  .ovl.on{display:flex}
+  .cmd{width:520px;max-width:90%;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+  .cmd input{width:100%;border:none;outline:none;background:transparent;color:var(--text);font-size:16px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .cmdr{display:flex;align-items:center;gap:12px;padding:12px 18px;font-size:14px;cursor:pointer}
+  .cmdr:hover{background:var(--surface-2)} .cmdr .ic{width:17px;height:17px;color:var(--muted)}
+  .nsheet{width:460px;max-width:90%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+  .nsheet h3{margin:0 0 14px;font-size:18px}
+  .fld{margin-bottom:12px} .fld label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
+  .fld input{width:100%;padding:11px;border:1px solid var(--line-strong);border-radius:10px;background:var(--bg);color:var(--text);font-size:14px}
+  .prisel{display:flex;gap:6px} .prisel button{flex:1;border:1px solid var(--line-strong);background:var(--bg);border-radius:9px;padding:8px 4px;font-size:12px;font-weight:800;cursor:pointer}
+  .frow{display:flex;gap:10px;margin-top:6px} .frow .b{flex:1;border:1px solid var(--line-strong);background:var(--surface);border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer}
+  .frow .b.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<div class="hint">Aperçu desktop 2026 — <b>tout est cliquable</b> : la sidebar change d'écran, la recherche <b>⌘K</b> ouvre une palette, “Nouveau” ouvre l'ajout rapide, et les tâches / cartes / événements ouvrent le panneau de détail à droite. Cellules d'agenda toutes de la même taille.</div>
+
+<div class="win">
+  <div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="url">planii.app</div><div style="width:52px"></div></div>
+
+  <div class="app" data-theme="light" id="app">
+
+    <aside class="side">
+      <div class="brand"><span class="lg"><b></b></span>Planii</div>
+      <div class="search" onclick="openCmd()"><span class="ic" style="width:15px;height:15px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></span>Rechercher<span class="k">⌘K</span></div>
+      <nav class="nav" id="snav">
+        <a class="on" data-sec="home"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></span>Accueil</a>
+        <a data-sec="proj"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span>Projets</a>
+        <a data-sec="agenda"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>Agenda</a>
+        <a data-sec="rank"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 21h8M12 17v4M6 4h12v5a6 6 0 0 1-12 0zM6 6H3v2a3 3 0 0 0 3 3M18 6h3v2a3 3 0 0 1-3 3"/></svg></span>Classement</a>
+      </nav>
+      <div class="lbl">PROJETS</div>
+      <div class="proj" onclick="goProj(this)"><span class="dot" style="background:var(--accent)"></span>Mémoire de fin d'année</div>
+      <div class="proj" onclick="goProj(this)"><span class="dot" style="background:var(--blue)"></span>Site web — Café du Coin</div>
+      <div class="proj" onclick="goProj(this)"><span class="dot" style="background:var(--ok)"></span>Groupe révisions</div>
+      <div class="foot"><span class="ava">LU</span><span class="nm">Lutina</span>
+        <button class="tbtn" id="themeBtn" aria-label="Thème"><span class="ic" id="themeIcon"></span></button>
+      </div>
+    </aside>
+
+    <section class="main">
+      <div class="top">
+        <h1 id="ttl">Accueil — mes tâches</h1>
+        <div class="vtabs" id="vtabs">
+          <button class="on" data-v="list"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>Liste</button>
+          <button data-v="board"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg></span>Tableau</button>
+          <button data-v="cal"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>Agenda</button>
+        </div>
+        <button class="newb" onclick="openNew()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>Nouveau</button>
+      </div>
+
+      <div class="content">
+        <div class="view on" id="v-list">
+          <div class="grp">À FAIRE · 4</div>
+          <div class="trow" onclick="openD()"><span class="ring"></span><span class="pflag pf1">P1</span><span class="tt">Rendre le chapitre 4</span>
+            <div class="tmeta"><span class="tag">Mémoire</span><span class="m"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 7H7a4 4 0 0 0 0 8h2M15 7h2a4 4 0 0 1 0 8h-2M8 11h8"/></svg></span>0/2</span><span class="m red" data-i="cal">Ven. 16:00</span><span class="m" data-i="clk">~2h</span></div>
+            <button class="more" onclick="event.stopPropagation()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span></button></div>
+          <div class="trow" onclick="openD()"><span class="ring"></span><span class="pflag pf2">P2</span><span class="tt">Paragraphe d'introduction</span>
+            <div class="tmeta"><span class="tag">Mémoire</span><span class="m purple" data-i="cal">Ven. 14:00</span></div>
+            <button class="more" onclick="event.stopPropagation()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span></button></div>
+          <div class="trow" onclick="openD()"><span class="ring"></span><span class="pflag pf3">P3</span><span class="tt">Rencontre avec le tuteur</span>
+            <div class="tmeta"><span class="tag">Site web</span><span class="m purple" data-i="cal">Sam. 09:00</span></div>
+            <button class="more" onclick="event.stopPropagation()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span></button></div>
+          <div class="trow" onclick="openD()"><span class="ring"></span><span class="pflag pf4">P4</span><span class="tt">Rechercher des articles</span>
+            <div class="tmeta"><span class="m purple" data-i="cal">Sam. 19:00</span><span class="m" data-i="clk">~5h</span></div>
+            <button class="more" onclick="event.stopPropagation()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></span></button></div>
+          <div class="grp">TERMINÉES · 1</div>
+          <div class="trow dn" onclick="openD()"><span class="ring done"></span><span class="pflag pf3">P3</span><span class="tt">Plan du mémoire</span>
+            <div class="tmeta"><span class="tag">Mémoire</span><span class="m" data-i="clk">3h</span></div></div>
+        </div>
+
+        <div class="view" id="v-board"><div class="board">
+          <div class="col"><h4>À faire <span class="c">3</span></h4>
+            <div class="kc" onclick="openD()"><div class="kt">Rendre le chapitre 4</div><div class="kf"><span class="pflag pf1">P1</span><span class="who">BE</span></div></div>
+            <div class="kc" onclick="openD()"><div class="kt">Paragraphe d'introduction</div><div class="kf"><span class="pflag pf2">P2</span><span class="who">LU</span></div></div>
+            <div class="kc" onclick="openD()"><div class="kt">Rechercher des articles</div><div class="kf"><span class="pflag pf4">P4</span><span class="who">LU</span></div></div>
+          </div>
+          <div class="col"><h4>En cours <span class="c">1</span></h4>
+            <div class="kc" onclick="openD()"><div class="kt">Rencontre avec le tuteur</div><div class="kf"><span class="pflag pf3">P3</span><span class="who">LU</span></div></div>
+          </div>
+          <div class="col"><h4>Terminées <span class="c">1</span></h4>
+            <div class="kc" onclick="openD()" style="opacity:.7"><div class="kt" style="text-decoration:line-through">Plan du mémoire</div><div class="kf"><span class="pflag pf3">P3</span><span class="who">BE</span></div></div>
+          </div>
+        </div></div>
+
+        <div class="view" id="v-cal"><div class="cal">
+          <div class="mh">Février 2026</div>
+          <div class="dow"><div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div><div>Dim</div></div>
+          <div class="grid" id="grid"></div>
+        </div></div>
+
+        <div class="view" id="v-projects"><div class="pgrid">
+          <div class="pcard" onclick="goSec('home')"><div class="nm">Mémoire de fin d'année</div><div class="sub">Équipe · leader · 3/8 tâches</div><div class="bar"><i style="width:38%"></i></div></div>
+          <div class="pcard" onclick="goSec('home')"><div class="nm">Site web — Café du Coin</div><div class="sub">1-à-1 · client · 5/6 tâches</div><div class="bar"><i style="width:83%"></i></div></div>
+          <div class="pcard" onclick="goSec('home')"><div class="nm">Groupe révisions</div><div class="sub">Groupe · 2/4 tâches</div><div class="bar"><i style="width:50%"></i></div></div>
+          <div class="pcard" onclick="openNew()" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700;border-style:dashed">＋ Nouveau projet</div>
+        </div></div>
+
+        <div class="view" id="v-rank"><div class="rankwrap">
+          <div class="banner">🏆 La meilleure équipe reçoit +50 pts. Barème : en avance 20 · le jour même 15 · en retard 5.</div>
+          <div class="rank first"><span class="num">🏆</span><div class="info"><div class="nm">Mémoire de fin d'année</div><div class="sc">Équipe · Niveau 3 🥈 <span class="tagb">🎁 +50 bonus</span></div></div><div class="rp">180<span>pts</span></div></div>
+          <div class="rank"><span class="num">2</span><div class="info"><div class="nm">Site web — Café du Coin</div><div class="sc">1-à-1 · Niveau 2 🥉</div></div><div class="rp">95<span>pts</span></div></div>
+          <div class="rank"><span class="num">3</span><div class="info"><div class="nm">Groupe révisions</div><div class="sc">Groupe · Niveau 1 🥉</div></div><div class="rp">40<span>pts</span></div></div>
+        </div></div>
+      </div>
+    </section>
+
+    <aside class="detail" id="detail">
+      <div class="dhead"><span class="ring"></span><span class="tt">Rendre le chapitre 4</span><span class="x ic" style="width:20px;height:20px" onclick="closeD()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></span></div>
+      <div class="drow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><span class="lb">Description</span><span class="vv" style="font-weight:400">Mémoire de fin d'année</span></div>
+      <div class="drow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3v18M6 4h11l-2 4 2 4H6"/></svg></span><span class="lb">Priorité</span><span class="vv"><span class="pflag pf1">P1</span></span></div>
+      <div class="drow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3 3-4.5 6-4.5s6 1.5 6 4.5"/></svg></span><span class="lb">Responsable</span><span class="vv">Benny</span></div>
+      <div class="drow"><span class="ic" data-i="cal"></span><span class="lb">Échéance</span><span class="vv" style="color:var(--danger)">Ven. 16:00–17:00</span></div>
+      <div class="drow"><span class="ic" data-i="clk"></span><span class="lb">Heures</span><span class="vv">0h passées · ~2h estimées</span></div>
+      <div class="dsub"><h5>SOUS-TÂCHES</h5>
+        <div class="dtask"><span class="r"></span>Relire les sources</div>
+        <div class="dtask"><span class="r"></span>Vérifier la mise en page</div>
+      </div>
+    </aside>
+
+    <div class="ovl" id="cmdovl" onclick="if(event.target===this)closeCmd()">
+      <div class="cmd">
+        <input placeholder="Rechercher une tâche, un projet, une action…" autofocus>
+        <div class="cmdr" onclick="closeCmd();goSec('home')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg></span>Aller à l'Accueil</div>
+        <div class="cmdr" onclick="closeCmd();goSec('agenda')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/></svg></span>Ouvrir l'Agenda</div>
+        <div class="cmdr" onclick="closeCmd();openNew()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>Créer une nouvelle tâche</div>
+        <div class="cmdr" onclick="closeCmd();openD()"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></span>Tâche : « Rendre le chapitre 4 »</div>
+      </div>
+    </div>
+
+    <div class="ovl" id="newovl" onclick="if(event.target===this)closeNew()">
+      <div class="nsheet">
+        <h3>Nouvelle tâche</h3>
+        <div class="fld"><label>Intitulé</label><input placeholder="Ex. Relire le chapitre 4"></div>
+        <div class="fld"><label>Priorité</label><div class="prisel">
+          <button style="color:var(--danger)">P1</button><button style="color:var(--amber)">P2</button><button style="color:var(--accent);border-color:var(--accent);background:var(--accent-bg)">P3</button><button style="color:var(--blue)">P4</button><button style="color:var(--ok)">P5</button><button style="color:var(--muted)">P6</button>
+        </div></div>
+        <div class="fld"><label>Échéance</label><input placeholder="jj/mm/aaaa"></div>
+        <div class="frow"><button class="b primary" onclick="closeNew()">Créer</button><button class="b" onclick="closeNew()">Annuler</button></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  var app=document.getElementById('app');
+  var cal='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>';
+  var clk='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>';
+  var sun='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>';
+  var moon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  document.querySelectorAll('[data-i]').forEach(function(e){e.innerHTML='<span class="ic">'+(e.getAttribute('data-i')==='cal'?cal:clk)+'</span>';});
+  function setTheme(t){app.setAttribute('data-theme',t);document.getElementById('themeIcon').innerHTML=(t==='dark'?sun:moon);}
+  document.getElementById('themeBtn').onclick=function(){setTheme(app.getAttribute('data-theme')==='dark'?'light':'dark');};
+
+  function showView(id){document.querySelectorAll('.content .view').forEach(function(x){x.classList.remove('on')});document.getElementById('v-'+id).classList.add('on');document.querySelector('.content').scrollTop=0;}
+  var homeView='list';
+  window.goSec=function(sec){
+    document.querySelectorAll('#snav a').forEach(function(a){a.classList.toggle('on',a.getAttribute('data-sec')===sec);});
+    var vt=document.getElementById('vtabs'),ttl=document.getElementById('ttl');
+    if(sec==='home'){ttl.textContent='Accueil — mes tâches';vt.classList.remove('hide');showView(homeView);}
+    else if(sec==='proj'){ttl.textContent='Projets';vt.classList.add('hide');showView('projects');}
+    else if(sec==='agenda'){ttl.textContent='Agenda';vt.classList.add('hide');showView('cal');}
+    else if(sec==='rank'){ttl.textContent='Classement';vt.classList.add('hide');showView('rank');}
+  };
+  document.querySelectorAll('#snav a').forEach(function(a){a.onclick=function(){goSec(a.getAttribute('data-sec'));};});
+  document.querySelectorAll('.vtabs button').forEach(function(b){b.onclick=function(){
+    document.querySelectorAll('.vtabs button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+    homeView=b.getAttribute('data-v');showView(homeView);};});
+  window.goProj=function(el){document.querySelectorAll('.side .proj').forEach(function(p){p.classList.remove('on')});el.classList.add('on');goSec('home');};
+  window.openD=function(){document.getElementById('detail').classList.add('on');};
+  window.closeD=function(){document.getElementById('detail').classList.remove('on');};
+  window.openCmd=function(){document.getElementById('cmdovl').classList.add('on');};
+  window.closeCmd=function(){document.getElementById('cmdovl').classList.remove('on');};
+  window.openNew=function(){document.getElementById('newovl').classList.add('on');};
+  window.closeNew=function(){document.getElementById('newovl').classList.remove('on');};
+  document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openCmd();}if(e.key==='Escape'){closeCmd();closeNew();}});
+
+  var g=document.getElementById('grid'),pad=6,evs={3:['p1|Rendre chap.4'],4:['p2|Intro'],5:['p3|Tuteur','p1|Conclusion']},today=4;
+  for(var i=0;i<35;i++){var d=i-pad+1;var out=(d<1||d>28);var cell=document.createElement('div');cell.className='cell'+(out?' out':'')+(d===today?' today':'');cell.setAttribute('onclick','openD()');
+    var n=(d<1)?(31+d):(d>28?d-28:d);var h='<div class="dnum">'+n+'</div>';if(d>0&&!out&&evs[d])evs[d].forEach(function(e){var p=e.split('|');h+='<div class="ev '+p[0]+'">'+p[1]+'</div>';});cell.innerHTML=h;g.appendChild(cell);}
+  setTheme('light');
+</script>
+</body>
+</html>

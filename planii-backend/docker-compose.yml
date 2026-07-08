@@ -1,0 +1,18 @@
+services:
+  api:
+    build: .
+    container_name: planii-api
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - dbnet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.planii-api.entrypoints=websecure"
+      - "traefik.http.routers.planii-api.rule=Host(`api.planii.app`)"
+      - "traefik.http.routers.planii-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.planii-api.loadbalancer.server.port=4000"
+networks:
+  dbnet:
+    external: true
+    name: postgresql-5yar_default

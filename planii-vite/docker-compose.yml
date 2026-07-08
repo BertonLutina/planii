@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    container_name: planii-web
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.planii-web.entrypoints=websecure"
+      - "traefik.http.routers.planii-web.rule=Host(`planii.app`) || Host(`www.planii.app`)"
+      - "traefik.http.routers.planii-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.planii-web.loadbalancer.server.port=80"
+networks:
+  proxy:
+    external: true
+    name: postgresql-5yar_default
