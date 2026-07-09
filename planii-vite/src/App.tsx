@@ -192,7 +192,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
           {tab === 'calendrier' && <CalendarView onOpen={setOpenId} />}
           {tab === 'classement' && <Leaderboard onOpen={setOpenId} />}
           {tab === 'profil' && <Profile me={me} onLogout={onLogout} onUpdate={onUpdate} onAdmin={() => setTab('admin')} />}
-          {tab === 'admin' && me.admin && <Admin />}
+          {tab === 'admin' && me.admin && <Admin me={me} />}
         </div>
       </main>
 

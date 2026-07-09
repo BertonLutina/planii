@@ -41,6 +41,10 @@ async function initSchema() {
     pass_hash text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name text`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name text`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false`);
+  await q(`CREATE TABLE IF NOT EXISTS admin_audit (
+    id text PRIMARY KEY, actor_id text, actor_name text, action text NOT NULL,
+    detail text, created_at timestamptz NOT NULL DEFAULT now());`);
   await q(`CREATE TABLE IF NOT EXISTS projects (
     id text PRIMARY KEY, name text NOT NULL, type text NOT NULL,
     owner_id text NOT NULL, status text NOT NULL DEFAULT 'active',
@@ -83,9 +87,10 @@ const uid = () => crypto.randomBytes(9).toString('base64url');
 const numOrNull = (v) => (v === '' || v === null || v === undefined || isNaN(Number(v))) ? null : Math.max(0, Number(v));
 const prioOrDefault = (v) => { const n = parseInt(v, 10); return (n >= 1 && n <= 6) ? n : 6; };
 const newToken = () => crypto.randomBytes(18).toString('base64url');
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'berton.lutina@hotmail.com').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-const isAdmin = (u) => !!u && ADMIN_EMAILS.includes((u.email || '').toLowerCase());
-const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '', admin: isAdmin(u) };
+const SUPER_ADMIN_EMAILS = (process.env.SUPER_ADMIN_EMAILS || 'berton.lutina@hotmail.com').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+const isSuperAdmin = (u) => !!u && SUPER_ADMIN_EMAILS.includes((u.email || '').toLowerCase());
+const isAdmin = (u) => !!u && (isSuperAdmin(u) || u.is_admin === true);
+const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '', admin: isAdmin(u), superAdmin: isSuperAdmin(u) };
 const sign = (u) => jwt.sign({ sub: u.id }, JWT_SECRET, { expiresIn: '30d' });
 const canManage = (role) => role === 'owner' || role === 'lead';
 
@@ -125,6 +130,14 @@ async function auth(req, res, next) {
 function adminOnly(req, res, next) {
   if (!isAdmin(req.user)) return res.status(403).json({ error: 'Accès réservé à l’administrateur' });
   next();
+}
+function superAdminOnly(req, res, next) {
+  if (!isSuperAdmin(req.user)) return res.status(403).json({ error: 'Réservé au super administrateur' });
+  next();
+}
+async function audit(actor, action, detail) {
+  try { await q('INSERT INTO admin_audit (id,actor_id,actor_name,action,detail) VALUES ($1,$2,$3,$4,$5)', [uid(), actor.id, actor.name, action, detail || '']); }
+  catch (e) { console.error('audit', e.message); }
 }
 
 /* ---------- auth ---------- */
@@ -493,7 +506,7 @@ app.get('/api/admin/stats', auth, adminOnly, h(async (req, res) => {
 
 // Liste de tous les utilisateurs (avec points, nb projets, nb tâches)
 app.get('/api/admin/users', auth, adminOnly, h(async (req, res) => {
-  const users = await many('SELECT id,name,email,first_name,last_name,created_at FROM users ORDER BY created_at ASC', []);
+  const users = await many('SELECT id,name,email,first_name,last_name,is_admin,created_at FROM users ORDER BY created_at ASC', []);
   const pc = await many('SELECT user_id, count(*)::int AS c FROM memberships GROUP BY user_id', []);
   const doneRows = await many('SELECT assignee_id, due, done_at FROM tasks WHERE done AND assignee_id IS NOT NULL', []);
   const openRows = await many('SELECT assignee_id, count(*)::int AS c FROM tasks WHERE NOT done AND assignee_id IS NOT NULL GROUP BY assignee_id', []);
@@ -508,7 +521,7 @@ app.get('/api/admin/users', auth, adminOnly, h(async (req, res) => {
   res.json({
     users: users.map((u) => ({
       id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '',
-      createdAt: u.created_at, admin: isAdmin(u),
+      createdAt: u.created_at, admin: isAdmin(u), superAdmin: isSuperAdmin(u),
       projectCount: projByUser[u.id] || 0, tasksOpen: openByUser[u.id] || 0, tasksDone: doneByUser[u.id] || 0, points: ptsByUser[u.id] || 0,
     })),
   });
@@ -518,8 +531,9 @@ app.get('/api/admin/users', auth, adminOnly, h(async (req, res) => {
 app.delete('/api/admin/users/:id', auth, adminOnly, h(async (req, res) => {
   const target = await userById(req.params.id);
   if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
-  if (target.id === req.user.id) return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte admin' });
-  if (isAdmin(target)) return res.status(400).json({ error: 'Impossible de supprimer un autre administrateur' });
+  if (target.id === req.user.id) return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
+  if (isSuperAdmin(target)) return res.status(400).json({ error: 'Impossible de supprimer le super administrateur' });
+  if (isAdmin(target) && !isSuperAdmin(req.user)) return res.status(403).json({ error: 'Seul le super administrateur peut supprimer un admin' });
   const owned = await many('SELECT id, name FROM projects WHERE owner_id=$1', [target.id]);
   const client = await pool.connect();
   try {
@@ -550,7 +564,25 @@ app.delete('/api/admin/users/:id', auth, adminOnly, h(async (req, res) => {
     await client.query('COMMIT');
   } catch (e) { await client.query('ROLLBACK'); throw e; }
   finally { client.release(); }
+  await audit(req.user, 'delete_user', `${target.name} (${target.email})${owned.length ? ` + ${owned.length} projet(s)` : ''}`);
   res.json({ ok: true, deletedProjects: owned.length });
+}));
+
+// Promouvoir / rétrograder un admin — réservé au super administrateur
+app.patch('/api/admin/users/:id/admin', auth, superAdminOnly, h(async (req, res) => {
+  const target = await userById(req.params.id);
+  if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
+  if (isSuperAdmin(target)) return res.status(400).json({ error: 'Le super administrateur est admin par défaut' });
+  const val = !!req.body.admin;
+  await q('UPDATE users SET is_admin=$1 WHERE id=$2', [val, target.id]);
+  await audit(req.user, val ? 'grant_admin' : 'revoke_admin', `${target.name} (${target.email})`);
+  res.json({ ok: true, admin: val });
+}));
+
+// Journal d'audit — réservé au super administrateur
+app.get('/api/admin/audit', auth, superAdminOnly, h(async (req, res) => {
+  const rows = await many('SELECT id,actor_name,action,detail,created_at FROM admin_audit ORDER BY created_at DESC LIMIT 100', []);
+  res.json({ audit: rows.map((r) => ({ id: r.id, actor: r.actor_name, action: r.action, detail: r.detail, at: r.created_at })) });
 }));
 
 // Toutes les tâches (avec projet + responsable) pour l'admin
@@ -575,6 +607,7 @@ app.patch('/api/admin/tasks/:id/priority', auth, adminOnly, h(async (req, res) =
   const n = parseInt(req.body.priority, 10);
   if (!(n >= 1 && n <= 6)) return res.status(400).json({ error: 'Priorité invalide (1 à 6)' });
   await q('UPDATE tasks SET priority=$1 WHERE id=$2', [n, t.id]);
+  await audit(req.user, 'task_priority', `« ${t.title} » → P${n}`);
   res.json({ ok: true, priority: n });
 }));
 
@@ -619,6 +652,7 @@ app.delete('/api/admin/projects/:id', auth, adminOnly, h(async (req, res) => {
     await client.query('COMMIT');
   } catch (e) { await client.query('ROLLBACK'); throw e; }
   finally { client.release(); }
+  await audit(req.user, 'delete_project', `« ${p.name} »`);
   res.json({ ok: true });
 }));
 
