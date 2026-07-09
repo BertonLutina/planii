@@ -8,7 +8,7 @@ import {
 import type { CalEvent, Project, ProjectSummary } from '@/lib/types'
 import { GitHubCalendar, type ContributionDay } from './ui/github-calendar'
 
-type View = 'mois' | 'semaine' | 'agenda' | 'annee'
+type View = 'mois' | 'semaine' | 'jour' | 'agenda' | 'annee'
 
 export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
   const [events, setEvents] = useState<CalEvent[] | null>(null)
@@ -64,10 +64,11 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
     )
   }
 
-  const step = (d: number) => setCur(view === 'mois' ? addMonths(cur, d) : addDays(cur, d * 7))
+  const step = (d: number) => setCur(view === 'mois' ? addMonths(cur, d) : view === 'jour' ? addDays(cur, d) : addDays(cur, d * 7))
   const title = view === 'mois' ? `${MONTHS_FULL[cur.getMonth()]} ${cur.getFullYear()}`
     : view === 'semaine' ? `${weekDays[0].getDate()}–${weekDays[6].getDate()} ${MONTHS_FULL[weekDays[6].getMonth()]}`
-    : view === 'annee' ? 'Année — activité' : 'Agenda'
+    : view === 'jour' ? cur.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+    : view === 'annee' ? 'Heatmap — activité de l’année' : 'Agenda'
 
   return (
     <div className="cal-page">
@@ -79,9 +80,9 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
         </div>
         <div className="cal-title">{title}</div>
         <div className="tabs" style={{ margin: 0, flex: 'none' }}>
-          {(['mois', 'semaine', 'agenda', 'annee'] as View[]).map((k) => (
+          {(['mois', 'semaine', 'jour', 'agenda', 'annee'] as View[]).map((k) => (
             <button key={k} className={view === k ? 'on' : ''} onClick={() => setView(k)} style={{ padding: '7px 11px' }}>
-              {k === 'mois' ? 'Mois' : k === 'semaine' ? 'Semaine' : k === 'agenda' ? 'Agenda' : 'Année'}
+              {k === 'mois' ? 'Mois' : k === 'semaine' ? 'Semaine' : k === 'jour' ? 'Jour' : k === 'agenda' ? 'Agenda' : 'Heatmap (année)'}
             </button>
           ))}
         </div>
@@ -122,13 +123,29 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
         )
       })}
 
+      {view === 'jour' && (() => {
+        const es = evOfDay(cur); const isT = isSameDay(cur, today)
+        return (
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div className="row" style={{ marginBottom: es.length ? 12 : 0 }}>
+              <span style={{ fontWeight: 600, fontSize: 16, textTransform: 'capitalize', color: isT ? 'var(--accent)' : 'var(--text)' }}>
+                {cur.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </span>
+              {isT && <span className="pill acc">Aujourd’hui</span>}
+            </div>
+            {es.length === 0 ? <span className="sub">Rien de prévu ce jour.</span>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{es.map((e) => <Chip key={e.id} e={e} />)}</div>}
+          </div>
+        )
+      })()}
+
       {view === 'agenda' && (
         <>
           <div className="date-strip">
             {weekDays.map((d, i) => {
               const es = evOfDay(d); const isT = isSameDay(d, today)
               return (
-                <button key={i} className={'ds-day' + (isT ? ' today' : '')} onClick={() => { setCur(d); setView('semaine') }}>
+                <button key={i} className={'ds-day' + (isT ? ' today' : '')} onClick={() => { setCur(d); setView('jour') }}>
                   <span className="ds-dow">{DOW[(d.getDay() + 6) % 7]}</span>
                   <span className="ds-num">{d.getDate()}</span>
                   <span className="ds-dot" style={{ visibility: es.length ? 'visible' : 'hidden' }} />
