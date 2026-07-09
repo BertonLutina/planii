@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, getTok, setTok } from '@/lib/api'
 import { Toaster, Avatar, health, toast, toastErr } from '@/lib/ui'
 import type { User } from '@/lib/types'
+import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
 import { Auth } from './components/Auth'
 import { ProjectsList, JoinModal } from './components/Projects'
 import { ProjectDetail } from './components/ProjectDetail'
@@ -47,17 +48,71 @@ function ThemeToggleButton() {
   )
 }
 
+function ListEditor({ me, onUpdate, title, desc, field, get, placeholder, maxLen, emptyNote }: {
+  me: User; onUpdate: (u: User) => void; title: string; desc: string
+  field: 'taskTypes' | 'roleLibrary'; get: (u: User) => string[]
+  placeholder: string; maxLen: number; emptyNote: string
+}) {
+  const [list, setList] = useState<string[]>(get(me))
+  const [nv, setNv] = useState('')
+  const [saving, setSaving] = useState(false)
+  const dirty = JSON.stringify(list) !== JSON.stringify(get(me))
+
+  function add() {
+    const v = nv.trim()
+    if (!v) return
+    if (list.some((t) => t.toLowerCase() === v.toLowerCase())) { toastErr('Déjà dans la liste'); return }
+    if (list.length >= 40) { toastErr('Liste trop longue'); return }
+    setList([...list, v]); setNv('')
+  }
+  const remove = (t: string) => setList(list.filter((x) => x !== t))
+
+  async function save() {
+    setSaving(true)
+    try {
+      const r = await api<{ user: User }>('PATCH', '/me', { [field]: list })
+      onUpdate(r.user); setList(get(r.user)); toast('Enregistré ✓')
+    } catch (e: any) { toastErr(e.message) } finally { setSaving(false) }
+  }
+
+  return (
+    <>
+      <div className="section-h">{title}</div>
+      <div className="card">
+        <p className="sub" style={{ marginTop: 0 }}>{desc}</p>
+        <div className="chips">
+          {list.map((t) => (
+            <span key={t} className={'chip ' + typeTone(t)}>
+              {t}
+              <button className="chip-x" onClick={() => remove(t)} aria-label={'Retirer ' + t}>×</button>
+            </span>
+          ))}
+          {list.length === 0 && <span className="sub">{emptyNote}</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <input style={{ flex: 1 }} value={nv} maxLength={maxLen} placeholder={placeholder} onChange={(e) => setNv(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
+          <button className="btn sm" onClick={add}>Ajouter</button>
+        </div>
+        <button className="btn primary block" style={{ marginTop: 10 }} disabled={!dirty || saving} onClick={save}>
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+      </div>
+    </>
+  )
+}
+
 function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void }) {
   const [first, setFirst] = useState(me.firstName || '')
   const [last, setLast] = useState(me.lastName || '')
+  const [job, setJob] = useState(me.job || '')
   const [saving, setSaving] = useState(false)
-  const dirty = first !== (me.firstName || '') || last !== (me.lastName || '')
+  const dirty = first !== (me.firstName || '') || last !== (me.lastName || '') || job !== (me.job || '')
 
   async function save() {
     if (!first.trim() && !last.trim()) { toastErr('Indique au moins un prénom ou un nom'); return }
     setSaving(true)
     try {
-      const r = await api<{ user: User }>('PATCH', '/me', { firstName: first.trim(), lastName: last.trim() })
+      const r = await api<{ user: User }>('PATCH', '/me', { firstName: first.trim(), lastName: last.trim(), job: job.trim() })
       onUpdate(r.user)
       toast('Profil mis à jour ✓')
     } catch (e: any) { toastErr(e.message) } finally { setSaving(false) }
@@ -68,7 +123,7 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
       <div className="card">
         <div className="who" style={{ gap: 12 }}>
           <Avatar name={me.name} size={48} />
-          <div><p className="title-lg" style={{ fontSize: 16 }}>{me.name}</p><p className="sub">{me.email}</p></div>
+          <div><p className="title-lg" style={{ fontSize: 16 }}>{me.name}</p><p className="sub">{me.email}{me.job ? ' · ' + me.job : ''}</p></div>
         </div>
       </div>
 
@@ -78,10 +133,24 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
           <input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="Ton prénom" maxLength={60} /></div>
         <div className="field"><label>Nom</label>
           <input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Ton nom" maxLength={60} /></div>
+        <div className="field"><label>Métier</label>
+          <input value={job} onChange={(e) => setJob(e.target.value)} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
         <button className="btn primary block" style={{ marginTop: 6 }} disabled={!dirty || saving} onClick={save}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </div>
+
+      <ListEditor me={me} onUpdate={onUpdate}
+        title="Mes rôles" field="roleLibrary" get={roleLibraryOf}
+        desc="Bibliothèque de rôles réutilisables dans tes projets (ex. Chef de projet, Développeur, Consultant)."
+        placeholder="Nouveau rôle…" maxLen={40}
+        emptyNote="Aucun rôle — ajoutes-en pour les réutiliser dans tes projets." />
+
+      <ListEditor me={me} onUpdate={onUpdate}
+        title="Mes types de tâches" field="taskTypes" get={taskTypesOf}
+        desc="Ces types s’appliquent à toutes tes tâches (ex. Tâche, Bug, Amélioration…)."
+        placeholder="Nouveau type…" maxLen={30}
+        emptyNote="Aucun type — les défauts (Tâche, Bug) seront utilisés." />
 
       {me.admin && (
         <button className="btn primary block" style={{ marginTop: 4 }} onClick={onAdmin}>🛡️ Espace admin</button>

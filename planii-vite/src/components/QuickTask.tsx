@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Modal, toast, toastErr } from '@/lib/ui'
 import { PRIORITIES } from '@/lib/priority'
+import { taskTypesOf, typeTone } from '@/lib/tasktype'
 import type { ProjectSummary, User } from '@/lib/types'
 
 /** Ajout rapide d'une tâche (avec priorité), depuis le “+” / “Nouveau”. */
 export function QuickTask({ me, onClose, onCreated }: { me: User; onClose: () => void; onCreated: () => void }) {
+  const myTypes = taskTypesOf(me)
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
-  const [f, setF] = useState({ projectId: '', title: '', priority: 6, due: '' })
+  const [f, setF] = useState({ projectId: '', title: '', type: myTypes[0] || '', priority: 6, due: '' })
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export function QuickTask({ me, onClose, onCreated }: { me: User; onClose: () =>
     if (!f.projectId) { toastErr('Choisis un projet'); return }
     setBusy(true)
     try {
-      await api('POST', '/projects/' + f.projectId + '/tasks', { title: f.title.trim(), priority: f.priority, due: f.due || null, assigneeId: me.id })
+      await api('POST', '/projects/' + f.projectId + '/tasks', { title: f.title.trim(), type: f.type || null, priority: f.priority, due: f.due || null, assigneeId: me.id })
       toast('Tâche créée ✓'); onCreated()
     } catch (e: any) { toastErr(e.message); setBusy(false) }
   }
@@ -38,6 +40,11 @@ export function QuickTask({ me, onClose, onCreated }: { me: User; onClose: () =>
             <select value={f.projectId} onChange={(e) => setF({ ...f, projectId: e.target.value })}>
               {(projects || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select></div>
+          <div className="field"><label>Type</label>
+            <div className="type-pick">
+              <button className={f.type === '' ? 'on' : ''} onClick={() => setF({ ...f, type: '' })}>Aucun</button>
+              {myTypes.map((t) => <button key={t} className={f.type === t ? 'on ' + typeTone(t) : ''} onClick={() => setF({ ...f, type: t })}>{t}</button>)}
+            </div></div>
           <div className="field"><label>Priorité</label>
             <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={f.priority === n ? 'on o' + n : ''} onClick={() => setF({ ...f, priority: n })}>P{n}</button>)}</div></div>
           <div className="field"><label>Échéance</label>

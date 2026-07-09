@@ -42,6 +42,9 @@ async function initSchema() {
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name text`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name text`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS job text`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS task_types jsonb`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role_library jsonb`);
   await q(`CREATE TABLE IF NOT EXISTS admin_audit (
     id text PRIMARY KEY, actor_id text, actor_name text, action text NOT NULL,
     detail text, created_at timestamptz NOT NULL DEFAULT now());`);
@@ -62,6 +65,13 @@ async function initSchema() {
   await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority int NOT NULL DEFAULT 6`);
   await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS description text`);
   await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_id text`);
+  await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS type text`);
+  await q(`CREATE TABLE IF NOT EXISTS project_roles (
+    id text PRIMARY KEY, project_id text NOT NULL, name text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now());`);
+  await q(`CREATE TABLE IF NOT EXISTS member_roles (
+    project_id text NOT NULL, user_id text NOT NULL, role_id text NOT NULL,
+    PRIMARY KEY(project_id, user_id, role_id));`);
   await q(`CREATE TABLE IF NOT EXISTS invites (
     token text PRIMARY KEY, project_id text NOT NULL, role text NOT NULL, email text,
     created_by text NOT NULL, expires_at timestamptz NOT NULL,
@@ -90,7 +100,21 @@ const newToken = () => crypto.randomBytes(18).toString('base64url');
 const SUPER_ADMIN_EMAILS = (process.env.SUPER_ADMIN_EMAILS || 'berton.lutina@hotmail.com').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
 const isSuperAdmin = (u) => !!u && SUPER_ADMIN_EMAILS.includes((u.email || '').toLowerCase());
 const isAdmin = (u) => !!u && (isSuperAdmin(u) || u.is_admin === true);
-const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '', admin: isAdmin(u), superAdmin: isSuperAdmin(u) };
+const DEFAULT_TASK_TYPES = ['Tâche', 'Bug'];
+const taskTypesOf = (u) => (u && Array.isArray(u.task_types) && u.task_types.length) ? u.task_types : DEFAULT_TASK_TYPES;
+const roleLibraryOf = (u) => (u && Array.isArray(u.role_library)) ? u.role_library : [];
+// Nettoie une liste de libellés : trim, longueur max, sans doublons (insensible à la casse), plafonnée.
+const cleanLabels = (arr, maxLen, maxCount) => {
+  const out = [];
+  for (const t of arr) {
+    if (typeof t !== 'string') continue;
+    const v = t.trim().slice(0, maxLen);
+    if (v && !out.some((x) => x.toLowerCase() === v.toLowerCase())) out.push(v);
+    if (out.length >= maxCount) break;
+  }
+  return out;
+};
+const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '', job: u.job || '', taskTypes: taskTypesOf(u), roleLibrary: roleLibraryOf(u), admin: isAdmin(u), superAdmin: isSuperAdmin(u) };
 const sign = (u) => jwt.sign({ sub: u.id }, JWT_SECRET, { expiresIn: '30d' });
 const canManage = (role) => role === 'owner' || role === 'lead';
 
@@ -147,8 +171,9 @@ app.post('/api/auth/register', h(async (req, res) => {
   const password = req.body.password || '';
   if (!name || !email || !password) return res.status(400).json({ error: 'Nom, email et mot de passe requis' });
   if (await userByEmail(email)) return res.status(409).json({ error: 'Cet email est déjà inscrit' });
-  const u = { id: uid(), name, email, pass_hash: bcrypt.hashSync(password, 10) };
-  await q('INSERT INTO users (id,name,email,pass_hash) VALUES ($1,$2,$3,$4)', [u.id, u.name, u.email, u.pass_hash]);
+  const job = (req.body.job || '').trim().slice(0, 60) || null;
+  const u = { id: uid(), name, email, pass_hash: bcrypt.hashSync(password, 10), job };
+  await q('INSERT INTO users (id,name,email,pass_hash,job) VALUES ($1,$2,$3,$4,$5)', [u.id, u.name, u.email, u.pass_hash, job]);
   res.json({ token: sign(u), user: publicUser(u) });
 }));
 app.post('/api/auth/login', h(async (req, res) => {
@@ -164,7 +189,15 @@ app.patch('/api/me', auth, h(async (req, res) => {
   const last = typeof req.body.lastName === 'string' ? req.body.lastName.trim() : (req.user.last_name || '');
   if (first.length > 60 || last.length > 60) return res.status(400).json({ error: 'Nom trop long' });
   const full = [first, last].filter(Boolean).join(' ').trim() || req.user.name;
-  await q('UPDATE users SET first_name=$1, last_name=$2, name=$3 WHERE id=$4', [first || null, last || null, full, req.user.id]);
+  const job = typeof req.body.job === 'string' ? (req.body.job.trim().slice(0, 60) || null) : (req.user.job || null);
+  let taskTypes = taskTypesOf(req.user);
+  if (Array.isArray(req.body.taskTypes)) {
+    const cleaned = cleanLabels(req.body.taskTypes, 30, 20);
+    taskTypes = cleaned.length ? cleaned : DEFAULT_TASK_TYPES;
+  }
+  const roleLibrary = Array.isArray(req.body.roleLibrary) ? cleanLabels(req.body.roleLibrary, 40, 40) : roleLibraryOf(req.user);
+  await q('UPDATE users SET first_name=$1, last_name=$2, name=$3, job=$4, task_types=$5, role_library=$6 WHERE id=$7',
+    [first || null, last || null, full, job, JSON.stringify(taskTypes), JSON.stringify(roleLibrary), req.user.id]);
   const u = await userById(req.user.id);
   res.json({ user: publicUser(u) });
 }));
@@ -194,10 +227,15 @@ app.get('/api/projects', auth, h(async (req, res) => {
 }));
 
 async function projectDetail(p, userId) {
-  const members = (await many(`SELECT m.user_id AS id, m.role, u.name, u.email
-      FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.project_id=$1 ORDER BY m.joined_at`, [p.id]));
+  const roles = await many('SELECT id, name FROM project_roles WHERE project_id=$1 ORDER BY created_at ASC', [p.id]);
+  const mroles = await many('SELECT user_id, role_id FROM member_roles WHERE project_id=$1', [p.id]);
+  const rolesByMember = {};
+  for (const r of mroles) (rolesByMember[r.user_id] = rolesByMember[r.user_id] || []).push(r.role_id);
+  const members = (await many(`SELECT m.user_id AS id, m.role, u.name, u.email, u.job
+      FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.project_id=$1 ORDER BY m.joined_at`, [p.id]))
+    .map(m => ({ id: m.id, role: m.role, name: m.name, email: m.email, job: m.job || '', roleIds: rolesByMember[m.id] || [] }));
   const tasks = (await many('SELECT * FROM tasks WHERE project_id=$1 ORDER BY priority ASC, created_at ASC', [p.id]))
-    .map(t => ({ id: t.id, title: t.title, description: t.description || null, assigneeId: t.assignee_id, createdBy: t.created_by, due: t.due, done: t.done, doneAt: t.done_at, estHours: t.est_hours == null ? null : Number(t.est_hours), spentHours: t.spent_hours == null ? null : Number(t.spent_hours), priority: t.priority == null ? 6 : Number(t.priority), parentId: t.parent_id || null }));
+    .map(t => ({ id: t.id, title: t.title, description: t.description || null, type: t.type || null, assigneeId: t.assignee_id, createdBy: t.created_by, due: t.due, done: t.done, doneAt: t.done_at, estHours: t.est_hours == null ? null : Number(t.est_hours), spentHours: t.spent_hours == null ? null : Number(t.spent_hours), priority: t.priority == null ? 6 : Number(t.priority), parentId: t.parent_id || null }));
   const pollRows = await many('SELECT * FROM polls WHERE project_id=$1 ORDER BY created_at DESC', [p.id]);
   const polls = [];
   for (const pl of pollRows) {
@@ -212,7 +250,7 @@ async function projectDetail(p, userId) {
   const activity = (await many(`SELECT a.*, u.name AS user_name FROM activity a
       LEFT JOIN users u ON u.id=a.user_id WHERE a.project_id=$1 ORDER BY a.created_at DESC LIMIT 100`, [p.id]))
     .map(a => ({ id: a.id, type: a.type, detail: a.detail, user: a.user_name, at: a.created_at }));
-  return { ...p, members, tasks, polls, activity };
+  return { ...p, roles, members, tasks, polls, activity };
 }
 
 app.get('/api/projects/:id', auth, h(async (req, res) => {
@@ -278,6 +316,8 @@ app.delete('/api/projects/:id', auth, h(async (req, res) => {
     await client.query('DELETE FROM tasks WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM invites WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM activity WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM member_roles WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM project_roles WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM memberships WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM projects WHERE id=$1', [p.id]);
     await client.query('COMMIT');
@@ -328,6 +368,62 @@ app.post('/api/invites/:token/accept', auth, h(async (req, res) => {
   res.json({ project: { id: p.id }, role: inv.role });
 }));
 
+/* ---------- rôles de projet (fonctions assignées aux membres) ---------- */
+// Créer un rôle dans le projet — propriétaire ou leader
+app.post('/api/projects/:id/roles', auth, h(async (req, res) => {
+  const p = await projectById(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+  const m = await membership(p.id, req.user.id);
+  if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  const name = (req.body.name || '').trim().slice(0, 40);
+  if (!name) return res.status(400).json({ error: 'Nom du rôle requis' });
+  const existing = await many('SELECT id FROM project_roles WHERE project_id=$1', [p.id]);
+  if (existing.length >= 30) return res.status(400).json({ error: 'Trop de rôles (max 30)' });
+  const dup = await one('SELECT id FROM project_roles WHERE project_id=$1 AND lower(name)=lower($2)', [p.id, name]);
+  if (dup) return res.status(409).json({ error: 'Ce rôle existe déjà' });
+  const id = uid();
+  await q('INSERT INTO project_roles (id,project_id,name) VALUES ($1,$2,$3)', [id, p.id, name]);
+  await logActivity(p.id, req.user.id, 'role_created', `a créé le rôle « ${name} »`);
+  res.json({ role: { id, name } });
+}));
+
+// Supprimer un rôle — propriétaire ou leader
+app.delete('/api/projects/:id/roles/:roleId', auth, h(async (req, res) => {
+  const p = await projectById(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+  const m = await membership(p.id, req.user.id);
+  if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  const role = await one('SELECT * FROM project_roles WHERE id=$1 AND project_id=$2', [req.params.roleId, p.id]);
+  if (!role) return res.status(404).json({ error: 'Rôle introuvable' });
+  await q('DELETE FROM member_roles WHERE project_id=$1 AND role_id=$2', [p.id, role.id]);
+  await q('DELETE FROM project_roles WHERE id=$1', [role.id]);
+  res.json({ ok: true });
+}));
+
+// Assigner la liste des rôles d'un membre — propriétaire ou leader
+app.put('/api/projects/:id/members/:userId/roles', auth, h(async (req, res) => {
+  const p = await projectById(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+  const m = await membership(p.id, req.user.id);
+  if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  const target = await membership(p.id, req.params.userId);
+  if (!target) return res.status(400).json({ error: 'Ce membre ne fait pas partie du projet' });
+  const wanted = Array.isArray(req.body.roleIds) ? req.body.roleIds : [];
+  const valid = await many('SELECT id FROM project_roles WHERE project_id=$1', [p.id]);
+  const validIds = new Set(valid.map((r) => r.id));
+  const ids = [...new Set(wanted.filter((r) => validIds.has(r)))];
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM member_roles WHERE project_id=$1 AND user_id=$2', [p.id, target.user_id]);
+    for (const rid of ids) await client.query('INSERT INTO member_roles (project_id,user_id,role_id) VALUES ($1,$2,$3)', [p.id, target.user_id, rid]);
+    await client.query('COMMIT');
+  } catch (e) { await client.query('ROLLBACK'); throw e; }
+  finally { client.release(); }
+  await logActivity(p.id, req.user.id, 'roles_assigned', 'a mis à jour les rôles d’un membre');
+  res.json({ ok: true, roleIds: ids });
+}));
+
 /* ---------- tasks ---------- */
 app.post('/api/projects/:id/tasks', auth, h(async (req, res) => {
   const p = await projectById(req.params.id);
@@ -342,15 +438,16 @@ app.post('/api/projects/:id/tasks', auth, h(async (req, res) => {
   const est = numOrNull(req.body.estHours);
   const prio = prioOrDefault(req.body.priority);
   const description = (req.body.description || '').trim() || null;
+  const type = (req.body.type || '').trim().slice(0, 30) || null;
   let parentId = req.body.parentId || null;
   if (parentId) {
     const parent = await taskById(parentId);
     if (!parent || parent.project_id !== p.id) return res.status(400).json({ error: 'Tâche parente invalide' });
     if (parent.parent_id) parentId = parent.parent_id; // pas de sous-sous-tâche : rattache au parent racine
   }
-  await q('INSERT INTO tasks (id,project_id,title,description,assignee_id,created_by,due,est_hours,priority,parent_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)', [id, p.id, title, description, assignee, req.user.id, req.body.due || null, est, prio, parentId]);
+  await q('INSERT INTO tasks (id,project_id,title,description,type,assignee_id,created_by,due,est_hours,priority,parent_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)', [id, p.id, title, description, type, assignee, req.user.id, req.body.due || null, est, prio, parentId]);
   await logActivity(p.id, req.user.id, 'task_created', `a ajouté « ${title} »`);
-  res.json({ task: { id, title, description, assigneeId: assignee, createdBy: req.user.id, due: req.body.due || null, done: false, estHours: est, spentHours: null, priority: prio, parentId } });
+  res.json({ task: { id, title, description, type, assigneeId: assignee, createdBy: req.user.id, due: req.body.due || null, done: false, estHours: est, spentHours: null, priority: prio, parentId } });
 }));
 
 app.patch('/api/tasks/:id', auth, h(async (req, res) => {
@@ -387,8 +484,8 @@ app.patch('/api/tasks/:id', auth, h(async (req, res) => {
     await q('UPDATE tasks SET priority=$1 WHERE id=$2', [n, t.id]);
   }
 
-  // Édition (titre / description / échéance / responsable) : créateur ou propriétaire/leader
-  if ('title' in b || 'description' in b || 'due' in b || 'assigneeId' in b) {
+  // Édition (titre / description / type / échéance / responsable) : créateur ou propriétaire/leader
+  if ('title' in b || 'description' in b || 'type' in b || 'due' in b || 'assigneeId' in b) {
     if (!(isCreator || manage)) return res.status(403).json({ error: 'Modification réservée au créateur ou au propriétaire' });
     const sets = [], vals = [];
     if ('title' in b) {
@@ -397,6 +494,7 @@ app.patch('/api/tasks/:id', auth, h(async (req, res) => {
       sets.push(`title=$${sets.length + 1}`); vals.push(title);
     }
     if ('description' in b) { sets.push(`description=$${sets.length + 1}`); vals.push((b.description || '').trim() || null); }
+    if ('type' in b) { sets.push(`type=$${sets.length + 1}`); vals.push((b.type || '').trim().slice(0, 30) || null); }
     if ('due' in b) { sets.push(`due=$${sets.length + 1}`); vals.push(b.due || null); }
     if ('assigneeId' in b) {
       const a = b.assigneeId || null;
@@ -552,12 +650,15 @@ app.delete('/api/admin/users/:id', auth, adminOnly, h(async (req, res) => {
       await client.query('DELETE FROM tasks WHERE project_id=$1', [pr.id]);
       await client.query('DELETE FROM invites WHERE project_id=$1', [pr.id]);
       await client.query('DELETE FROM activity WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM member_roles WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM project_roles WHERE project_id=$1', [pr.id]);
       await client.query('DELETE FROM memberships WHERE project_id=$1', [pr.id]);
       await client.query('DELETE FROM projects WHERE id=$1', [pr.id]);
     }
     // Désassigner ses tâches restantes + retirer de tous les projets + nettoyer
     await client.query('UPDATE tasks SET assignee_id=NULL WHERE assignee_id=$1', [target.id]);
     await client.query('DELETE FROM poll_votes WHERE user_id=$1', [target.id]);
+    await client.query('DELETE FROM member_roles WHERE user_id=$1', [target.id]);
     await client.query('DELETE FROM memberships WHERE user_id=$1', [target.id]);
     await client.query('DELETE FROM notifications WHERE user_id=$1', [target.id]);
     await client.query('DELETE FROM users WHERE id=$1', [target.id]);
@@ -647,6 +748,8 @@ app.delete('/api/admin/projects/:id', auth, adminOnly, h(async (req, res) => {
     await client.query('DELETE FROM tasks WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM invites WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM activity WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM member_roles WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM project_roles WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM memberships WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM projects WHERE id=$1', [p.id]);
     await client.query('COMMIT');

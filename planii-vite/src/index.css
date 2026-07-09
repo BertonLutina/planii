@@ -756,3 +756,21 @@ body{background:var(--bg);font-weight:400}
 
 .ac-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 @media(max-width:640px){ .ac-actions{flex-direction:column;align-items:stretch} }
+
+/* types de tâches & rôles projet (chips + badges colorés) */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:99px;font-size:12.5px;font-weight:600;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.chip.sm{padding:2px 8px;font-size:11.5px}
+.chip-x{border:none;background:none;color:currentColor;cursor:pointer;font-size:15px;line-height:1;padding:0;opacity:.7}
+.chip-x:hover{opacity:1}
+.ttype{flex:none;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;line-height:1.35;background:var(--surface-2);color:var(--muted)}
+.type-pick{display:flex;gap:6px;flex-wrap:wrap}
+.type-pick button{border:1px solid var(--line-strong);background:var(--bg);border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.type-pick button.on{border-width:2px;padding:7px 10px}
+.tt-a{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.tt-b{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+.tt-c{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.tt-d{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.tt-e{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
+.chip.as-btn{cursor:pointer;background:var(--surface);border-color:var(--line-strong);color:var(--text)}
+.chip.as-btn:hover{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}

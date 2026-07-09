@@ -1,14 +1,17 @@
 export type Role = 'owner' | 'lead' | 'provider' | 'client' | 'member'
 export type ProjectType = 'solo' | 'team' | 'group'
 
-export interface User { id: string; name: string; email: string; firstName?: string; lastName?: string; admin?: boolean; superAdmin?: boolean }
+export interface User { id: string; name: string; email: string; firstName?: string; lastName?: string; job?: string; taskTypes?: string[]; roleLibrary?: string[]; admin?: boolean; superAdmin?: boolean }
 
-export interface Member { id: string; name: string; email: string; role: Role }
+export interface ProjectRole { id: string; name: string }
+
+export interface Member { id: string; name: string; email: string; role: Role; job?: string; roleIds?: string[] }
 
 export interface Task {
   id: string
   title: string
   description?: string | null
+  type?: string | null
   parentId?: string | null
   assigneeId: string | null
   createdBy: string
@@ -58,6 +61,7 @@ export interface Project extends ProjectSummary {
   tasks: Task[]
   polls: Poll[]
   activity: Activity[]
+  roles: ProjectRole[]
 }
 
 export interface InviteInfo {

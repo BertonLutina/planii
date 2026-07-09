@@ -5,7 +5,7 @@ import type { User } from '@/lib/types'
 
 export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
-  const [f, setF] = useState({ name: '', email: '', password: '' })
+  const [f, setF] = useState({ name: '', email: '', password: '', job: '' })
   const [busy, setBusy] = useState(false)
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value })
 
@@ -25,8 +25,12 @@ export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
       <h1>Planii</h1>
       <p className="tag">Projets partagés : clients, prestataires et groupes — tâches, invitations, sondages, activité.</p>
       {mode === 'signup' && (
-        <div className="field"><label>Nom (ou entreprise)</label>
-          <input value={f.name} onChange={set('name')} placeholder="Ex. Awa Ndiaye" /></div>
+        <>
+          <div className="field"><label>Nom (ou entreprise)</label>
+            <input value={f.name} onChange={set('name')} placeholder="Ex. Awa Ndiaye" /></div>
+          <div className="field"><label>Métier (optionnel)</label>
+            <input value={f.job} onChange={set('job')} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
+        </>
       )}
       <div className="field"><label>Email</label>
         <input type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" /></div>

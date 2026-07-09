@@ -4,7 +4,8 @@ import { toast, toastErr, Avatar, health, Modal } from '@/lib/ui'
 import { TYPE_LABEL, ROLE_LABEL, INVITE_ROLES, canManage, formatDue, isOverdue } from '@/lib/dates'
 import { memberPoints, projectPoints, levelOf, taskPoints } from '@/lib/points'
 import { prio, prioMeta, PRIORITIES } from '@/lib/priority'
-import type { Member, Poll, Project, Task, User } from '@/lib/types'
+import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
+import type { Member, Poll, Project, ProjectRole, Task, User } from '@/lib/types'
 import { Meeting } from './Meeting'
 
 export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack: () => void }) {
@@ -84,7 +85,7 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
 
         {tab === 'taches' && <TasksTab p={p} me={me} memberName={memberName} reload={load} />}
         {tab === 'equipe' && <TeamBoard p={p} me={me} reload={load} />}
-        {tab === 'membres' && <MembersTab p={p} manage={manage} />}
+        {tab === 'membres' && <MembersTab p={p} me={me} manage={manage} reload={load} />}
         {tab === 'sondages' && <PollsTab p={p} reload={load} />}
         {tab === 'activite' && <ActivityTab p={p} />}
       </div>
@@ -93,8 +94,9 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
 }
 
 function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberName: (id: string | null) => string; reload: () => void }) {
+  const myTypes = taskTypesOf(me)
   const [adding, setAdding] = useState(false)
-  const [nf, setNf] = useState<{ title: string; desc: string; assigneeId: string; due: string; est: string; priority: number }>({ title: '', desc: '', assigneeId: '', due: '', est: '', priority: 6 })
+  const [nf, setNf] = useState<{ title: string; desc: string; type: string; assigneeId: string; due: string; est: string; priority: number }>({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6 })
   const [rec, setRec] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
@@ -106,7 +108,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
 
   async function addTask() {
     if (!nf.title.trim()) return
-    try { await api('POST', '/projects/' + p.id + '/tasks', { title: nf.title.trim(), description: nf.desc || null, assigneeId: nf.assigneeId || null, due: nf.due || null, estHours: nf.est || null, priority: nf.priority }); setNf({ title: '', desc: '', assigneeId: '', due: '', est: '', priority: 6 }); setAdding(false); reload() }
+    try { await api('POST', '/projects/' + p.id + '/tasks', { title: nf.title.trim(), description: nf.desc || null, type: nf.type || null, assigneeId: nf.assigneeId || null, due: nf.due || null, estHours: nf.est || null, priority: nf.priority }); setNf({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6 }); setAdding(false); reload() }
     catch (e: any) { toastErr(e.message) }
   }
   async function addSub(parentId: string) {
@@ -168,6 +170,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
           <div className="tname">
             <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
+              {t.type && <span className={'ttype ' + typeTone(t.type)}>{t.type}</span>}
               <span style={{ flex: 1, minWidth: 0 }}>{t.title}</span>
             </span>
             {t.description && <div className="sub" style={{ marginTop: 2 }}>{t.description}</div>}
@@ -202,7 +205,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
             ))}
           </Modal>
         )}
-        {editId === t.id && <EditTask p={p} t={t} canEditMeta={canEditMeta} canLogHours={canLogHours} onClose={() => setEditId(null)} onSaved={() => { setEditId(null); reload() }} />}
+        {editId === t.id && <EditTask p={p} t={t} types={myTypes} canEditMeta={canEditMeta} canLogHours={canLogHours} onClose={() => setEditId(null)} onSaved={() => { setEditId(null); reload() }} />}
       </div>
     )
   }
@@ -219,6 +222,11 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
               <button className={'btn sm' + (rec ? ' primary' : '')} onClick={dictate} title="Dicter">{rec ? '● Stop' : '🎙️'}</button>
             </div></div>
           <div className="field"><label>Description (optionnel)</label><textarea value={nf.desc} onChange={(e) => setNf({ ...nf, desc: e.target.value })} placeholder="Détails, contexte…" /></div>
+          <div className="field"><label>Type</label>
+            <div className="type-pick">
+              <button className={nf.type === '' ? 'on' : ''} onClick={() => setNf({ ...nf, type: '' })}>Aucun</button>
+              {myTypes.map((t) => <button key={t} className={nf.type === t ? 'on ' + typeTone(t) : ''} onClick={() => setNf({ ...nf, type: t })}>{t}</button>)}
+            </div></div>
           <div className="field"><label>Responsable</label>
             <select value={nf.assigneeId} onChange={(e) => setNf({ ...nf, assigneeId: e.target.value })}>
               <option value="">— À prendre (non assignée)</option>
@@ -303,22 +311,85 @@ function TeamBoard({ p, me, reload }: { p: Project; me: User; reload: () => void
   )
 }
 
-function MembersTab({ p, manage }: { p: Project; manage: boolean }) {
+function MembersTab({ p, me, manage, reload }: { p: Project; me: User; manage: boolean; reload: () => void }) {
   const [links, setLinks] = useState<{ role: string; link: string }[]>([])
+  const [newRole, setNewRole] = useState('')
+  const [assignFor, setAssignFor] = useState<Member | null>(null)
+  const roles: ProjectRole[] = p.roles || []
+  const roleName = (id: string) => roles.find((r) => r.id === id)?.name || ''
+  const library = roleLibraryOf(me)
+  const suggestions = library.filter((r) => !roles.some((pr) => pr.name.toLowerCase() === r.toLowerCase()))
+
   async function invite(role: string) {
     try { const r = await api<{ role: string; link: string }>('POST', '/projects/' + p.id + '/invites', { role }); setLinks((l) => [r, ...l]); toast('Lien d’invitation créé') }
     catch (e: any) { toastErr(e.message) }
   }
   function copy(link: string) { (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(() => toast('Lien copié 📋')).catch(() => toast('Copie indisponible')) }
+  async function addRole(name?: string) {
+    const nm = (name ?? newRole).trim(); if (!nm) return
+    try { await api('POST', '/projects/' + p.id + '/roles', { name: nm }); if (!name) setNewRole(''); toast('Rôle ajouté ✓'); reload() }
+    catch (e: any) { toastErr(e.message) }
+  }
+  async function delRole(id: string) {
+    try { await api('DELETE', '/projects/' + p.id + '/roles/' + id); reload() } catch (e: any) { toastErr(e.message) }
+  }
+  async function saveAssign(memberId: string, roleIds: string[]) {
+    try { await api('PUT', '/projects/' + p.id + '/members/' + memberId + '/roles', { roleIds }); setAssignFor(null); toast('Rôles mis à jour ✓'); reload() }
+    catch (e: any) { toastErr(e.message) }
+  }
+
   return (
     <div>
+      {manage && p.status !== 'done' && (
+        <>
+          <div className="section-h">Rôles du projet</div>
+          <div className="card">
+            <p className="sub" style={{ marginTop: 0 }}>Crée des rôles (ex. Chef de projet, Développeur) puis assigne-les aux membres.</p>
+            <div className="chips">
+              {roles.map((r) => (
+                <span key={r.id} className={'chip ' + typeTone(r.name)}>{r.name}
+                  <button className="chip-x" onClick={() => delRole(r.id)} aria-label={'Supprimer ' + r.name}>×</button>
+                </span>
+              ))}
+              {roles.length === 0 && <span className="sub">Aucun rôle pour l’instant.</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <input style={{ flex: 1 }} value={newRole} maxLength={40} placeholder="Nouveau rôle…" onChange={(e) => setNewRole(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addRole() }} />
+              <button className="btn sm" onClick={() => addRole()}>Ajouter</button>
+            </div>
+            {suggestions.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <p className="sub" style={{ margin: '0 0 6px' }}>Depuis ta bibliothèque :</p>
+                <div className="chips">
+                  {suggestions.map((r) => <button key={r} className="chip as-btn" onClick={() => addRole(r)}>＋ {r}</button>)}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       <div className="section-h">Membres ({p.members.length})</div>
       {p.members.map((m: Member) => (
         <div key={m.id} className="rank">
           <Avatar name={m.name} />
-          <div className="info"><div className="nm">{m.name}</div><div className="sc">{m.email} · {ROLE_LABEL[m.role] || m.role}</div></div>
+          <div className="info">
+            <div className="nm">{m.name}</div>
+            <div className="sc">{m.email} · {ROLE_LABEL[m.role] || m.role}{m.job ? ' · ' + m.job : ''}</div>
+            {(m.roleIds && m.roleIds.length > 0) && (
+              <div className="chips" style={{ marginTop: 5 }}>
+                {m.roleIds.map((rid) => roleName(rid) && <span key={rid} className={'chip sm ' + typeTone(roleName(rid))}>{roleName(rid)}</span>)}
+              </div>
+            )}
+          </div>
+          {manage && roles.length > 0 && <button className="btn ghost sm" onClick={() => setAssignFor(m)}>Rôles</button>}
         </div>
       ))}
+
+      {assignFor && (
+        <AssignRoles member={assignFor} roles={roles} onClose={() => setAssignFor(null)} onSave={(ids) => saveAssign(assignFor.id, ids)} />
+      )}
+
       {manage && p.status !== 'done' && (
         <>
           <div className="section-h">Inviter</div>
@@ -338,6 +409,27 @@ function MembersTab({ p, manage }: { p: Project; manage: boolean }) {
         </>
       )}
     </div>
+  )
+}
+
+function AssignRoles({ member, roles, onClose, onSave }: { member: Member; roles: ProjectRole[]; onClose: () => void; onSave: (ids: string[]) => void }) {
+  const [sel, setSel] = useState<string[]>(member.roleIds || [])
+  const toggle = (id: string) => setSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id])
+  return (
+    <Modal title={'Rôles de ' + member.name} onClose={onClose}>
+      <p className="sub" style={{ marginTop: 0 }}>Coche les rôles à attribuer à ce membre.</p>
+      {roles.map((r) => (
+        <button key={r.id} className="prow" onClick={() => toggle(r.id)}>
+          <span className={'chip sm ' + typeTone(r.name)}>{r.name}</span>
+          <span style={{ flex: 1 }} />
+          {sel.includes(r.id) ? '✓' : ''}
+        </button>
+      ))}
+      <div className="sheet-actions" style={{ marginTop: 12 }}>
+        <button className="btn primary" onClick={() => onSave(sel)}>Enregistrer</button>
+        <button className="btn ghost" onClick={onClose}>Annuler</button>
+      </div>
+    </Modal>
   )
 }
 
@@ -414,22 +506,24 @@ function EditProject({ p, onClose, onSaved }: { p: Project; onClose: () => void;
   )
 }
 
-function EditTask({ p, t, canEditMeta, canLogHours, onClose, onSaved }: { p: Project; t: Task; canEditMeta: boolean; canLogHours: boolean; onClose: () => void; onSaved: () => void }) {
+function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: { p: Project; t: Task; types: string[]; canEditMeta: boolean; canLogHours: boolean; onClose: () => void; onSaved: () => void }) {
   const [f, setF] = useState({
     title: t.title,
     desc: t.description || '',
+    type: t.type || '',
     assigneeId: t.assigneeId || '',
     due: t.due || '',
     est: t.estHours != null ? String(t.estHours) : '',
     spent: t.spentHours != null ? String(t.spentHours) : '',
     prio: prio(t.priority),
   })
+  const typeOpts = [...new Set([...types, ...(t.type ? [t.type] : [])])]
   const [busy, setBusy] = useState(false)
   async function save() {
     const body: any = { priority: f.prio }
     if (canEditMeta) {
       if (!f.title.trim()) { toastErr('L’intitulé ne peut pas être vide'); return }
-      body.title = f.title.trim(); body.description = f.desc || null; body.due = f.due || null; body.assigneeId = f.assigneeId || null
+      body.title = f.title.trim(); body.description = f.desc || null; body.type = f.type || null; body.due = f.due || null; body.assigneeId = f.assigneeId || null
     }
     if (canLogHours) {
       body.estHours = f.est === '' ? null : Number(f.est)
@@ -447,6 +541,11 @@ function EditTask({ p, t, canEditMeta, canLogHours, onClose, onSaved }: { p: Pro
             <input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
           <div className="field"><label>Description</label>
             <textarea value={f.desc} onChange={(e) => setF({ ...f, desc: e.target.value })} placeholder="Détails, contexte…" /></div>
+          <div className="field"><label>Type</label>
+            <div className="type-pick">
+              <button className={f.type === '' ? 'on' : ''} onClick={() => setF({ ...f, type: '' })}>Aucun</button>
+              {typeOpts.map((t) => <button key={t} className={f.type === t ? 'on ' + typeTone(t) : ''} onClick={() => setF({ ...f, type: t })}>{t}</button>)}
+            </div></div>
           <div className="field"><label>Responsable</label>
             <select value={f.assigneeId} onChange={(e) => setF({ ...f, assigneeId: e.target.value })}>
               <option value="">— À prendre (non assignée)</option>
