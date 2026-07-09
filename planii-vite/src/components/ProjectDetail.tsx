@@ -10,6 +10,7 @@ import { Meeting } from './Meeting'
 import { Mic, MicInput, MicTextarea } from './Mic'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
 import { useRealtime } from '@/lib/realtime'
+import { taskComparator, type TaskSort, type Dir } from '@/lib/sort'
 
 export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack: () => void }) {
   const [p, setP] = useState<Project | null>(null)
@@ -107,7 +108,21 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
   const [prioId, setPrioId] = useState<string | null>(null)
   const [addSubFor, setAddSubFor] = useState<string | null>(null)
   const [subTitle, setSubTitle] = useState('')
+  const [sortMode, setSortMode] = useState<TaskSort>('priority')
+  const [sortDir, setSortDir] = useState<Dir>('asc')
+  const [grouped, setGrouped] = useState(false)
+  const [dragId, setDragId] = useState<string | null>(null)
   const member = (id: string | null) => p.members.find((x) => x.id === id)
+
+  function dropOn(targetId: string) {
+    if (sortMode !== 'manual' || !dragId || dragId === targetId) { setDragId(null); return }
+    const ids = roots.map((r) => r.id)
+    const from = ids.indexOf(dragId), to = ids.indexOf(targetId)
+    if (from < 0 || to < 0) { setDragId(null); return }
+    ids.splice(to, 0, ids.splice(from, 1)[0])
+    setDragId(null)
+    api('PUT', '/projects/' + p.id + '/tasks/order', { ids }).then(reload).catch((e: any) => toastErr(e.message))
+  }
 
   async function addTask() {
     if (!nf.title.trim()) return
@@ -133,12 +148,9 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
   }
 
   const overdue = p.tasks.filter((t) => isOverdue(t))
-  const sorted = [...p.tasks].sort((a, b) => {
-    const da = a.done ? 1 : 0, db = b.done ? 1 : 0; if (da !== db) return da - db
-    const pa = prio(a.priority), pb = prio(b.priority); if (pa !== pb) return pa - pb
-    return (a.due || '9999').localeCompare(b.due || '9999')
-  })
-  const roots = sorted.filter((t) => !t.parentId)
+  const cmp = taskComparator(sortMode, sortDir)
+  const roots = p.tasks.filter((t) => !t.parentId).slice().sort(cmp)
+  const canDrag = sortMode === 'manual' && !grouped && p.status !== 'done'
 
   const renderTask = (t: Task, isSub = false) => {
     const over = isOverdue(t)
@@ -203,6 +215,45 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
     )
   }
 
+  const renderRoot = (t: Task) => {
+    const subs = p.tasks.filter((s) => s.parentId === t.id).slice().sort(cmp)
+    return (
+      <div key={t.id} className={'task-group' + (canDrag ? ' draggable' : '') + (dragId === t.id ? ' dragging' : '')}
+        draggable={canDrag}
+        onDragStart={canDrag ? () => setDragId(t.id) : undefined}
+        onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
+        onDrop={canDrag ? () => dropOn(t.id) : undefined}>
+        {canDrag && <span className="drag-handle" aria-hidden="true" title="Glisser pour réordonner">⠿</span>}
+        {renderTask(t)}
+        {(subs.length > 0 || addSubFor === t.id) && (
+          <div className="subtasks">
+            {subs.map((s) => renderTask(s, true))}
+            {addSubFor === t.id && (
+              <div className="subtask-add">
+                <input autoFocus value={subTitle} onChange={(e) => setSubTitle(e.target.value)} placeholder="Nouvelle sous-tâche…" onKeyDown={(e) => { if (e.key === 'Enter') addSub(t.id) }} />
+                <Mic value={subTitle} onChange={setSubTitle} />
+                <button className="btn sm primary" onClick={() => addSub(t.id)}>Ajouter</button>
+                <button className="btn sm ghost" onClick={() => { setAddSubFor(null); setSubTitle('') }}>✕</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const groupByAssignee = () => {
+    const map = new Map<string, Task[]>()
+    for (const t of roots) { const k = t.assigneeId || ''; if (!map.has(k)) map.set(k, []); map.get(k)!.push(t) }
+    const keys = [...map.keys()].sort((a, b) => (a === '' ? 1 : b === '' ? -1 : (member(a)?.name || '').localeCompare(member(b)?.name || '', 'fr', { sensitivity: 'base' })))
+    return keys.map((k) => (
+      <div key={k || 'none'}>
+        <div className="grp-h">{k ? '👤 ' + (member(k)?.name || '—') : '👐 À prendre'} · {map.get(k)!.length}</div>
+        {map.get(k)!.map(renderRoot)}
+      </div>
+    ))
+  }
+
   return (
     <div>
       {overdue.length > 0 && <div className="banner" style={{ background: 'var(--danger-bg)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>⚠ {overdue.length} tâche(s) en retard.</div>}
@@ -236,29 +287,23 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
           <div className="sheet-actions"><button className="btn primary sm" onClick={addTask}>Ajouter</button><button className="btn ghost sm" onClick={() => setAdding(false)}>Annuler</button></div>
         </div>
       )}
+      {p.tasks.length > 0 && (
+        <div className="list-tools">
+          <label className="lt-lbl">Trier</label>
+          <select value={sortMode} onChange={(e) => setSortMode(e.target.value as TaskSort)} aria-label="Trier les tâches par">
+            <option value="priority">Priorité</option>
+            <option value="due">Échéance</option>
+            <option value="title">Titre</option>
+            <option value="manual">Manuel</option>
+          </select>
+          <button className="btn sm" onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}</button>
+          <button className={'btn sm' + (grouped ? ' primary' : '')} onClick={() => setGrouped((g) => !g)} title="Regrouper par responsable">👤 Par personne</button>
+        </div>
+      )}
+      {canDrag && <div className="sub" style={{ margin: '0 2px 8px' }}>Glissez les tâches pour changer l’ordre.</div>}
       <div className="section-h">Tâches</div>
       {p.tasks.length === 0 && <div className="empty"><div className="big">✓</div>Aucune tâche pour l’instant.</div>}
-      {roots.map((t) => {
-        const subs = p.tasks.filter((s) => s.parentId === t.id).sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || prio(a.priority) - prio(b.priority))
-        return (
-          <div key={t.id} className="task-group">
-            {renderTask(t)}
-            {(subs.length > 0 || addSubFor === t.id) && (
-              <div className="subtasks">
-                {subs.map((s) => renderTask(s, true))}
-                {addSubFor === t.id && (
-                  <div className="subtask-add">
-                    <input autoFocus value={subTitle} onChange={(e) => setSubTitle(e.target.value)} placeholder="Nouvelle sous-tâche…" onKeyDown={(e) => { if (e.key === 'Enter') addSub(t.id) }} />
-                    <Mic value={subTitle} onChange={setSubTitle} />
-                    <button className="btn sm primary" onClick={() => addSub(t.id)}>Ajouter</button>
-                    <button className="btn sm ghost" onClick={() => { setAddSubFor(null); setSubTitle('') }}>✕</button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )
-      })}
+      {grouped ? groupByAssignee() : roots.map(renderRoot)}
     </div>
   )
 }

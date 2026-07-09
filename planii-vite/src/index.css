@@ -807,3 +807,14 @@ body{background:var(--bg);font-weight:400}
 /* page réglages / profil : colonne de lecture centrée (évite l'étirement plein écran) */
 .settings-page{max-width:620px;margin:0 auto}
 @media(min-width:900px){ .settings-page{padding:0 24px} }
+
+/* tri + drag-and-drop (projets & tâches) */
+.list-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 8px}
+.list-tools .lt-lbl{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.list-tools select{height:34px;border:1px solid var(--line-strong);border-radius:9px;background:var(--surface);color:var(--text);font-size:13px;font-weight:600;padding:0 8px}
+.drag-handle{color:var(--hint);cursor:grab;font-size:15px;user-select:none;line-height:1}
+.task-group.draggable{position:relative;padding-left:20px}
+.task-group.draggable>.drag-handle{position:absolute;left:0;top:16px}
+.proj-card.draggable{position:relative}
+.proj-card.draggable>.drag-handle{position:absolute;left:8px;top:8px}
+.task-group.dragging,.proj-card.dragging{opacity:.45}

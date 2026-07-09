@@ -21,6 +21,7 @@ export interface Task {
   estHours?: number | null
   spentHours?: number | null
   priority?: number | null
+  position?: number | null
 }
 
 export interface PollOption { id: string; label: string; votes: number }
@@ -45,6 +46,7 @@ export interface ProjectSummary {
   my_role: Role
   taskCount: number
   doneCount: number
+  position?: number | null
 }
 
 export interface Notification {

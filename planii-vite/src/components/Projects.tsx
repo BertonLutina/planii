@@ -3,6 +3,7 @@ import { api } from '@/lib/api'
 import { toast, toastErr, Modal, health } from '@/lib/ui'
 import { ROLE_LABEL } from '@/lib/dates'
 import { MicInput } from './Mic'
+import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
 import type { InviteInfo, ProjectSummary } from '@/lib/types'
 
 export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: string) => void; onJoin: () => void; openSignal?: number }) {
@@ -10,6 +11,9 @@ export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: stri
   const [err, setErr] = useState<string | null>(null)
   const [newOpen, setNewOpen] = useState(false)
   const [tab, setTab] = useState<'active' | 'done'>('active')
+  const [pSort, setPSort] = useState<ProjSort>('title')
+  const [pDir, setPDir] = useState<Dir>('asc')
+  const [dragId, setDragId] = useState<string | null>(null)
   const load = useCallback(() => { api<{ projects: ProjectSummary[] }>('GET', '/projects').then((r) => setProjects(r.projects)).catch((e) => setErr(e.message)) }, [])
   useEffect(load, [load])
   useEffect(() => { if (openSignal) setNewOpen(true) }, [openSignal])
@@ -18,7 +22,18 @@ export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: stri
   if (!projects) return <div className="empty">Chargement…</div>
   const active = projects.filter((p) => p.status !== 'done')
   const done = projects.filter((p) => p.status === 'done')
-  const list = tab === 'active' ? active : done
+  const list = (tab === 'active' ? active : done).slice().sort(projectComparator(pSort, pDir))
+  const canDrag = pSort === 'manual' && tab === 'active'
+
+  function dropOn(targetId: string) {
+    if (!canDrag || !dragId || dragId === targetId) { setDragId(null); return }
+    const ids = list.map((p) => p.id)
+    const from = ids.indexOf(dragId), to = ids.indexOf(targetId)
+    if (from < 0 || to < 0) { setDragId(null); return }
+    ids.splice(to, 0, ids.splice(from, 1)[0])
+    setDragId(null)
+    api('PUT', '/projects/order', { ids: [...ids, ...done.map((p) => p.id)] }).then(load).catch((e: any) => toastErr(e.message))
+  }
 
   return (
     <div>
@@ -29,13 +44,27 @@ export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: stri
         </div>
         <button className="btn-link" onClick={onJoin}>Rejoindre un projet…</button>
       </div>
+      <div className="list-tools">
+        <label className="lt-lbl">Trier</label>
+        <select value={pSort} onChange={(e) => setPSort(e.target.value as ProjSort)} aria-label="Trier les projets par">
+          <option value="title">Titre</option>
+          <option value="manual">Manuel</option>
+        </select>
+        <button className="btn sm" onClick={() => setPDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{pDir === 'asc' ? '↑ A→Z' : '↓ Z→A'}</button>
+      </div>
+      {canDrag && <div className="sub" style={{ margin: '0 2px 8px' }}>Glissez les projets pour changer l’ordre.</div>}
       <div className="proj-grid">
         {list.map((p) => {
           const h = health(p.taskCount, p.doneCount, p.status)
           const typeShort = ({ solo: '1-à-1', team: 'Équipe', group: 'Groupe' } as Record<string, string>)[p.type] || p.type
           const sub = typeShort + (p.type !== 'group' ? ' · ' + (ROLE_LABEL[p.my_role] || p.my_role) : '') + ` · ${h.done}/${h.total} tâches`
           return (
-            <button key={p.id} className="proj-card" onClick={() => onOpen(p.id)}>
+            <button key={p.id} className={'proj-card' + (canDrag ? ' draggable' : '') + (dragId === p.id ? ' dragging' : '')} onClick={() => onOpen(p.id)}
+              draggable={canDrag}
+              onDragStart={canDrag ? () => setDragId(p.id) : undefined}
+              onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
+              onDrop={canDrag ? (e) => { e.preventDefault(); dropOn(p.id) } : undefined}>
+              {canDrag && <span className="drag-handle" aria-hidden="true">⠿</span>}
               <div className="pc-name">{p.name}</div>
               <div className="pc-sub">{sub}</div>
               <div className="mini-bar"><i style={{ width: h.pct + '%', background: p.status === 'done' ? 'var(--ok)' : 'var(--accent)' }} /></div>

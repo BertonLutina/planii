@@ -93,6 +93,8 @@ async function initSchema() {
   await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS description text`);
   await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_id text`);
   await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS type text`);
+  await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS position int`);
+  await q(`ALTER TABLE memberships ADD COLUMN IF NOT EXISTS position int`);
   await q(`CREATE TABLE IF NOT EXISTS project_roles (
     id text PRIMARY KEY, project_id text NOT NULL, name text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now());`);
@@ -264,12 +266,25 @@ app.post('/api/projects', auth, h(async (req, res) => {
 }));
 
 app.get('/api/projects', auth, h(async (req, res) => {
-  const rows = await many(`SELECT p.*, m.role AS my_role,
+  const rows = await many(`SELECT p.*, m.role AS my_role, m.position AS position,
       (SELECT count(*) FROM tasks t WHERE t.project_id=p.id)::int AS "taskCount",
       (SELECT count(*) FROM tasks t WHERE t.project_id=p.id AND t.done)::int AS "doneCount"
     FROM projects p JOIN memberships m ON m.project_id=p.id
-    WHERE m.user_id=$1 ORDER BY p.created_at DESC`, [req.user.id]);
+    WHERE m.user_id=$1 ORDER BY m.position ASC NULLS LAST, p.name ASC`, [req.user.id]);
   res.json({ projects: rows });
+}));
+
+// Ordre manuel des projets — propre à chaque utilisateur (drag-and-drop)
+app.put('/api/projects/order', auth, h(async (req, res) => {
+  const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (let i = 0; i < ids.length; i++) await client.query('UPDATE memberships SET position=$1 WHERE user_id=$2 AND project_id=$3', [i, req.user.id, ids[i]]);
+    await client.query('COMMIT');
+  } catch (e) { await client.query('ROLLBACK'); throw e; }
+  finally { client.release(); }
+  res.json({ ok: true });
 }));
 
 async function projectDetail(p, userId) {
@@ -281,7 +296,7 @@ async function projectDetail(p, userId) {
       FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.project_id=$1 ORDER BY m.joined_at`, [p.id]))
     .map(m => ({ id: m.id, role: m.role, name: m.name, email: m.email, job: m.job || '', roleIds: rolesByMember[m.id] || [] }));
   const tasks = (await many('SELECT * FROM tasks WHERE project_id=$1 ORDER BY priority ASC, created_at ASC', [p.id]))
-    .map(t => ({ id: t.id, title: t.title, description: t.description || null, type: t.type || null, assigneeId: t.assignee_id, createdBy: t.created_by, due: t.due, done: t.done, doneAt: t.done_at, estHours: t.est_hours == null ? null : Number(t.est_hours), spentHours: t.spent_hours == null ? null : Number(t.spent_hours), priority: t.priority == null ? 6 : Number(t.priority), parentId: t.parent_id || null }));
+    .map(t => ({ id: t.id, title: t.title, description: t.description || null, type: t.type || null, assigneeId: t.assignee_id, createdBy: t.created_by, due: t.due, done: t.done, doneAt: t.done_at, estHours: t.est_hours == null ? null : Number(t.est_hours), spentHours: t.spent_hours == null ? null : Number(t.spent_hours), priority: t.priority == null ? 6 : Number(t.priority), parentId: t.parent_id || null, position: t.position == null ? null : Number(t.position) }));
   const pollRows = await many('SELECT * FROM polls WHERE project_id=$1 ORDER BY created_at DESC', [p.id]);
   const polls = [];
   for (const pl of pollRows) {
@@ -491,6 +506,22 @@ app.put('/api/projects/:id/members/:userId/roles', auth, h(async (req, res) => {
 }));
 
 /* ---------- tasks ---------- */
+// Ordre manuel des tâches d'un projet (drag-and-drop, partagé aux membres)
+app.put('/api/projects/:id/tasks/order', auth, h(async (req, res) => {
+  const m = await membership(req.params.id, req.user.id);
+  if (!m) return res.status(403).json({ error: 'Non membre' });
+  const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (let i = 0; i < ids.length; i++) await client.query('UPDATE tasks SET position=$1 WHERE id=$2 AND project_id=$3', [i, ids[i], req.params.id]);
+    await client.query('COMMIT');
+  } catch (e) { await client.query('ROLLBACK'); throw e; }
+  finally { client.release(); }
+  bump(req.params.id);
+  res.json({ ok: true });
+}));
+
 app.post('/api/projects/:id/tasks', auth, h(async (req, res) => {
   const p = await projectById(req.params.id);
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
