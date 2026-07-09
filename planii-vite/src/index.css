@@ -774,3 +774,32 @@ body{background:var(--bg);font-weight:400}
 .tt-e{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
 .chip.as-btn{cursor:pointer;background:var(--surface);border-color:var(--line-strong);color:var(--text)}
 .chip.as-btn:hover{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+
+/* dictée vocale */
+.mic-field{position:relative;flex:1;min-width:0}
+.mic-field input,.mic-field textarea{width:100%;padding-right:44px}
+.mic-btn{flex:none;width:34px;height:34px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0}
+.mic-btn svg{width:17px;height:17px}
+.mic-btn:hover{background:var(--surface-2);color:var(--text)}
+.mic-btn.on{background:var(--danger-bg);border-color:var(--danger);color:var(--danger)}
+.mic-field>.mic-btn{position:absolute;right:6px;top:6px;width:30px;height:30px}
+.mic-field.ta>.mic-btn{top:8px}
+.mic-pulse{width:11px;height:11px;border-radius:50%;background:var(--danger);animation:micp 1s ease-in-out infinite}
+@keyframes micp{0%,100%{transform:scale(.7);opacity:.6}50%{transform:scale(1.15);opacity:1}}
+
+/* assistant vocal guidé */
+.vw-steps{display:flex;gap:6px;margin:2px 0 4px}
+.vw-dot{flex:1;height:5px;border-radius:99px;background:var(--line-strong)}
+.vw-dot.on{background:var(--accent)} .vw-dot.done{background:var(--accent-2)}
+.vw-q{font-size:17px;font-weight:600;margin:10px 0}
+.vw-mic-row{display:flex;align-items:center;gap:12px;margin:6px 0}
+.vw-mic{width:60px;height:60px;border-radius:50%;border:2px solid var(--accent);background:var(--accent-bg);color:var(--accent);display:grid;place-items:center;cursor:pointer;flex:none}
+.vw-mic svg{width:26px;height:26px}
+.vw-mic.on{background:var(--danger-bg);border-color:var(--danger);color:var(--danger)}
+.vw-hint{color:var(--muted);font-size:14px}
+.vw-heard{background:var(--surface-2);border-radius:10px;padding:8px 12px;font-style:italic;color:var(--text);margin:8px 0}
+.vw-manual{margin-top:10px}
+.vw-review{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.vw-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.vw-line:last-child{border-bottom:none}
+.vw-line>span{color:var(--muted);font-size:13.5px}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api, setTok } from '@/lib/api'
 import { toastErr } from '@/lib/ui'
+import { MicInput } from './Mic'
 import type { User } from '@/lib/types'
 
 export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
@@ -27,9 +28,9 @@ export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
       {mode === 'signup' && (
         <>
           <div className="field"><label>Nom (ou entreprise)</label>
-            <input value={f.name} onChange={set('name')} placeholder="Ex. Awa Ndiaye" /></div>
+            <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Awa Ndiaye" /></div>
           <div className="field"><label>Métier (optionnel)</label>
-            <input value={f.job} onChange={set('job')} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
+            <MicInput value={f.job} onChange={(v) => setF({ ...f, job: v })} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
         </>
       )}
       <div className="field"><label>Email</label>

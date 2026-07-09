@@ -3,6 +3,7 @@ import { api } from '@/lib/api'
 import { Modal, toast, toastErr } from '@/lib/ui'
 import { PRIORITIES } from '@/lib/priority'
 import { taskTypesOf, typeTone } from '@/lib/tasktype'
+import { MicInput } from './Mic'
 import type { ProjectSummary, User } from '@/lib/types'
 
 /** Ajout rapide d'une tâche (avec priorité), depuis le “+” / “Nouveau”. */
@@ -35,7 +36,7 @@ export function QuickTask({ me, onClose, onCreated }: { me: User; onClose: () =>
       ) : (
         <>
           <div className="field"><label>Intitulé</label>
-            <input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Ex. Relire le chapitre 4" autoFocus /></div>
+            <MicInput value={f.title} onChange={(v) => setF({ ...f, title: v })} placeholder="Ex. Relire le chapitre 4" autoFocus /></div>
           <div className="field"><label>Projet</label>
             <select value={f.projectId} onChange={(e) => setF({ ...f, projectId: e.target.value })}>
               {(projects || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}

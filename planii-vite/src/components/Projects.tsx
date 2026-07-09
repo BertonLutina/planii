@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { toast, toastErr, Modal, health } from '@/lib/ui'
 import { ROLE_LABEL } from '@/lib/dates'
+import { MicInput } from './Mic'
 import type { InviteInfo, ProjectSummary } from '@/lib/types'
 
 export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: string) => void; onJoin: () => void; openSignal?: number }) {
@@ -63,7 +64,7 @@ function NewProject({ onClose, onCreated }: { onClose: () => void; onCreated: (i
   return (
     <Modal title="Nouveau projet" onClose={onClose}>
       <div className="field"><label>Nom du projet</label>
-        <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Ex. Site web — Café du Coin" /></div>
+        <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Site web — Café du Coin" /></div>
       <div className="field"><label>Type de projet</label>
         <div className="seg" style={{ flexDirection: 'column', gap: 8 }}>
           {([['solo', '1-à-1 — un client'], ['team', 'Équipe — client + plusieurs prestataires (vous = leader)'], ['group', 'Groupe — communauté, famille, amis']] as [string, string][]).map(([k, l]) => (

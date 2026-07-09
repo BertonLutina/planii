@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { toast, toastErr, Avatar, health, Modal } from '@/lib/ui'
 import { TYPE_LABEL, ROLE_LABEL, INVITE_ROLES, canManage, formatDue, isOverdue } from '@/lib/dates'
@@ -7,6 +7,8 @@ import { prio, prioMeta, PRIORITIES } from '@/lib/priority'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
 import type { Member, Poll, Project, ProjectRole, Task, User } from '@/lib/types'
 import { Meeting } from './Meeting'
+import { Mic, MicInput, MicTextarea } from './Mic'
+import { VoiceTaskWizard } from './VoiceTaskWizard'
 
 export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack: () => void }) {
   const [p, setP] = useState<Project | null>(null)
@@ -96,14 +98,13 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
 function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberName: (id: string | null) => string; reload: () => void }) {
   const myTypes = taskTypesOf(me)
   const [adding, setAdding] = useState(false)
+  const [voice, setVoice] = useState(false)
   const [nf, setNf] = useState<{ title: string; desc: string; type: string; assigneeId: string; due: string; est: string; priority: number }>({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6 })
-  const [rec, setRec] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [prioId, setPrioId] = useState<string | null>(null)
   const [addSubFor, setAddSubFor] = useState<string | null>(null)
   const [subTitle, setSubTitle] = useState('')
-  const recogRef = useRef<any>(null)
   const member = (id: string | null) => p.members.find((x) => x.id === id)
 
   async function addTask() {
@@ -121,16 +122,6 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
   async function del(t: Task) { try { await api('DELETE', '/tasks/' + t.id); reload() } catch (e: any) { toastErr(e.message) } }
   async function setPriority(t: Task, n: number) { try { await api('PATCH', '/tasks/' + t.id, { priority: n }); setPrioId(null); toast('Priorité P' + n); reload() } catch (e: any) { toastErr(e.message) } }
 
-  function dictate() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { toastErr('Dictée non disponible sur ce navigateur'); return }
-    if (rec) { recogRef.current?.stop(); return }
-    const r = new SR(); r.lang = 'fr-FR'; r.interimResults = true; recogRef.current = r; setRec(true)
-    let fin = ''
-    r.onresult = (e: any) => { let itm = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const tr = e.results[i]; if (tr.isFinal) fin += tr[0].transcript; else itm += tr[0].transcript } setNf((v) => ({ ...v, title: (fin + itm).trim() })) }
-    r.onerror = () => setRec(false); r.onend = () => setRec(false)
-    try { r.start() } catch { setRec(false) }
-  }
   function relance(t: Task) {
     const m = member(t.assigneeId); if (!m || !m.email) { toastErr('Pas d’email pour ce membre'); return }
     const subject = `Petit rappel — ${p.name}`
@@ -213,15 +204,19 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
   return (
     <div>
       {overdue.length > 0 && <div className="banner" style={{ background: 'var(--danger-bg)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>⚠ {overdue.length} tâche(s) en retard.</div>}
-      {p.status !== 'done' && <button className="btn block" style={{ marginBottom: 12 }} onClick={() => setAdding((v) => !v)}>＋ Nouvelle tâche</button>}
+      {p.status !== 'done' && (
+        <div className="sheet-actions" style={{ marginBottom: 12 }}>
+          <button className="btn" style={{ flex: 1 }} onClick={() => setAdding((v) => !v)}>＋ Nouvelle tâche</button>
+          <button className="btn primary" onClick={() => setVoice(true)} title="Créer une tâche à la voix">🎤 Dicter une tâche</button>
+        </div>
+      )}
+      {voice && <VoiceTaskWizard p={p} me={me} onClose={() => setVoice(false)} onCreated={() => { setVoice(false); reload() }} />}
       {adding && (
         <div className="card">
           <div className="field"><label>Intitulé</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input style={{ flex: 1 }} value={nf.title} onChange={(e) => setNf({ ...nf, title: e.target.value })} placeholder={rec ? 'Parlez…' : 'Ex. Envoyer les visuels'} />
-              <button className={'btn sm' + (rec ? ' primary' : '')} onClick={dictate} title="Dicter">{rec ? '● Stop' : '🎙️'}</button>
-            </div></div>
-          <div className="field"><label>Description (optionnel)</label><textarea value={nf.desc} onChange={(e) => setNf({ ...nf, desc: e.target.value })} placeholder="Détails, contexte…" /></div>
+            <MicInput value={nf.title} onChange={(v) => setNf({ ...nf, title: v })} placeholder="Ex. Envoyer les visuels" /></div>
+          <div className="field"><label>Description (optionnel)</label>
+            <MicTextarea value={nf.desc} onChange={(v) => setNf({ ...nf, desc: v })} placeholder="Détails, contexte…" /></div>
           <div className="field"><label>Type</label>
             <div className="type-pick">
               <button className={nf.type === '' ? 'on' : ''} onClick={() => setNf({ ...nf, type: '' })}>Aucun</button>
@@ -252,6 +247,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
                 {addSubFor === t.id && (
                   <div className="subtask-add">
                     <input autoFocus value={subTitle} onChange={(e) => setSubTitle(e.target.value)} placeholder="Nouvelle sous-tâche…" onKeyDown={(e) => { if (e.key === 'Enter') addSub(t.id) }} />
+                    <Mic value={subTitle} onChange={setSubTitle} />
                     <button className="btn sm primary" onClick={() => addSub(t.id)}>Ajouter</button>
                     <button className="btn sm ghost" onClick={() => { setAddSubFor(null); setSubTitle('') }}>✕</button>
                   </div>
@@ -355,6 +351,7 @@ function MembersTab({ p, me, manage, reload }: { p: Project; me: User; manage: b
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <input style={{ flex: 1 }} value={newRole} maxLength={40} placeholder="Nouveau rôle…" onChange={(e) => setNewRole(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addRole() }} />
+              <Mic value={newRole} onChange={setNewRole} />
               <button className="btn sm" onClick={() => addRole()}>Ajouter</button>
             </div>
             {suggestions.length > 0 && (
@@ -449,8 +446,8 @@ function PollsTab({ p, reload }: { p: Project; reload: () => void }) {
       {p.status !== 'done' && <button className="btn block" style={{ marginBottom: 12 }} onClick={() => setAdding((v) => !v)}>＋ Nouveau sondage</button>}
       {adding && (
         <div className="card">
-          <div className="field"><label>Question</label><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ex. Quelle date pour le lancement ?" /></div>
-          {opts.map((o, i) => <div className="field" key={i}><label>Option {i + 1}</label><input value={o} onChange={(e) => { const c = [...opts]; c[i] = e.target.value; setOpts(c) }} /></div>)}
+          <div className="field"><label>Question</label><MicInput value={q} onChange={setQ} placeholder="Ex. Quelle date pour le lancement ?" /></div>
+          {opts.map((o, i) => <div className="field" key={i}><label>Option {i + 1}</label><MicInput value={o} onChange={(v) => { const c = [...opts]; c[i] = v; setOpts(c) }} /></div>)}
           <button className="btn-link" onClick={() => setOpts([...opts, ''])}>＋ Ajouter une option</button>
           <div className="sheet-actions"><button className="btn primary sm" onClick={create}>Lancer le sondage</button><button className="btn ghost sm" onClick={() => setAdding(false)}>Annuler</button></div>
         </div>
@@ -495,7 +492,7 @@ function EditProject({ p, onClose, onSaved }: { p: Project; onClose: () => void;
   return (
     <Modal title="Modifier le projet" onClose={onClose}>
       <div className="field"><label>Nom du projet</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom du projet" /></div>
+        <MicInput value={name} onChange={setName} placeholder="Nom du projet" /></div>
       <div className="field"><label>Date de livraison</label>
         <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></div>
       <div className="sheet-actions">
@@ -538,9 +535,9 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
       {canEditMeta && (
         <>
           <div className="field"><label>Intitulé</label>
-            <input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
+            <MicInput value={f.title} onChange={(v) => setF({ ...f, title: v })} /></div>
           <div className="field"><label>Description</label>
-            <textarea value={f.desc} onChange={(e) => setF({ ...f, desc: e.target.value })} placeholder="Détails, contexte…" /></div>
+            <MicTextarea value={f.desc} onChange={(v) => setF({ ...f, desc: v })} placeholder="Détails, contexte…" /></div>
           <div className="field"><label>Type</label>
             <div className="type-pick">
               <button className={f.type === '' ? 'on' : ''} onClick={() => setF({ ...f, type: '' })}>Aucun</button>

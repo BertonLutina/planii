@@ -3,6 +3,7 @@ import { api, getTok, setTok } from '@/lib/api'
 import { Toaster, Avatar, health, toast, toastErr } from '@/lib/ui'
 import type { User } from '@/lib/types'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
+import { MicInput } from './components/Mic'
 import { Auth } from './components/Auth'
 import { ProjectsList, JoinModal } from './components/Projects'
 import { ProjectDetail } from './components/ProjectDetail'
@@ -90,7 +91,7 @@ function ListEditor({ me, onUpdate, title, desc, field, get, placeholder, maxLen
           {list.length === 0 && <span className="sub">{emptyNote}</span>}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          <input style={{ flex: 1 }} value={nv} maxLength={maxLen} placeholder={placeholder} onChange={(e) => setNv(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
+          <MicInput style={{ flex: 1 }} value={nv} maxLength={maxLen} placeholder={placeholder} onChange={setNv} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
           <button className="btn sm" onClick={add}>Ajouter</button>
         </div>
         <button className="btn primary block" style={{ marginTop: 10 }} disabled={!dirty || saving} onClick={save}>
@@ -130,11 +131,11 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
       <div className="section-h">Mes informations</div>
       <div className="card">
         <div className="field"><label>Prénom</label>
-          <input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="Ton prénom" maxLength={60} /></div>
+          <MicInput value={first} onChange={setFirst} placeholder="Ton prénom" maxLength={60} /></div>
         <div className="field"><label>Nom</label>
-          <input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Ton nom" maxLength={60} /></div>
+          <MicInput value={last} onChange={setLast} placeholder="Ton nom" maxLength={60} /></div>
         <div className="field"><label>Métier</label>
-          <input value={job} onChange={(e) => setJob(e.target.value)} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
+          <MicInput value={job} onChange={setJob} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
         <button className="btn primary block" style={{ marginTop: 6 }} disabled={!dirty || saving} onClick={save}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </button>
