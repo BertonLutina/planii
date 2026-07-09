@@ -846,3 +846,16 @@ body{background:var(--bg);font-weight:400}
 .login-ago{font-size:12px;color:var(--muted);white-space:nowrap}
 .auth-support{margin-top:18px;font-size:13px;color:var(--muted);text-align:center}
 .auth-support a{color:var(--accent);font-weight:600}
+
+/* boîte mail admin */
+.mail-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+.mail-row:hover{background:var(--surface-2)}
+.mail-row.unread{border-color:var(--accent)}
+.mail-dot{width:8px;height:8px;border-radius:50%;background:transparent;flex:none}
+.mail-row.unread .mail-dot{background:var(--accent)}
+.mail-main{flex:1;min-width:0}
+.mail-from{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail-row.unread .mail-from{color:var(--accent)}
+.mail-subj{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail-date{font-size:12px;color:var(--hint);white-space:nowrap;flex:none}
+.mail-body{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);white-space:pre-wrap;font-size:14px;line-height:1.6;color:var(--text);word-break:break-word}

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { toast, toastErr } from '@/lib/ui'
+import { toast, toastErr, Modal } from '@/lib/ui'
 import { PRIORITIES, prioMeta } from '@/lib/priority'
 import { formatDue } from '@/lib/dates'
+import { MicInput, MicTextarea } from './Mic'
 import type { User } from '@/lib/types'
 
-type Section = 'dash' | 'users' | 'tasks' | 'projects' | 'admins' | 'audit'
+type Section = 'dash' | 'users' | 'tasks' | 'projects' | 'admins' | 'audit' | 'mail'
 
 interface AStats {
   users: number; projects: number; projectsActive: number; tasks: number; tasksDone: number; tasksOpen: number; tasksOverdue: number
@@ -17,6 +18,8 @@ interface AUser { id: string; name: string; email: string; createdAt: string; la
 interface ATask { id: string; title: string; projectId: string; projectName: string; assigneeName: string | null; due: string | null; done: boolean; priority: number }
 interface AProject { id: string; name: string; type: string; status: string; ownerName: string; ownerEmail: string; memberCount: number; taskCount: number; doneCount: number }
 interface AAudit { id: string; actor: string; action: string; detail: string; at: string }
+interface MailItem { uid: number; from: string; fromName: string; subject: string; date: string; seen: boolean }
+interface MailMsg { uid: number; from: string; to: string; subject: string; date: string; text: string; html: string; replyTo: string }
 
 const fmtDate = (s: string) => { try { return new Date(s).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return '—' } }
 const fmtDateTime = (s: string) => { try { return new Date(s).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) } catch { return '—' } }
@@ -56,7 +59,7 @@ export function Admin({ me }: { me: User }) {
   const isSuper = !!me.superAdmin
   const segs: [Section, string][] = [
     ['dash', '📊 Tableau de bord'], ['users', '👤 Utilisateurs'], ['tasks', '✓ Tâches'], ['projects', '📁 Projets'],
-    ...(isSuper ? [['admins', '⭐ Admins'], ['audit', '📜 Audit']] as [Section, string][] : []),
+    ...(isSuper ? [['admins', '⭐ Admins'], ['mail', '📥 Boîte mail'], ['audit', '📜 Audit']] as [Section, string][] : []),
   ]
   return (
     <div className="admin-page">
@@ -68,6 +71,7 @@ export function Admin({ me }: { me: User }) {
       {sec === 'tasks' && <Tasks />}
       {sec === 'projects' && <Projects />}
       {sec === 'admins' && isSuper && <Users me={me} isSuper adminsOnly />}
+      {sec === 'mail' && isSuper && <Mailbox />}
       {sec === 'audit' && isSuper && <Audit />}
     </div>
   )
@@ -267,6 +271,100 @@ function Projects() {
         </div>
       ))}
     </>
+  )
+}
+
+const htmlToText = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim()
+
+function Compose({ onClose, onSent }: { onClose: () => void; onSent: () => void }) {
+  const [f, setF] = useState({ to: '', subject: '', body: '' })
+  const [busy, setBusy] = useState(false)
+  async function send() {
+    if (!f.to.trim() || !f.subject.trim()) { toastErr('Destinataire et objet requis'); return }
+    setBusy(true)
+    try { await api('POST', '/admin/mail/send', f); toast('Mail envoyé ✓'); onSent() }
+    catch (e: any) { toastErr(e.message); setBusy(false) }
+  }
+  return (
+    <Modal title="✏️ Nouveau message" onClose={onClose}>
+      <div className="field"><label>À</label><MicInput value={f.to} onChange={(v) => setF({ ...f, to: v })} placeholder="destinataire@exemple.com" type="email" /></div>
+      <div className="field"><label>Objet</label><MicInput value={f.subject} onChange={(v) => setF({ ...f, subject: v })} placeholder="Objet du message" /></div>
+      <div className="field"><label>Message</label><MicTextarea value={f.body} onChange={(v) => setF({ ...f, body: v })} placeholder="Votre message…" rows={7} /></div>
+      <div className="sheet-actions"><button className="btn primary" disabled={busy} onClick={send}>Envoyer</button><button className="btn ghost" onClick={onClose}>Annuler</button></div>
+    </Modal>
+  )
+}
+
+function Mailbox() {
+  const [list, setList] = useState<MailItem[] | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const [open, setOpen] = useState<MailMsg | null>(null)
+  const [loadingMsg, setLoadingMsg] = useState(false)
+  const [reply, setReply] = useState('')
+  const [sending, setSending] = useState(false)
+  const [compose, setCompose] = useState(false)
+
+  const load = useCallback(() => {
+    setErr(null)
+    api<{ messages: MailItem[] }>('GET', '/admin/mail').then((r) => setList(r.messages)).catch((e: any) => { setErr(e.message); setList([]) })
+  }, [])
+  useEffect(() => { load() }, [load])
+
+  async function openMsg(uid: number) {
+    setLoadingMsg(true); setReply('')
+    try { const r = await api<{ message: MailMsg }>('GET', '/admin/mail/' + uid); setOpen(r.message) }
+    catch (e: any) { toastErr(e.message) } finally { setLoadingMsg(false) }
+  }
+  async function sendReply() {
+    if (!open || !reply.trim()) return
+    setSending(true)
+    try { await api('POST', '/admin/mail/' + open.uid + '/reply', { body: reply }); toast('Réponse envoyée ✓'); setReply(''); setOpen(null); load() }
+    catch (e: any) { toastErr(e.message) } finally { setSending(false) }
+  }
+
+  if (err) return (
+    <div className="card" style={{ marginTop: 12 }}>
+      <p className="sub" style={{ margin: 0 }}>📭 {err}</p>
+      <p className="sub" style={{ marginTop: 8 }}>Ajoute <code>SMTP_PASS</code> dans le <code>.env</code> du serveur pour activer la boîte mail.</p>
+    </div>
+  )
+  if (!list) return <div className="empty">Chargement…</div>
+
+  if (open) return (
+    <div>
+      <button className="btn-link" onClick={() => setOpen(null)}>‹ Retour à la boîte</button>
+      <div className="card" style={{ marginTop: 10 }}>
+        <div className="title-lg" style={{ fontSize: 16 }}>{open.subject}</div>
+        <div className="sub" style={{ marginTop: 4 }}>De : {open.from}</div>
+        <div className="sub">Le {fmtDateTime(open.date)}</div>
+        <div className="mail-body">{open.text || htmlToText(open.html) || '(message vide)'}</div>
+      </div>
+      <div className="section-h">Répondre</div>
+      <div className="card">
+        <MicTextarea value={reply} onChange={setReply} placeholder={'Répondre à ' + (open.replyTo || open.from) + '…'} rows={6} />
+        <button className="btn primary block" style={{ marginTop: 8 }} disabled={sending || !reply.trim()} onClick={sendReply}>{sending ? 'Envoi…' : 'Envoyer la réponse'}</button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div>
+      <div className="sheet-actions" style={{ marginBottom: 10 }}>
+        <button className="btn sm" onClick={load}>↻ Actualiser</button>
+        <button className="btn sm primary" onClick={() => setCompose(true)}>✏️ Écrire</button>
+      </div>
+      <div className="grp-h">{list.length} MESSAGE·S — INFO@PLANII.APP</div>
+      {list.length === 0 && <div className="empty">Boîte vide.</div>}
+      {list.map((m) => (
+        <button key={m.uid} className={'mail-row' + (m.seen ? '' : ' unread')} onClick={() => openMsg(m.uid)}>
+          <span className="mail-dot" />
+          <div className="mail-main"><div className="mail-from">{m.fromName || m.from}</div><div className="mail-subj">{m.subject}</div></div>
+          <span className="mail-date">{fmtDateTime(m.date)}</span>
+        </button>
+      ))}
+      {loadingMsg && <div className="empty">Ouverture…</div>}
+      {compose && <Compose onClose={() => setCompose(false)} onSent={() => setCompose(false)} />}
+    </div>
   )
 }
 

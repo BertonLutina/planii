@@ -9,6 +9,8 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const { ImapFlow } = require('imapflow');
+const { simpleParser } = require('mailparser');
 const { WebSocketServer } = require('ws');
 const { Pool } = require('pg');
 
@@ -51,6 +53,47 @@ async function sendMail(to, subject, layoutOpts) {
   if (!MAIL_ON || !to) return;
   try { await mailer.sendMail({ from: MAIL_FROM, to, subject, html: mailLayout({ title: subject, ...layoutOpts }), text: (layoutOpts && layoutOpts.intro) || subject }); }
   catch (e) { console.error('Échec envoi mail:', e.message); }
+}
+
+/* ---------- boîte mail intégrée (IMAP lecture + SMTP composition) ---------- */
+const IMAP_HOST = process.env.IMAP_HOST || 'imap.hostinger.com';
+const IMAP_PORT = parseInt(process.env.IMAP_PORT || '993', 10);
+const imapClient = () => new ImapFlow({ host: IMAP_HOST, port: IMAP_PORT, secure: true, auth: { user: SMTP_USER, pass: SMTP_PASS }, logger: false });
+async function imapList(limit = 30) {
+  const client = imapClient(); await client.connect();
+  const lock = await client.getMailboxLock('INBOX');
+  const out = [];
+  try {
+    const total = client.mailbox.exists || 0;
+    if (total > 0) {
+      const start = Math.max(1, total - limit + 1);
+      for await (const m of client.fetch(`${start}:*`, { envelope: true, flags: true })) {
+        const f = (m.envelope.from && m.envelope.from[0]) || {};
+        out.push({ uid: m.uid, from: f.address || '', fromName: f.name || f.address || '', subject: m.envelope.subject || '(sans objet)', date: m.envelope.date, seen: m.flags ? m.flags.has('\\Seen') : true });
+      }
+    }
+  } finally { lock.release(); await client.logout(); }
+  return out.reverse();
+}
+async function imapRead(uid) {
+  const client = imapClient(); await client.connect();
+  const lock = await client.getMailboxLock('INBOX');
+  let out = null;
+  try {
+    const m = await client.fetchOne(String(uid), { source: true }, { uid: true });
+    if (m && m.source) {
+      const p = await simpleParser(m.source);
+      out = { uid, from: (p.from && p.from.text) || '', to: (p.to && p.to.text) || '', subject: p.subject || '(sans objet)', date: p.date, text: p.text || '', html: p.html || '', messageId: p.messageId || '', replyTo: (p.from && p.from.value && p.from.value[0] && p.from.value[0].address) || '' };
+    }
+    try { await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true }); } catch { /* noop */ }
+  } finally { lock.release(); await client.logout(); }
+  return out;
+}
+async function sendRaw({ to, subject, text, inReplyTo }) {
+  if (!MAIL_ON) throw new Error('Mail non configuré');
+  const opts = { from: MAIL_FROM, to, subject, text };
+  if (inReplyTo) { opts.inReplyTo = inReplyTo; opts.references = inReplyTo; }
+  await mailer.sendMail(opts);
 }
 
 const pool = new Pool({
@@ -813,6 +856,36 @@ app.patch('/api/admin/users/:id/admin', auth, superAdminOnly, h(async (req, res)
 app.get('/api/admin/audit', auth, superAdminOnly, h(async (req, res) => {
   const rows = await many('SELECT id,actor_name,action,detail,created_at FROM admin_audit ORDER BY created_at DESC LIMIT 100', []);
   res.json({ audit: rows.map((r) => ({ id: r.id, actor: r.actor_name, action: r.action, detail: r.detail, at: r.created_at })) });
+}));
+
+/* ---------- boîte mail (super administrateur) ---------- */
+app.get('/api/admin/mail', auth, superAdminOnly, h(async (req, res) => {
+  if (!MAIL_ON) return res.status(503).json({ error: 'Boîte mail non configurée (SMTP_PASS absent sur le serveur).' });
+  try { res.json({ messages: await imapList(30), mailbox: SMTP_USER }); }
+  catch (e) { console.error('imap list', e.message); res.status(502).json({ error: 'Connexion à la boîte mail échouée : ' + e.message }); }
+}));
+app.get('/api/admin/mail/:uid', auth, superAdminOnly, h(async (req, res) => {
+  if (!MAIL_ON) return res.status(503).json({ error: 'Boîte mail non configurée.' });
+  try { const m = await imapRead(req.params.uid); if (!m) return res.status(404).json({ error: 'Message introuvable' }); res.json({ message: m }); }
+  catch (e) { console.error('imap read', e.message); res.status(502).json({ error: 'Lecture du message échouée : ' + e.message }); }
+}));
+app.post('/api/admin/mail/send', auth, superAdminOnly, h(async (req, res) => {
+  const to = (req.body.to || '').trim(); const subject = (req.body.subject || '').trim(); const text = String(req.body.body || '');
+  if (!to || !subject) return res.status(400).json({ error: 'Destinataire et objet requis' });
+  try { await sendRaw({ to, subject, text }); await audit(req.user, 'mail_sent', `→ ${to} : ${subject}`); res.json({ ok: true }); }
+  catch (e) { res.status(502).json({ error: 'Envoi échoué : ' + e.message }); }
+}));
+app.post('/api/admin/mail/:uid/reply', auth, superAdminOnly, h(async (req, res) => {
+  const text = String(req.body.body || '');
+  try {
+    const orig = await imapRead(req.params.uid);
+    if (!orig) return res.status(404).json({ error: 'Message introuvable' });
+    const to = orig.replyTo || orig.from;
+    const subject = /^re\s*:/i.test(orig.subject) ? orig.subject : ('Re: ' + orig.subject);
+    await sendRaw({ to, subject, text, inReplyTo: orig.messageId });
+    await audit(req.user, 'mail_reply', `→ ${to} : ${subject}`);
+    res.json({ ok: true });
+  } catch (e) { res.status(502).json({ error: 'Réponse échouée : ' + e.message }); }
 }));
 
 // Toutes les tâches (avec projet + responsable) pour l'admin
