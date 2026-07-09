@@ -1,7 +1,7 @@
 export type Role = 'owner' | 'lead' | 'provider' | 'client' | 'member'
 export type ProjectType = 'solo' | 'team' | 'group'
 
-export interface User { id: string; name: string; email: string; firstName?: string; lastName?: string }
+export interface User { id: string; name: string; email: string; firstName?: string; lastName?: string; admin?: boolean }
 
 export interface Member { id: string; name: string; email: string; role: Role }
 

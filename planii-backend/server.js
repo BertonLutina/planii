@@ -83,7 +83,9 @@ const uid = () => crypto.randomBytes(9).toString('base64url');
 const numOrNull = (v) => (v === '' || v === null || v === undefined || isNaN(Number(v))) ? null : Math.max(0, Number(v));
 const prioOrDefault = (v) => { const n = parseInt(v, 10); return (n >= 1 && n <= 6) ? n : 6; };
 const newToken = () => crypto.randomBytes(18).toString('base64url');
-const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '' };
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'berton.lutina@hotmail.com').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+const isAdmin = (u) => !!u && ADMIN_EMAILS.includes((u.email || '').toLowerCase());
+const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '', admin: isAdmin(u) };
 const sign = (u) => jwt.sign({ sub: u.id }, JWT_SECRET, { expiresIn: '30d' });
 const canManage = (role) => role === 'owner' || role === 'lead';
 
@@ -118,6 +120,11 @@ async function auth(req, res, next) {
     if (!u) return res.status(401).json({ error: 'Utilisateur introuvable' });
     req.user = u; next();
   } catch (e) { return res.status(401).json({ error: 'Session invalide' }); }
+}
+
+function adminOnly(req, res, next) {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: 'Accès réservé à l’administrateur' });
+  next();
 }
 
 /* ---------- auth ---------- */
@@ -466,6 +473,152 @@ app.post('/api/notifications/read', auth, h(async (req, res) => {
 
 app.delete('/api/notifications/:id', auth, h(async (req, res) => {
   await q('DELETE FROM notifications WHERE user_id=$1 AND id=$2', [req.user.id, req.params.id]);
+  res.json({ ok: true });
+}));
+
+/* ---------- admin ---------- */
+const pointsForTask = (due, doneDay) => { if (!due) return 10; if (!doneDay) return 15; if (doneDay < due) return 20; if (doneDay === due) return 15; return 5; };
+
+// Vue d'ensemble : compteurs globaux
+app.get('/api/admin/stats', auth, adminOnly, h(async (req, res) => {
+  const n = async (sql) => Number((await one(sql, [])).c);
+  const users = await n('SELECT count(*)::int AS c FROM users');
+  const projects = await n('SELECT count(*)::int AS c FROM projects');
+  const projectsActive = await n(`SELECT count(*)::int AS c FROM projects WHERE status <> 'done'`);
+  const tasks = await n('SELECT count(*)::int AS c FROM tasks');
+  const tasksDone = await n('SELECT count(*)::int AS c FROM tasks WHERE done');
+  const tasksOverdue = await n(`SELECT count(*)::int AS c FROM tasks WHERE NOT done AND due IS NOT NULL AND due < to_char(now(),'YYYY-MM-DD')`);
+  res.json({ stats: { users, projects, projectsActive, tasks, tasksDone, tasksOverdue, completion: tasks ? Math.round((tasksDone / tasks) * 100) : 0 } });
+}));
+
+// Liste de tous les utilisateurs (avec points, nb projets, nb tâches)
+app.get('/api/admin/users', auth, adminOnly, h(async (req, res) => {
+  const users = await many('SELECT id,name,email,first_name,last_name,created_at FROM users ORDER BY created_at ASC', []);
+  const pc = await many('SELECT user_id, count(*)::int AS c FROM memberships GROUP BY user_id', []);
+  const doneRows = await many('SELECT assignee_id, due, done_at FROM tasks WHERE done AND assignee_id IS NOT NULL', []);
+  const openRows = await many('SELECT assignee_id, count(*)::int AS c FROM tasks WHERE NOT done AND assignee_id IS NOT NULL GROUP BY assignee_id', []);
+  const projByUser = Object.fromEntries(pc.map((r) => [r.user_id, r.c]));
+  const openByUser = Object.fromEntries(openRows.map((r) => [r.assignee_id, r.c]));
+  const ptsByUser = {}; const doneByUser = {};
+  for (const t of doneRows) {
+    const day = t.done_at ? new Date(t.done_at).toISOString().slice(0, 10) : null;
+    ptsByUser[t.assignee_id] = (ptsByUser[t.assignee_id] || 0) + pointsForTask(t.due, day);
+    doneByUser[t.assignee_id] = (doneByUser[t.assignee_id] || 0) + 1;
+  }
+  res.json({
+    users: users.map((u) => ({
+      id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '',
+      createdAt: u.created_at, admin: isAdmin(u),
+      projectCount: projByUser[u.id] || 0, tasksOpen: openByUser[u.id] || 0, tasksDone: doneByUser[u.id] || 0, points: ptsByUser[u.id] || 0,
+    })),
+  });
+}));
+
+// Supprimer un utilisateur : projets possédés supprimés (membres notifiés), retiré des projets, tâches désassignées
+app.delete('/api/admin/users/:id', auth, adminOnly, h(async (req, res) => {
+  const target = await userById(req.params.id);
+  if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
+  if (target.id === req.user.id) return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte admin' });
+  if (isAdmin(target)) return res.status(400).json({ error: 'Impossible de supprimer un autre administrateur' });
+  const owned = await many('SELECT id, name FROM projects WHERE owner_id=$1', [target.id]);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Supprimer les projets possédés (avec notification aux autres membres)
+    for (const pr of owned) {
+      const members = await client.query('SELECT user_id FROM memberships WHERE project_id=$1', [pr.id]);
+      for (const mb of members.rows) {
+        if (mb.user_id === target.id) continue;
+        await client.query('INSERT INTO notifications (id,user_id,type,title,detail) VALUES ($1,$2,$3,$4,$5)',
+          [uid(), mb.user_id, 'project_deleted', 'Projet supprimé', `Le projet « ${pr.name} » a été supprimé par l’administrateur.`]);
+      }
+      await client.query('DELETE FROM poll_votes WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [pr.id]);
+      await client.query('DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [pr.id]);
+      await client.query('DELETE FROM polls WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM tasks WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM invites WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM activity WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM memberships WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM projects WHERE id=$1', [pr.id]);
+    }
+    // Désassigner ses tâches restantes + retirer de tous les projets + nettoyer
+    await client.query('UPDATE tasks SET assignee_id=NULL WHERE assignee_id=$1', [target.id]);
+    await client.query('DELETE FROM poll_votes WHERE user_id=$1', [target.id]);
+    await client.query('DELETE FROM memberships WHERE user_id=$1', [target.id]);
+    await client.query('DELETE FROM notifications WHERE user_id=$1', [target.id]);
+    await client.query('DELETE FROM users WHERE id=$1', [target.id]);
+    await client.query('COMMIT');
+  } catch (e) { await client.query('ROLLBACK'); throw e; }
+  finally { client.release(); }
+  res.json({ ok: true, deletedProjects: owned.length });
+}));
+
+// Toutes les tâches (avec projet + responsable) pour l'admin
+app.get('/api/admin/tasks', auth, adminOnly, h(async (req, res) => {
+  const rows = await many(`SELECT t.*, p.name AS project_name, u.name AS assignee_name
+      FROM tasks t JOIN projects p ON p.id=t.project_id
+      LEFT JOIN users u ON u.id=t.assignee_id
+      ORDER BY t.priority ASC, t.created_at ASC`, []);
+  res.json({
+    tasks: rows.map((t) => ({
+      id: t.id, title: t.title, projectId: t.project_id, projectName: t.project_name,
+      assigneeName: t.assignee_name || null, due: t.due, done: t.done,
+      priority: t.priority == null ? 6 : Number(t.priority),
+    })),
+  });
+}));
+
+// Changer la priorité de n'importe quelle tâche (admin)
+app.patch('/api/admin/tasks/:id/priority', auth, adminOnly, h(async (req, res) => {
+  const t = await taskById(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Tâche introuvable' });
+  const n = parseInt(req.body.priority, 10);
+  if (!(n >= 1 && n <= 6)) return res.status(400).json({ error: 'Priorité invalide (1 à 6)' });
+  await q('UPDATE tasks SET priority=$1 WHERE id=$2', [n, t.id]);
+  res.json({ ok: true, priority: n });
+}));
+
+// Tous les projets (avec propriétaire + compteurs)
+app.get('/api/admin/projects', auth, adminOnly, h(async (req, res) => {
+  const rows = await many(`SELECT p.*, u.name AS owner_name, u.email AS owner_email,
+      (SELECT count(*) FROM memberships m WHERE m.project_id=p.id)::int AS "memberCount",
+      (SELECT count(*) FROM tasks t WHERE t.project_id=p.id)::int AS "taskCount",
+      (SELECT count(*) FROM tasks t WHERE t.project_id=p.id AND t.done)::int AS "doneCount"
+    FROM projects p LEFT JOIN users u ON u.id=p.owner_id
+    ORDER BY p.created_at DESC`, []);
+  res.json({
+    projects: rows.map((p) => ({
+      id: p.id, name: p.name, type: p.type, status: p.status, deadline: p.deadline,
+      ownerName: p.owner_name || '—', ownerEmail: p.owner_email || '',
+      memberCount: p.memberCount, taskCount: p.taskCount, doneCount: p.doneCount, createdAt: p.created_at,
+    })),
+  });
+}));
+
+// Supprimer n'importe quel projet (admin) — notifie les membres
+app.delete('/api/admin/projects/:id', auth, adminOnly, h(async (req, res) => {
+  const p = await projectById(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+  const members = await projectMembers(p.id);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const mb of members) {
+      if (mb.user_id === req.user.id) continue;
+      await client.query('INSERT INTO notifications (id,user_id,type,title,detail) VALUES ($1,$2,$3,$4,$5)',
+        [uid(), mb.user_id, 'project_deleted', 'Projet supprimé', `Le projet « ${p.name} » a été supprimé par l’administrateur. Vous n'en êtes plus membre.`]);
+    }
+    await client.query('DELETE FROM poll_votes WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [p.id]);
+    await client.query('DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [p.id]);
+    await client.query('DELETE FROM polls WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM tasks WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM invites WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM activity WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM memberships WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM projects WHERE id=$1', [p.id]);
+    await client.query('COMMIT');
+  } catch (e) { await client.query('ROLLBACK'); throw e; }
+  finally { client.release(); }
   res.json({ ok: true });
 }));
 

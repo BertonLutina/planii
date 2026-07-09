@@ -11,6 +11,7 @@ import { Leaderboard } from './components/Leaderboard'
 import { NotifBell } from './components/Notifications'
 import { CommandPalette, CMD_LABEL } from './components/CommandPalette'
 import { QuickTask } from './components/QuickTask'
+import { Admin } from './components/Admin'
 import { applyTheme, getTheme, type Theme } from '@/lib/theme'
 import { useAllProjects } from '@/lib/useProjects'
 
@@ -46,7 +47,7 @@ function ThemeToggleButton() {
   )
 }
 
-function Profile({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onUpdate: (u: User) => void }) {
+function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void }) {
   const [first, setFirst] = useState(me.firstName || '')
   const [last, setLast] = useState(me.lastName || '')
   const [saving, setSaving] = useState(false)
@@ -82,13 +83,16 @@ function Profile({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; o
         </button>
       </div>
 
+      {me.admin && (
+        <button className="btn primary block" style={{ marginTop: 4 }} onClick={onAdmin}>🛡️ Espace admin</button>
+      )}
       <ThemeControl />
       <button className="btn danger block" style={{ marginTop: 16 }} onClick={onLogout}>Se déconnecter</button>
     </div>
   )
 }
 
-type TabKey = 'accueil' | 'projets' | 'calendrier' | 'classement' | 'profil'
+type TabKey = 'accueil' | 'projets' | 'calendrier' | 'classement' | 'profil' | 'admin'
 const I = {
   accueil: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></svg>,
   projets: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /></svg>,
@@ -97,6 +101,7 @@ const I = {
   profil: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></svg>,
 }
 const NAV: [TabKey, string][] = [['accueil', 'Accueil'], ['projets', 'Projets'], ['calendrier', 'Agenda'], ['classement', 'Classement'], ['profil', 'Profil']]
+const ADMIN_ICON = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" /><path d="M9.5 12l1.8 1.8L15 10" /></svg>
 
 function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onUpdate: (u: User) => void }) {
   const [tab, setTab] = useState<TabKey>('accueil')
@@ -127,8 +132,8 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
 
   if (openId) return <ProjectDetail id={openId} me={me} onBack={() => setOpenId(null)} />
 
-  const TITLES: Record<TabKey, string> = { accueil: 'Accueil — mes tâches', projets: 'Projets', calendrier: 'Agenda', classement: 'Classement', profil: 'Profil' }
-  const MOBILE_TITLES: Record<TabKey, string> = { accueil: 'Accueil', projets: 'Projets', calendrier: 'Agenda', classement: 'Classement', profil: 'Profil' }
+  const TITLES: Record<TabKey, string> = { accueil: 'Accueil — mes tâches', projets: 'Projets', calendrier: 'Agenda', classement: 'Classement', profil: 'Profil', admin: 'Espace admin' }
+  const MOBILE_TITLES: Record<TabKey, string> = { accueil: 'Accueil', projets: 'Projets', calendrier: 'Agenda', classement: 'Classement', profil: 'Profil', admin: 'Admin' }
   const title = TITLES[tab]
   const HV: [typeof homeView, string][] = [['list', '☰ Liste'], ['board', '▦ Tableau'], ['agenda', '📅 Agenda']]
 
@@ -144,6 +149,9 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
           {NAV.map(([k, l]) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{I[k]}<span>{l}</span></button>
           ))}
+          {me.admin && (
+            <button className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>{ADMIN_ICON}<span>Admin</span></button>
+          )}
         </nav>
         <div className="side-label">PROJETS</div>
         <div className="side-projects">
@@ -183,7 +191,8 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
           {tab === 'projets' && <ProjectsList onOpen={setOpenId} onJoin={() => setJoinOpen(true)} openSignal={newSignal} />}
           {tab === 'calendrier' && <CalendarView onOpen={setOpenId} />}
           {tab === 'classement' && <Leaderboard onOpen={setOpenId} />}
-          {tab === 'profil' && <Profile me={me} onLogout={onLogout} onUpdate={onUpdate} />}
+          {tab === 'profil' && <Profile me={me} onLogout={onLogout} onUpdate={onUpdate} onAdmin={() => setTab('admin')} />}
+          {tab === 'admin' && me.admin && <Admin />}
         </div>
       </main>
 
