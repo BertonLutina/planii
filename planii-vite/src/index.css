@@ -859,3 +859,9 @@ body{background:var(--bg);font-weight:400}
 .mail-subj{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mail-date{font-size:12px;color:var(--hint);white-space:nowrap;flex:none}
 .mail-body{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);white-space:pre-wrap;font-size:14px;line-height:1.6;color:var(--text);word-break:break-word}
+
+/* agenda : padding desktop + cases un peu plus grandes */
+@media(min-width:900px){
+  .cal-page{padding:0 22px}
+  .cal-cell{min-height:116px}
+}

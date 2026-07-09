@@ -11,6 +11,9 @@ interface GitHubCalendarProps {
   colors?: string[]
 }
 
+const CELL = 17
+const GAP = 4
+
 // Planii purple scale by default (was GitHub greens)
 export function GitHubCalendar({
   data,
@@ -33,6 +36,12 @@ export function GitHubCalendar({
     return colors[4] || colors[colors.length - 1]
   }
 
+  const cellStyle = (bg: string, future = false): React.CSSProperties => ({
+    width: CELL, height: CELL, borderRadius: 4,
+    backgroundColor: future ? 'transparent' : bg,
+    border: future ? '1px dashed var(--line)' : 'none',
+  })
+
   const renderWeeks = () => {
     const weeksArray = []
     let currentWeekStart = startOfWeek(startDate, { weekStartsOn: 1 })
@@ -42,18 +51,13 @@ export function GitHubCalendar({
         end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }),
       })
       weeksArray.push(
-        <div key={i} className="flex flex-col gap-[3px]">
+        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
           {weekDays.map((day, index) => {
             const contribution = contributions.find((c) => isSameDay(c.date, day))
             const color = contribution ? getColor(contribution.count) : colors[0]
             const future = day > today
             return (
-              <div
-                key={index}
-                className="w-3 h-3 rounded-[4px]"
-                style={{ backgroundColor: future ? 'transparent' : color, border: future ? '1px dashed var(--line)' : 'none' }}
-                title={`${format(day, 'PPP')} : ${contribution?.count || 0} tâche(s)`}
-              />
+              <div key={index} style={cellStyle(color, future)} title={`${format(day, 'PPP')} : ${contribution?.count || 0} tâche(s)`} />
             )
           })}
         </div>,
@@ -68,38 +72,32 @@ export function GitHubCalendar({
     let currentMonth = startDate
     for (let i = 0; i < 12; i++) {
       months.push(
-        <span key={i} className="text-[10px]" style={{ color: 'var(--muted)' }}>
-          {format(currentMonth, 'MMM')}
-        </span>,
+        <span key={i} style={{ fontSize: 11, color: 'var(--muted)' }}>{format(currentMonth, 'MMM')}</span>,
       )
       currentMonth = addDays(currentMonth, 30)
     }
     return months
   }
 
-  const dayLabels = ['Lun', '', 'Mer', '', 'Ven', '', '']
+  const dayLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
   return (
     <div className="card" style={{ padding: 16, overflowX: 'auto' }}>
-      <div className="inline-flex flex-col gap-[6px]">
-        <div className="flex" style={{ marginTop: 6 }}>
-          <div className="flex flex-col justify-between mr-2" style={{ marginTop: 22 }}>
+      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', marginTop: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 10, marginTop: 24 }}>
             {dayLabels.map((day, index) => (
-              <span key={index} className="text-[10px] h-3" style={{ color: 'var(--muted)' }}>
-                {day}
-              </span>
+              <span key={index} style={{ height: CELL, fontSize: 11, fontWeight: 600, color: 'var(--muted)', display: 'flex', alignItems: 'center', lineHeight: 1 }}>{day}</span>
             ))}
           </div>
           <div>
-            <div className="flex w-full justify-between gap-4 mb-2">{renderMonthLabels()}</div>
-            <div className="flex gap-[3px]">{renderWeeks()}</div>
+            <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', gap: 16, marginBottom: 8 }}>{renderMonthLabels()}</div>
+            <div style={{ display: 'flex', gap: GAP }}>{renderWeeks()}</div>
           </div>
         </div>
-        <div className="mt-3 flex gap-[6px] text-[11px] items-center justify-end" style={{ color: 'var(--muted)' }}>
+        <div style={{ marginTop: 8, display: 'flex', gap: 6, fontSize: 11, alignItems: 'center', justifyContent: 'flex-end', color: 'var(--muted)' }}>
           <span>Moins</span>
-          {colors.map((color, index) => (
-            <div key={index} className="w-3 h-3 rounded-[4px]" style={{ backgroundColor: color }} />
-          ))}
+          {colors.map((color, index) => (<div key={index} style={cellStyle(color)} />))}
           <span>Plus</span>
         </div>
       </div>

@@ -70,7 +70,7 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
     : view === 'annee' ? 'Année — activité' : 'Agenda'
 
   return (
-    <div>
+    <div className="cal-page">
       <div className="cal-bar">
         <div className="cal-nav">
           <button className="btn sm" onClick={() => setCur(todayMid())}>Aujourd’hui</button>
@@ -98,8 +98,8 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
               return (
                 <div key={i} className={'cal-cell' + (inM ? '' : ' out') + (isT ? ' today' : '')}>
                   <div className="cal-num">{d.getDate()}</div>
-                  {es.slice(0, 3).map((e) => <Chip key={e.id} e={e} mini />)}
-                  {es.length > 3 && <div className="cal-more">+{es.length - 3}</div>}
+                  {es.slice(0, 4).map((e) => <Chip key={e.id} e={e} mini />)}
+                  {es.length > 4 && <div className="cal-more">+{es.length - 4}</div>}
                 </div>
               )
             })}
