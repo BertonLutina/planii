@@ -9,6 +9,7 @@ import type { Member, Poll, Project, ProjectRole, Task, User } from '@/lib/types
 import { Meeting } from './Meeting'
 import { Mic, MicInput, MicTextarea } from './Mic'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
+import { useRealtime } from '@/lib/realtime'
 
 export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack: () => void }) {
   const [p, setP] = useState<Project | null>(null)
@@ -19,6 +20,7 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
   const [confirmDel, setConfirmDel] = useState(false)
   const load = useCallback(() => { api<{ project: Project }>('GET', '/projects/' + id).then((r) => setP(r.project)).catch((e) => setErr(e.message)) }, [id])
   useEffect(load, [load])
+  useRealtime((m) => { if (m.type === 'project' && m.projectId === id) load() })
 
   if (err) return <div className="app"><div className="wrap"><button className="btn-link" onClick={onBack}>‹ Retour</button><div className="empty">{err}</div></div></div>
   if (!p) return <div className="app"><div className="wrap"><div className="empty">Chargement…</div></div></div>

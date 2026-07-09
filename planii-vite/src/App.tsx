@@ -16,6 +16,7 @@ import { QuickTask } from './components/QuickTask'
 import { Admin } from './components/Admin'
 import { applyTheme, getTheme, type Theme } from '@/lib/theme'
 import { useAllProjects } from '@/lib/useProjects'
+import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
 
 function ThemeControl() {
   const [t, setT] = useState<Theme>(getTheme())
@@ -120,7 +121,7 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
   }
 
   return (
-    <div>
+    <div className="settings-page">
       <div className="card">
         <div className="who" style={{ gap: 12 }}>
           <Avatar name={me.name} size={48} />
@@ -293,15 +294,16 @@ export default function App() {
   const [me, setMe] = useState<User | null | undefined>(undefined)
   useEffect(() => {
     if (!getTok()) { setMe(null); return }
-    api<{ user: User }>('GET', '/me').then((r) => setMe(r.user)).catch(() => { setTok(null); setMe(null) })
+    api<{ user: User }>('GET', '/me').then((r) => { setMe(r.user); connectRealtime() }).catch(() => { setTok(null); setMe(null) })
+    return () => disconnectRealtime()
   }, [])
-  const onLogout = () => { setTok(null); setMe(null) }
+  const onLogout = () => { disconnectRealtime(); setTok(null); setMe(null) }
   return (
     <>
       <Toaster />
       {me === undefined ? <div className="boot">Connexion…</div>
         : me ? <Shell me={me} onLogout={onLogout} onUpdate={setMe} />
-        : <Auth onAuth={setMe} />}
+        : <Auth onAuth={(u) => { setMe(u); connectRealtime() }} />}
     </>
   )
 }

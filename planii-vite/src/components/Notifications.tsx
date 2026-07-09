@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Modal, toastErr } from '@/lib/ui'
+import { useRealtime } from '@/lib/realtime'
 import type { Notification } from '@/lib/types'
 
 const ICON: Record<string, string> = {
@@ -25,6 +26,7 @@ export function NotifBell() {
     const t = setInterval(load, 60000)
     return () => clearInterval(t)
   }, [load])
+  useRealtime((m) => { if (m.type === 'notif') load() })
 
   async function openPanel() {
     setOpen(true)

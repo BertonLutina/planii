@@ -803,3 +803,7 @@ body{background:var(--bg);font-weight:400}
 .vw-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
 .vw-line:last-child{border-bottom:none}
 .vw-line>span{color:var(--muted);font-size:13.5px}
+
+/* page réglages / profil : colonne de lecture centrée (évite l'étirement plein écran) */
+.settings-page{max-width:620px;margin:0 auto}
+@media(min-width:900px){ .settings-page{padding:0 24px} }

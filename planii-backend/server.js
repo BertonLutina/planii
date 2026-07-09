@@ -2,11 +2,14 @@
 'use strict';
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const { WebSocketServer } = require('ws');
 const { Pool } = require('pg');
 
 // charge un fichier .env s'il existe (sans dépendance externe)
@@ -25,6 +28,30 @@ const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 const APP_URL = (process.env.APP_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
 const INVITE_DAYS = parseInt(process.env.INVITE_DAYS || '14', 10);
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://localhost:5432/planii';
+
+/* ---------- e-mails (SMTP Hostinger via nodemailer) ---------- */
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.hostinger.com';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465', 10);
+const SMTP_SECURE = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : SMTP_PORT === 465;
+const SMTP_USER = process.env.SMTP_USER || 'info@planii.app';
+const SMTP_PASS = process.env.SMTP_PASS || '';
+const MAIL_FROM = process.env.MAIL_FROM || `Planii <${SMTP_USER}>`;
+const WEB_URL = (process.env.APP_WEB_URL || APP_URL).replace(/\/$/, '');
+const MAIL_ON = !!SMTP_PASS;
+const mailer = MAIL_ON ? nodemailer.createTransport({ host: SMTP_HOST, port: SMTP_PORT, secure: SMTP_SECURE, auth: { user: SMTP_USER, pass: SMTP_PASS } }) : null;
+console.log(MAIL_ON ? `Mailer activé (${SMTP_HOST}:${SMTP_PORT}, exp. ${SMTP_USER})` : 'Mailer désactivé (SMTP_PASS absent).');
+const mailEsc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function mailLayout({ title, intro, rows = [], ctaText, ctaUrl, footer }) {
+  const rowsHtml = rows.filter(Boolean).map((r) =>
+    `<tr><td style="padding:6px 0;color:#6b6a63;font-size:13px;width:130px;vertical-align:top">${mailEsc(r[0])}</td><td style="padding:6px 0;color:#26251f;font-size:14px;font-weight:600">${mailEsc(r[1])}</td></tr>`).join('');
+  const cta = ctaText && ctaUrl ? `<a href="${mailEsc(ctaUrl)}" style="display:inline-block;margin-top:18px;background:#534AB7;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:10px">${mailEsc(ctaText)}</a>` : '';
+  return `<!doctype html><html><body style="margin:0;background:#faf9f5;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif"><table role="presentation" width="100%" style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #e6e3da;border-radius:14px;overflow:hidden"><tr><td style="background:#534AB7;padding:16px 22px;color:#fff;font-size:18px;font-weight:700">Planii</td></tr><tr><td style="padding:22px"><div style="font-size:17px;font-weight:700;color:#26251f;margin-bottom:8px">${mailEsc(title)}</div>${intro ? `<div style="font-size:14px;color:#3f3e39;line-height:1.55;margin-bottom:14px">${mailEsc(intro)}</div>` : ''}${rowsHtml ? `<table role="presentation" style="width:100%;border-top:1px solid #f0eee7;border-bottom:1px solid #f0eee7;margin:4px 0">${rowsHtml}</table>` : ''}${cta}</td></tr><tr><td style="padding:14px 22px;color:#93918a;font-size:12px;border-top:1px solid #f0eee7">${mailEsc(footer || 'Vous recevez cet e-mail car vous utilisez Planii.')}</td></tr></table></body></html>`;
+}
+async function sendMail(to, subject, layoutOpts) {
+  if (!MAIL_ON || !to) return;
+  try { await mailer.sendMail({ from: MAIL_FROM, to, subject, html: mailLayout({ title: subject, ...layoutOpts }), text: (layoutOpts && layoutOpts.intro) || subject }); }
+  catch (e) { console.error('Échec envoi mail:', e.message); }
+}
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
@@ -72,6 +99,8 @@ async function initSchema() {
   await q(`CREATE TABLE IF NOT EXISTS member_roles (
     project_id text NOT NULL, user_id text NOT NULL, role_id text NOT NULL,
     PRIMARY KEY(project_id, user_id, role_id));`);
+  await q(`CREATE TABLE IF NOT EXISTS task_reminders (
+    task_id text NOT NULL, for_date date NOT NULL, PRIMARY KEY(task_id, for_date));`);
   await q(`CREATE TABLE IF NOT EXISTS invites (
     token text PRIMARY KEY, project_id text NOT NULL, role text NOT NULL, email text,
     created_by text NOT NULL, expires_at timestamptz NOT NULL,
@@ -123,13 +152,30 @@ const userById = (id) => one('SELECT * FROM users WHERE id=$1', [id]);
 const projectById = (id) => one('SELECT * FROM projects WHERE id=$1', [id]);
 const taskById = (id) => one('SELECT * FROM tasks WHERE id=$1', [id]);
 const membership = (pid, uidv) => one('SELECT * FROM memberships WHERE project_id=$1 AND user_id=$2', [pid, uidv]);
+const projectMembers = (pid) => many('SELECT user_id, role FROM memberships WHERE project_id=$1', [pid]);
+
+/* ---------- temps réel (WebSocket) ---------- */
+const wsClients = new Map(); // userId -> Set<ws>
+function wsSend(userId, payload) {
+  const set = wsClients.get(userId); if (!set) return;
+  const data = JSON.stringify(payload);
+  for (const ws of set) { try { if (ws.readyState === 1) ws.send(data); } catch { /* noop */ } }
+}
+const notifyUser = (userId, payload) => wsSend(userId, payload);
+async function notifyProject(projectId, payload) {
+  try { for (const m of await projectMembers(projectId)) wsSend(m.user_id, payload); }
+  catch (e) { console.error('ws project', e.message); }
+}
+const bump = (projectId) => notifyProject(projectId, { type: 'project', projectId });
+
 async function logActivity(projectId, userId, type, detail) {
   await q('INSERT INTO activity (id,project_id,user_id,type,detail) VALUES ($1,$2,$3,$4,$5)', [uid(), projectId, userId, type, detail || '']);
+  bump(projectId); // diffusion temps réel aux membres
 }
 async function notify(userId, type, title, detail) {
   await q('INSERT INTO notifications (id,user_id,type,title,detail) VALUES ($1,$2,$3,$4,$5)', [uid(), userId, type, title, detail || '']);
+  notifyUser(userId, { type: 'notif' }); // met à jour la cloche en direct
 }
-const projectMembers = (pid) => many('SELECT user_id, role FROM memberships WHERE project_id=$1', [pid]);
 
 /* ---------- app ---------- */
 const app = express();
@@ -341,6 +387,16 @@ app.post('/api/projects/:id/invites', auth, h(async (req, res) => {
   await q('INSERT INTO invites (token,project_id,role,email,created_by,expires_at,multi) VALUES ($1,$2,$3,$4,$5,$6,$7)',
     [t, p.id, role, (req.body.email || '').trim().toLowerCase() || null, req.user.id, expires, multi]);
   await logActivity(p.id, req.user.id, 'invite_created', `a créé une invitation (${role})`);
+  (async () => {
+    const invitedEmail = (req.body.email || '').trim().toLowerCase();
+    const rows = [['Projet', p.name], ['Rôle', role], invitedEmail ? ['Invité', invitedEmail] : null, ['Créé par', req.user.name]];
+    const owner = await userById(p.owner_id);
+    if (owner && owner.email) await sendMail(owner.email, `Invitation créée — ${p.name}`, { intro: `Un lien d'invitation (${role}) a été généré pour le projet « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: WEB_URL });
+    for (const adminEmail of SUPER_ADMIN_EMAILS) {
+      if (owner && owner.email && adminEmail === owner.email.toLowerCase()) continue;
+      await sendMail(adminEmail, `Invitation créée — ${p.name}`, { intro: `${req.user.name} a généré un lien d'invitation (${role}) pour « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: WEB_URL });
+    }
+  })().catch((e) => console.error('mail invite_created', e.message));
   res.json({ token: t, link: `${APP_URL}/invite/${t}`, role, expiresAt: expires, multi });
 }));
 
@@ -365,6 +421,15 @@ app.post('/api/invites/:token/accept', auth, h(async (req, res) => {
   await q('INSERT INTO memberships (id,project_id,user_id,role) VALUES ($1,$2,$3,$4) ON CONFLICT (project_id,user_id) DO NOTHING', [uid(), p.id, req.user.id, inv.role]);
   await q('UPDATE invites SET uses=uses+1 WHERE token=$1', [inv.token]);
   await logActivity(p.id, req.user.id, 'member_joined', `${req.user.name} a rejoint (${inv.role})`);
+  (async () => {
+    const rows = [['Projet', p.name], ['Rôle', inv.role]];
+    if (req.user.email) await sendMail(req.user.email, `Bienvenue dans « ${p.name} »`, { intro: `Vous avez rejoint le projet « ${p.name} » en tant que ${inv.role}.`, rows, ctaText: 'Ouvrir Planii', ctaUrl: WEB_URL });
+    const owner = await userById(p.owner_id);
+    if (owner && owner.id !== req.user.id) {
+      if (owner.email) await sendMail(owner.email, `${req.user.name} a rejoint « ${p.name} »`, { intro: `${req.user.name} (${req.user.email}) a rejoint votre projet « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: WEB_URL });
+      await notify(owner.id, 'member_joined', `${req.user.name} a rejoint « ${p.name} »`, `Rôle : ${inv.role}`);
+    }
+  })().catch((e) => console.error('mail member_joined', e.message));
   res.json({ project: { id: p.id }, role: inv.role });
 }));
 
@@ -397,6 +462,7 @@ app.delete('/api/projects/:id/roles/:roleId', auth, h(async (req, res) => {
   if (!role) return res.status(404).json({ error: 'Rôle introuvable' });
   await q('DELETE FROM member_roles WHERE project_id=$1 AND role_id=$2', [p.id, role.id]);
   await q('DELETE FROM project_roles WHERE id=$1', [role.id]);
+  bump(p.id);
   res.json({ ok: true });
 }));
 
@@ -447,6 +513,16 @@ app.post('/api/projects/:id/tasks', auth, h(async (req, res) => {
   }
   await q('INSERT INTO tasks (id,project_id,title,description,type,assignee_id,created_by,due,est_hours,priority,parent_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)', [id, p.id, title, description, type, assignee, req.user.id, req.body.due || null, est, prio, parentId]);
   await logActivity(p.id, req.user.id, 'task_created', `a ajouté « ${title} »`);
+  (async () => {
+    const rows = [['Projet', p.name], ['Priorité', 'P' + prio], type ? ['Type', type] : null, req.body.due ? ['Échéance', req.body.due] : null];
+    if (assignee && assignee !== req.user.id) {
+      const au = await userById(assignee);
+      if (au && au.email) { await sendMail(au.email, `Nouvelle tâche : ${title}`, { intro: `${req.user.name} vous a assigné une tâche dans « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: WEB_URL }); await notify(assignee, 'task_assigned', `Nouvelle tâche : ${title}`, `Projet « ${p.name} »`); }
+    }
+    const owner = await userById(p.owner_id);
+    if (owner && owner.email && owner.id !== req.user.id && owner.id !== assignee)
+      await sendMail(owner.email, `Nouvelle tâche dans « ${p.name} » : ${title}`, { intro: `${req.user.name} a ajouté une tâche au projet « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: WEB_URL });
+  })().catch((e) => console.error('mail task_created', e.message));
   res.json({ task: { id, title, description, type, assigneeId: assignee, createdBy: req.user.id, due: req.body.due || null, done: false, estHours: est, spentHours: null, priority: prio, parentId } });
 }));
 
@@ -505,6 +581,7 @@ app.patch('/api/tasks/:id', auth, h(async (req, res) => {
     await logActivity(t.project_id, req.user.id, 'task_updated', `a modifié « ${t.title} »`);
   }
 
+  bump(t.project_id);
   res.json({ ok: true });
 }));
 
@@ -526,6 +603,7 @@ app.delete('/api/tasks/:id', auth, h(async (req, res) => {
   if (!m) return res.status(403).json({ error: 'Non membre' });
   if (t.created_by !== req.user.id && !canManage(m.role)) return res.status(403).json({ error: 'Suppression réservée au créateur ou au propriétaire' });
   await q('DELETE FROM tasks WHERE id=$1 OR parent_id=$1', [t.id]);
+  bump(t.project_id);
   res.json({ ok: true });
 }));
 
@@ -554,6 +632,7 @@ app.post('/api/polls/:id/vote', auth, h(async (req, res) => {
   if (!opt) return res.status(400).json({ error: 'Option invalide' });
   await q(`INSERT INTO poll_votes (poll_id,option_id,user_id) VALUES ($1,$2,$3)
     ON CONFLICT (poll_id,user_id) DO UPDATE SET option_id=excluded.option_id`, [poll.id, opt.id, req.user.id]);
+  bump(poll.project_id);
   res.json({ ok: true });
 }));
 
@@ -761,6 +840,69 @@ app.delete('/api/admin/projects/:id', auth, adminOnly, h(async (req, res) => {
 
 app.get('/api/health', h(async (req, res) => { await q('SELECT 1'); res.json({ ok: true, name: 'planii-backend', db: 'postgres' }); }));
 
+/* ---------- rappels d'échéance (mail la veille, à 18h Europe/Paris) ---------- */
+const parisHour = () => parseInt(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).format(new Date()), 10);
+const parisDate = (offsetDays = 0) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(Date.now() + offsetDays * 864e5));
+async function runDeadlineReminders() {
+  const tomorrow = parisDate(1);
+  const tasks = await many(`SELECT t.id, t.title, t.due, t.priority, t.assignee_id, p.name AS project_name, u.email AS email
+      FROM tasks t JOIN projects p ON p.id=t.project_id JOIN users u ON u.id=t.assignee_id
+      WHERE NOT t.done AND t.due=$1 AND t.assignee_id IS NOT NULL`, [tomorrow]);
+  let sent = 0;
+  for (const t of tasks) {
+    const already = await one('SELECT 1 AS x FROM task_reminders WHERE task_id=$1 AND for_date=$2', [t.id, tomorrow]);
+    if (already) continue;
+    await q('INSERT INTO task_reminders (task_id,for_date) VALUES ($1,$2) ON CONFLICT DO NOTHING', [t.id, tomorrow]);
+    await sendMail(t.email, `Rappel : « ${t.title} » à rendre demain`, {
+      intro: `La tâche « ${t.title} » du projet « ${t.project_name} » arrive à échéance demain.`,
+      rows: [['Projet', t.project_name], ['Échéance', t.due], ['Priorité', 'P' + (t.priority || 6)]],
+      ctaText: 'Ouvrir Planii', ctaUrl: WEB_URL,
+    });
+    await notify(t.assignee_id, 'deadline', `Échéance demain : ${t.title}`, `Projet « ${t.project_name} »`);
+    sent++;
+  }
+  return sent;
+}
+let lastReminderDay = null;
+function startReminderScheduler() {
+  setInterval(async () => {
+    try {
+      const today = parisDate(0);
+      if (parisHour() >= 18 && lastReminderDay !== today) {
+        lastReminderDay = today;
+        const n = await runDeadlineReminders();
+        if (n) console.log(`Rappels d'échéance envoyés : ${n} (${today})`);
+      }
+    } catch (e) { console.error('scheduler', e.message); }
+  }, 5 * 60 * 1000);
+}
+
+/* ---------- serveur HTTP + WebSocket (temps réel) ---------- */
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server, path: '/ws' });
+wss.on('connection', (ws, req) => {
+  try {
+    const url = new URL(req.url, 'http://localhost');
+    const token = url.searchParams.get('token');
+    const payload = jwt.verify(token, JWT_SECRET);
+    const userId = payload.sub;
+    ws.userId = userId; ws.isAlive = true;
+    if (!wsClients.has(userId)) wsClients.set(userId, new Set());
+    wsClients.get(userId).add(ws);
+    ws.on('pong', () => { ws.isAlive = true; });
+    ws.on('close', () => { const s = wsClients.get(userId); if (s) { s.delete(ws); if (!s.size) wsClients.delete(userId); } });
+    ws.on('error', () => {});
+    try { ws.send(JSON.stringify({ type: 'hello' })); } catch { /* noop */ }
+  } catch (e) { try { ws.close(); } catch { /* noop */ } }
+});
+// heartbeat : ferme les connexions mortes (évite les fuites derrière Traefik)
+setInterval(() => {
+  wss.clients.forEach((ws) => { if (ws.isAlive === false) return ws.terminate(); ws.isAlive = false; try { ws.ping(); } catch { /* noop */ } });
+}, 30000);
+
 initSchema()
-  .then(() => app.listen(PORT, () => console.log(`Planii backend (PostgreSQL) en écoute sur le port ${PORT} — APP_URL=${APP_URL}`)))
+  .then(() => {
+    server.listen(PORT, () => console.log(`Planii backend (PostgreSQL + WebSocket) en écoute sur le port ${PORT} — APP_URL=${APP_URL}`));
+    startReminderScheduler();
+  })
   .catch((e) => { console.error('Échec init base de données:', e.message); process.exit(1); });
