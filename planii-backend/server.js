@@ -524,7 +524,7 @@ app.delete('/api/tasks/:id', auth, h(async (req, res) => {
   if (!t) return res.status(404).json({ error: 'Tâche introuvable' });
   const m = await membership(t.project_id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
-  if (t.created_by !== req.user.id && !canManage(m.role)) return res.status(403).json({ error: 'Suppression réservée au créateur ou au responsable' });
+  if (t.created_by !== req.user.id && !canManage(m.role)) return res.status(403).json({ error: 'Suppression réservée au créateur ou au propriétaire' });
   await q('DELETE FROM tasks WHERE id=$1 OR parent_id=$1', [t.id]);
   res.json({ ok: true });
 }));
