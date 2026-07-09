@@ -69,6 +69,7 @@ async function initSchema() {
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name text`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name text`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false`);
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login timestamptz`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS job text`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS task_types jsonb`);
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role_library jsonb`);
@@ -229,6 +230,7 @@ app.post('/api/auth/login', h(async (req, res) => {
   const u = await userByEmail(email);
   if (!u || !bcrypt.compareSync(req.body.password || '', u.pass_hash))
     return res.status(401).json({ error: 'Identifiants incorrects' });
+  await q('UPDATE users SET last_login=now() WHERE id=$1', [u.id]);
   res.json({ token: sign(u), user: publicUser(u) });
 }));
 app.get('/api/me', auth, (req, res) => res.json({ user: publicUser(req.user) }));
@@ -709,12 +711,29 @@ app.get('/api/admin/stats', auth, adminOnly, h(async (req, res) => {
   const tasks = await n('SELECT count(*)::int AS c FROM tasks');
   const tasksDone = await n('SELECT count(*)::int AS c FROM tasks WHERE done');
   const tasksOverdue = await n(`SELECT count(*)::int AS c FROM tasks WHERE NOT done AND due IS NOT NULL AND due < to_char(now(),'YYYY-MM-DD')`);
-  res.json({ stats: { users, projects, projectsActive, tasks, tasksDone, tasksOverdue, completion: tasks ? Math.round((tasksDone / tasks) * 100) : 0 } });
+  const active7 = await n(`SELECT count(*)::int AS c FROM users WHERE last_login > now() - interval '7 days'`);
+  // Données graphiques
+  const prioRows = await many('SELECT priority, count(*)::int AS c FROM tasks GROUP BY priority', []);
+  const tasksByPriority = [1, 2, 3, 4, 5, 6].map((p) => ({ p, c: (prioRows.find((r) => Number(r.priority) === p) || {}).c || 0 }));
+  const typeRows = await many('SELECT type, count(*)::int AS c FROM projects GROUP BY type', []);
+  const projectsByType = ['solo', 'team', 'group'].map((t) => ({ t, c: (typeRows.find((r) => r.type === t) || {}).c || 0 }));
+  const doneRows = await many(`SELECT to_char(done_at,'YYYY-MM-DD') AS d, count(*)::int AS c FROM tasks WHERE done AND done_at > now() - interval '14 days' GROUP BY d`, []);
+  const doneByDay = [];
+  for (let i = 13; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10); doneByDay.push({ d, c: (doneRows.find((r) => r.d === d) || {}).c || 0 }); }
+  const recentLogins = (await many('SELECT name, email, last_login FROM users WHERE last_login IS NOT NULL ORDER BY last_login DESC LIMIT 8', []))
+    .map((u) => ({ name: u.name, email: u.email, lastLogin: u.last_login }));
+  res.json({
+    stats: {
+      users, projects, projectsActive, tasks, tasksDone, tasksOpen: tasks - tasksDone, tasksOverdue,
+      completion: tasks ? Math.round((tasksDone / tasks) * 100) : 0, activeUsers7: active7,
+      tasksByPriority, projectsByType, doneByDay, recentLogins,
+    },
+  });
 }));
 
 // Liste de tous les utilisateurs (avec points, nb projets, nb tâches)
 app.get('/api/admin/users', auth, adminOnly, h(async (req, res) => {
-  const users = await many('SELECT id,name,email,first_name,last_name,is_admin,created_at FROM users ORDER BY created_at ASC', []);
+  const users = await many('SELECT id,name,email,first_name,last_name,is_admin,created_at,last_login FROM users ORDER BY created_at ASC', []);
   const pc = await many('SELECT user_id, count(*)::int AS c FROM memberships GROUP BY user_id', []);
   const doneRows = await many('SELECT assignee_id, due, done_at FROM tasks WHERE done AND assignee_id IS NOT NULL', []);
   const openRows = await many('SELECT assignee_id, count(*)::int AS c FROM tasks WHERE NOT done AND assignee_id IS NOT NULL GROUP BY assignee_id', []);
@@ -729,7 +748,7 @@ app.get('/api/admin/users', auth, adminOnly, h(async (req, res) => {
   res.json({
     users: users.map((u) => ({
       id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '',
-      createdAt: u.created_at, admin: isAdmin(u), superAdmin: isSuperAdmin(u),
+      createdAt: u.created_at, lastLogin: u.last_login, admin: isAdmin(u), superAdmin: isSuperAdmin(u),
       projectCount: projByUser[u.id] || 0, tasksOpen: openByUser[u.id] || 0, tasksDone: doneByUser[u.id] || 0, points: ptsByUser[u.id] || 0,
     })),
   });

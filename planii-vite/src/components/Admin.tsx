@@ -7,14 +7,44 @@ import type { User } from '@/lib/types'
 
 type Section = 'dash' | 'users' | 'tasks' | 'projects' | 'admins' | 'audit'
 
-interface AStats { users: number; projects: number; projectsActive: number; tasks: number; tasksDone: number; tasksOverdue: number; completion: number }
-interface AUser { id: string; name: string; email: string; createdAt: string; admin: boolean; superAdmin: boolean; projectCount: number; tasksOpen: number; tasksDone: number; points: number }
+interface AStats {
+  users: number; projects: number; projectsActive: number; tasks: number; tasksDone: number; tasksOpen: number; tasksOverdue: number
+  completion: number; activeUsers7: number
+  tasksByPriority: { p: number; c: number }[]; projectsByType: { t: string; c: number }[]
+  doneByDay: { d: string; c: number }[]; recentLogins: { name: string; email: string; lastLogin: string }[]
+}
+interface AUser { id: string; name: string; email: string; createdAt: string; lastLogin?: string | null; admin: boolean; superAdmin: boolean; projectCount: number; tasksOpen: number; tasksDone: number; points: number }
 interface ATask { id: string; title: string; projectId: string; projectName: string; assigneeName: string | null; due: string | null; done: boolean; priority: number }
 interface AProject { id: string; name: string; type: string; status: string; ownerName: string; ownerEmail: string; memberCount: number; taskCount: number; doneCount: number }
 interface AAudit { id: string; actor: string; action: string; detail: string; at: string }
 
 const fmtDate = (s: string) => { try { return new Date(s).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return '—' } }
 const fmtDateTime = (s: string) => { try { return new Date(s).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) } catch { return '—' } }
+const fmtAgo = (s?: string | null) => {
+  if (!s) return 'jamais'
+  const k = Math.round((Date.now() - new Date(s).getTime()) / 60000)
+  if (k < 1) return "à l'instant"; if (k < 60) return `il y a ${k} min`
+  const h = Math.round(k / 60); if (h < 24) return `il y a ${h} h`
+  const j = Math.round(h / 24); if (j < 30) return `il y a ${j} j`
+  return fmtDate(s)
+}
+const PRIO_COLOR = ['', 'var(--danger)', 'var(--warn)', 'var(--accent)', 'var(--blue)', 'var(--ok)', 'var(--line-strong)']
+
+/** Petit graphique à barres verticales (CSS, thème Planii). */
+function VBars({ data }: { data: { label: string; value: number; color?: string }[] }) {
+  const max = Math.max(1, ...data.map((d) => d.value))
+  return (
+    <div className="vbars">
+      {data.map((d, i) => (
+        <div className="vbar" key={i} title={`${d.label} : ${d.value}`}>
+          <div className="vbar-track"><div className="vbar-fill" style={{ height: Math.round((d.value / max) * 100) + '%', background: d.color || 'var(--accent)' }} /></div>
+          <div className="vbar-val">{d.value}</div>
+          <div className="vbar-lbl">{d.label}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 const AUDIT_LABEL: Record<string, string> = {
   delete_user: '🗑 Utilisateur supprimé', delete_project: '🗑 Projet supprimé',
@@ -29,7 +59,7 @@ export function Admin({ me }: { me: User }) {
     ...(isSuper ? [['admins', '⭐ Admins'], ['audit', '📜 Audit']] as [Section, string][] : []),
   ]
   return (
-    <div>
+    <div className="admin-page">
       <div className="viewseg admin-seg">
         {segs.map(([k, l]) => <button key={k} className={sec === k ? 'on' : ''} onClick={() => setSec(k)}>{l}</button>)}
       </div>
@@ -43,19 +73,60 @@ export function Admin({ me }: { me: User }) {
   )
 }
 
+const TYPE_LBL: Record<string, string> = { solo: '1-à-1', team: 'Équipe', group: 'Groupe' }
+
 function Dashboard() {
   const [s, setS] = useState<AStats | null>(null)
   useEffect(() => { api<{ stats: AStats }>('GET', '/admin/stats').then((r) => setS(r.stats)).catch((e: any) => toastErr(e.message)) }, [])
   if (!s) return <div className="empty">Chargement…</div>
   const cards: [string, string | number, string][] = [
-    ['Utilisateurs', s.users, '👤'], ['Projets', `${s.projectsActive}/${s.projects}`, '📁'],
+    ['Utilisateurs', s.users, '👤'], ['Actifs (7 j)', s.activeUsers7, '🟢'], ['Projets', `${s.projectsActive}/${s.projects}`, '📁'],
     ['Tâches', s.tasks, '✓'], ['Terminées', `${s.tasksDone} · ${s.completion}%`, '🎯'], ['En retard', s.tasksOverdue, '⏰'],
   ]
+  const donePeak = Math.max(1, ...s.doneByDay.map((d) => d.c))
   return (
-    <div className="stat-grid">
-      {cards.map(([label, val, ico]) => (
-        <div key={label} className="stat-card"><div className="stat-ico">{ico}</div><div className="stat-val">{val}</div><div className="stat-lbl">{label}</div></div>
-      ))}
+    <div className="admin-dash">
+      <div className="stat-grid">
+        {cards.map(([label, val, ico]) => (
+          <div key={label} className="stat-card"><div className="stat-ico">{ico}</div><div className="stat-val">{val}</div><div className="stat-lbl">{label}</div></div>
+        ))}
+      </div>
+
+      <div className="dash-grid">
+        <div className="card chart-card">
+          <div className="chart-h">Tâches par priorité</div>
+          <VBars data={s.tasksByPriority.map((x) => ({ label: 'P' + x.p, value: x.c, color: PRIO_COLOR[x.p] }))} />
+        </div>
+
+        <div className="card chart-card">
+          <div className="chart-h">Projets par type</div>
+          <VBars data={s.projectsByType.map((x, i) => ({ label: TYPE_LBL[x.t] || x.t, value: x.c, color: ['var(--accent)', 'var(--blue)', 'var(--ok)'][i] }))} />
+        </div>
+
+        <div className="card chart-card wide">
+          <div className="chart-h">Tâches terminées — 14 derniers jours</div>
+          <div className="spark">
+            {s.doneByDay.map((d, i) => (
+              <div key={i} className="spark-bar" title={`${d.d} : ${d.c}`}>
+                <div className="spark-fill" style={{ height: Math.max(3, Math.round((d.c / donePeak) * 100)) + '%' }} />
+              </div>
+            ))}
+          </div>
+          <div className="chart-foot"><span>{s.doneByDay[0]?.d.slice(8)}</span><span>total {s.doneByDay.reduce((a, b) => a + b.c, 0)}</span><span>auj.</span></div>
+        </div>
+
+        <div className="card chart-card wide">
+          <div className="chart-h">Dernières connexions</div>
+          {s.recentLogins.length === 0 && <div className="sub">Aucune connexion enregistrée pour l’instant.</div>}
+          {s.recentLogins.map((u, i) => (
+            <div key={i} className="login-row">
+              <span className="login-dot" />
+              <div className="login-body"><div className="nm">{u.name}</div><div className="sub">{u.email}</div></div>
+              <span className="login-ago">{fmtAgo(u.lastLogin)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -104,7 +175,7 @@ function Users({ me, isSuper, adminsOnly }: { me: User; isSuper: boolean; admins
             <div className="sub">{u.email}</div>
             <div className="ac-meta">
               <span>🏆 {u.points} pts</span><span>📁 {u.projectCount}</span>
-              <span>✓ {u.tasksDone}</span><span>⏳ {u.tasksOpen}</span><span>inscrit·e {fmtDate(u.createdAt)}</span>
+              <span>✓ {u.tasksDone}</span><span>⏳ {u.tasksOpen}</span><span>vu·e {fmtAgo(u.lastLogin)}</span><span>inscrit·e {fmtDate(u.createdAt)}</span>
             </div>
           </div>
           <div className="ac-actions">

@@ -217,12 +217,12 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
           <span>Rechercher</span><span className="kbd">{CMD_LABEL}</span>
         </button>
         <nav className="side-nav">
-          {NAV.map(([k, l]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{I[k]}<span>{l}</span></button>
-          ))}
           {me.admin && (
             <button className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>{ADMIN_ICON}<span>Admin</span></button>
           )}
+          {NAV.map(([k, l]) => (
+            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{I[k]}<span>{l}</span></button>
+          ))}
         </nav>
         <div className="side-label">PROJETS</div>
         <div className="side-projects">

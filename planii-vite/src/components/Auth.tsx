@@ -45,6 +45,7 @@ export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
           ? <>Pas encore de compte ? <button className="btn-link" onClick={() => setMode('signup')}>S’inscrire</button></>
           : <>Déjà inscrit ? <button className="btn-link" onClick={() => setMode('login')}>Se connecter</button></>}
       </p>
+      <p className="auth-support">Un problème ? Contactez le support : <a href="mailto:info@planii.app">info@planii.app</a></p>
     </div>
   )
 }
