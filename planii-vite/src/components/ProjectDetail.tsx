@@ -5,7 +5,7 @@ import { TYPE_LABEL, ROLE_LABEL, INVITE_ROLES, canManage, formatDue, isOverdue }
 import { memberPoints, projectPoints, levelOf, taskPoints } from '@/lib/points'
 import { prio, prioMeta, PRIORITIES } from '@/lib/priority'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
-import type { Member, Poll, Project, ProjectRole, Task, User } from '@/lib/types'
+import type { Member, Poll, Project, ProjectLabel, ProjectRole, Task, TaskStatus, User } from '@/lib/types'
 import { Meeting } from './Meeting'
 import { Mic, MicInput, MicTextarea } from './Mic'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
@@ -23,8 +23,8 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
   useEffect(load, [load])
   useRealtime((m) => { if (m.type === 'project' && m.projectId === id) load() })
 
-  if (err) return <div className="app"><div className="wrap"><button className="btn-link" onClick={onBack}>‹ Retour</button><div className="empty">{err}</div></div></div>
-  if (!p) return <div className="app"><div className="wrap"><div className="empty">Chargement…</div></div></div>
+  if (err) return <div className="app project-detail-app"><div className="wrap"><button className="btn-link" onClick={onBack}>‹ Retour</button><div className="empty">{err}</div></div></div>
+  if (!p) return <div className="app project-detail-app"><div className="wrap"><div className="empty">Chargement…</div></div></div>
   if (meet) return <Meeting p={p} me={me} onClose={() => setMeet(false)} />
 
   const h = health(p.tasks.length, p.tasks.filter((t) => t.done).length, p.status)
@@ -44,7 +44,7 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
   }
 
   return (
-    <div className="app">
+    <div className="app project-detail-app">
       <div className="topbar">
         <div className="brand"><span className="logo"><b /></span><span>Planii</span></div>
         <div className="who"><span className="role-tag">{ROLE_LABEL[p.my_role] || p.my_role}</span><Avatar name={me.name} /></div>
@@ -112,7 +112,21 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
   const [sortDir, setSortDir] = useState<Dir>('asc')
   const [grouped, setGrouped] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
+  const [filterUser, setFilterUser] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [newStatus, setNewStatus] = useState('')
+  const [statusBusy, setStatusBusy] = useState(false)
   const member = (id: string | null) => p.members.find((x) => x.id === id)
+  const statuses = (p.statuses && p.statuses.length ? p.statuses : [
+    { id: 'todo', key: 'todo', label: 'À faire', color: '#9a988f', position: 0, fixed: true },
+    { id: 'in_progress', key: 'in_progress', label: 'En cours', color: '#3b82d6', position: 1, fixed: true },
+    { id: 'review', key: 'review', label: 'Revu', color: '#9b5de5', position: 2, fixed: true },
+    { id: 'transferred', key: 'transferred', label: 'Transféré', color: '#f59f30', position: 3, fixed: false },
+    { id: 'done', key: 'done', label: 'Terminé', color: '#4caf50', position: 99, fixed: true },
+  ] as TaskStatus[]).slice().sort((a, b) => a.position - b.position)
+  const statusOf = (t: Task) => t.statusKey || (t.done ? 'done' : 'todo')
+  const nameOf = (id?: string | null) => id ? (member(id)?.name || '—') : '—'
 
   function dropOn(targetId: string) {
     if (sortMode !== 'manual' || !dragId || dragId === targetId) { setDragId(null); return }
@@ -138,27 +152,45 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
   async function claim(t: Task) { try { await api('POST', '/tasks/' + t.id + '/claim', {}); toast('Tâche prise ✓'); reload() } catch (e: any) { toastErr(e.message) } }
   async function del(t: Task) { try { await api('DELETE', '/tasks/' + t.id); reload() } catch (e: any) { toastErr(e.message) } }
   async function setPriority(t: Task, n: number) { try { await api('PATCH', '/tasks/' + t.id, { priority: n }); setPrioId(null); toast('Priorité P' + n); reload() } catch (e: any) { toastErr(e.message) } }
+  async function moveTask(t: Task, statusKey: string) {
+    const other = p.members.find((m) => m.id !== (t.assigneeId || me.id))
+    const transferTo = statusKey === 'transferred' ? (t.transferredTo || other?.id || t.assigneeId || null) : null
+    try { await api('PATCH', '/tasks/' + t.id, { statusKey, transferredTo: transferTo }); setDragId(null); reload() }
+    catch (e: any) { toastErr(e.message); setDragId(null) }
+  }
+  async function addStatus() {
+    const label = newStatus.trim()
+    if (!label) return
+    setStatusBusy(true)
+    try { await api('POST', '/projects/' + p.id + '/task-statuses', { label }); setNewStatus(''); reload() }
+    catch (e: any) { toastErr(e.message) }
+    finally { setStatusBusy(false) }
+  }
+  async function removeStatus(key: string) {
+    try { await api('DELETE', '/projects/' + p.id + '/task-statuses/' + encodeURIComponent(key)); reload() }
+    catch (e: any) { toastErr(e.message) }
+  }
 
-  function relance(t: Task) {
-    const m = member(t.assigneeId); if (!m || !m.email) { toastErr('Pas d’email pour ce membre'); return }
-    const subject = `Petit rappel — ${p.name}`
-    const body = `Bonjour ${m.name},\n\nUn petit rappel amical : la tâche « ${t.title} » est en attente${t.due ? ` (échéance ${formatDue(t.due)})` : ''}.\nDès que c'est fait de votre côté, on peut avancer. Merci !\n\nBien à vous`
-    window.location.href = `mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-    toast('Email de relance ouvert ✉')
+  async function relance(t: Task) {
+    try {
+      await api('POST', '/tasks/' + t.id + '/remind', {})
+      toast('Relance envoyée ✓')
+      reload()
+    } catch (e: any) { toastErr(e.message) }
   }
 
   const overdue = p.tasks.filter((t) => isOverdue(t))
   const cmp = taskComparator(sortMode, sortDir)
   const roots = p.tasks.filter((t) => !t.parentId).slice().sort(cmp)
-  const canDrag = sortMode === 'manual' && !grouped && p.status !== 'done'
+  const canDrag = false
 
   const renderTask = (t: Task, isSub = false) => {
     const over = isOverdue(t)
     const mine = t.assigneeId === me.id
     const unassigned = !t.assigneeId
     const am = member(t.assigneeId)
-    const canRelance = over && !mine && !unassigned && am && am.email
     const manage = canManage(p.my_role)
+    const canRelance = over && !mine && !unassigned && am && am.email && (manage || t.createdBy === me.id)
     const canDel = t.createdBy === me.id || manage
     const canEditMeta = t.createdBy === me.id || manage
     const canLogHours = mine || manage
@@ -169,7 +201,10 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
     const subDone = subs.filter((s) => s.done).length
     const hasMenu = canEditMeta || canLogHours || canDel || canPrio || (unassigned && p.status !== 'done')
     return (
-      <div key={t.id} className={'task' + (isSub ? ' subtask' : '') + (t.done ? ' done' : '') + (over ? ' overdue' : '')}>
+      <div key={t.id} className={'task status-task' + (isSub ? ' subtask' : '') + (t.done ? ' done' : '') + (over ? ' overdue' : '') + (dragId === t.id ? ' dragging' : '')}
+        draggable={!isSub && p.status !== 'done'}
+        onDragStart={!isSub && p.status !== 'done' ? () => setDragId(t.id) : undefined}
+        onDragEnd={!isSub && p.status !== 'done' ? () => setDragId(null) : undefined}>
         <div className="tt">
           <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine ? '' : ' locked')} disabled={!mine} onClick={mine ? () => toggle(t) : undefined} title={mine ? '' : 'Seul le responsable peut cocher'} aria-label="Cocher">{t.done ? '✓' : (mine ? '' : '🔒')}</button>
           <div className="tname">
@@ -184,6 +219,8 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
               {t.due && <span className={'tag ' + (over ? 'late' : 'due')}>📅 {formatDue(t.due)}</span>}
               {hasHours && <span className="tag hours">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? ` / ~${t.estHours}h` : ''}</span>}
               {subs.length > 0 && <span className="tag due">☑ {subDone}/{subs.length}</span>}
+              <span className="tag due">{statuses.find((s) => s.key === statusOf(t))?.label || 'À faire'}</span>
+              {statusOf(t) === 'transferred' && <span className="tag acc">↪ {nameOf(t.transferredFrom)} → {nameOf(t.transferredTo)}</span>}
             </div>
           </div>
           {hasMenu && <button className="more-btn" onClick={() => setMenuId(t.id)} aria-label="Actions">⋯</button>}
@@ -254,6 +291,60 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
     ))
   }
 
+  const sectionMembers = () => {
+    const base = p.members.map((m) => ({ id: m.id, name: m.name }))
+    const hasUnassigned = roots.some((t) => !t.assigneeId)
+    const withNone = hasUnassigned ? [...base, { id: 'none', name: 'À prendre' }] : base
+    return filterUser === 'all' ? withNone : withNone.filter((m) => m.id === filterUser)
+  }
+  const tasksForPerson = (personId: string) => roots.filter((t) => {
+    const direct = personId === 'none' ? !t.assigneeId : t.assigneeId === personId
+    const transferVisible = personId !== 'none' && (t.transferredFrom === personId || t.transferredTo === personId)
+    return direct || transferVisible
+  })
+  const tasksForStatus = (personId: string, statusKey: string) => tasksForPerson(personId).filter((t) => statusOf(t) === statusKey)
+  const renderUserStatusBoard = () => sectionMembers().map((u) => {
+    const personTasks = tasksForPerson(u.id)
+    if (!personTasks.length && filterUser !== u.id) return null
+    const isCollapsed = collapsed[u.id]
+    const initials = u.id === 'none' ? '👐' : undefined
+    const visibleStatuses = statusFilter === 'all' ? statuses : statuses.filter((s) => s.key === statusFilter)
+    return (
+      <div key={u.id} className={'user-status-section' + (isCollapsed ? ' collapsed' : '')}>
+        <button className="user-status-head" onClick={() => setCollapsed((c) => ({ ...c, [u.id]: !c[u.id] }))}>
+          <span className="chev">{isCollapsed ? '›' : '⌄'}</span>
+          {initials ? <span className="avatar">{initials}</span> : <Avatar name={u.name} size={34} />}
+          <span className="user-status-name">{u.name}</span>
+          <span className="user-status-count">{personTasks.length} tâche{personTasks.length > 1 ? 's' : ''}</span>
+        </button>
+        {!isCollapsed && (
+          <div className="user-status-board">
+            {visibleStatuses.map((s) => {
+              const list = tasksForStatus(u.id, s.key).sort(cmp)
+              const activeDrop = dragId && list.every((t) => t.id !== dragId)
+              return (
+                <div key={s.key} className={'status-col' + (activeDrop ? ' can-drop' : '')}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    const dragged = roots.find((t) => t.id === dragId)
+                    if (dragged) moveTask(dragged, s.key)
+                  }}>
+                  <div className="status-col-head">
+                    <span><i style={{ background: s.color }} />{s.label}</span>
+                    <b>{list.length}</b>
+                    {canManage(p.my_role) && !s.fixed && <button className="status-remove" onClick={() => removeStatus(s.key)} title="Supprimer ce statut">×</button>}
+                  </div>
+                  <div className="status-drop-label">Déposer ici</div>
+                  {list.map((t) => renderRoot(t))}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  })
+
   return (
     <div>
       {overdue.length > 0 && <div className="banner" style={{ background: 'var(--danger-bg)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>⚠ {overdue.length} tâche(s) en retard.</div>}
@@ -287,23 +378,41 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
           <div className="sheet-actions"><button className="btn primary sm" onClick={addTask}>Ajouter</button><button className="btn ghost sm" onClick={() => setAdding(false)}>Annuler</button></div>
         </div>
       )}
-      {p.tasks.length > 0 && (
-        <div className="list-tools">
-          <label className="lt-lbl">Trier</label>
-          <select value={sortMode} onChange={(e) => setSortMode(e.target.value as TaskSort)} aria-label="Trier les tâches par">
-            <option value="priority">Priorité</option>
-            <option value="due">Échéance</option>
-            <option value="title">Titre</option>
-            <option value="manual">Manuel</option>
-          </select>
-          <button className="btn sm" onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}</button>
-          <button className={'btn sm' + (grouped ? ' primary' : '')} onClick={() => setGrouped((g) => !g)} title="Regrouper par responsable">👤 Par personne</button>
-        </div>
-      )}
-      {canDrag && <div className="sub" style={{ margin: '0 2px 8px' }}>Glissez les tâches pour changer l’ordre.</div>}
-      <div className="section-h">Tâches</div>
+      <div className="status-workspace">
+        <aside className="status-filter">
+          <div className="status-filter-title">Filtrer</div>
+          <button className={filterUser === 'all' ? 'on' : ''} onClick={() => setFilterUser('all')}>👥 Tout le monde</button>
+          {p.members.map((m) => <button key={m.id} className={filterUser === m.id ? 'on' : ''} onClick={() => setFilterUser(m.id)}><Avatar name={m.name} size={26} />{m.name.split(' ')[0]}</button>)}
+          <button className={filterUser === 'none' ? 'on' : ''} onClick={() => setFilterUser('none')}>👐 À prendre</button>
+          <div className="status-filter-sep" />
+          <button className={statusFilter === 'all' ? 'on' : ''} onClick={() => setStatusFilter('all')}>Tous les statuts</button>
+          {statuses.map((s) => <button key={s.key} className={statusFilter === s.key ? 'on' : ''} onClick={() => setStatusFilter(s.key)}><i style={{ background: s.color }} />{s.label}</button>)}
+          {canManage(p.my_role) && (
+            <div className="status-admin">
+              <input value={newStatus} onChange={(e) => setNewStatus(e.target.value)} placeholder="Nouveau statut…" onKeyDown={(e) => { if (e.key === 'Enter') addStatus() }} />
+              <button className="btn sm" disabled={statusBusy} onClick={addStatus}>Ajouter</button>
+            </div>
+          )}
+        </aside>
+        <section className="status-main">
+          <div className="status-hint">Glissez une tâche d’un statut à un autre. Les tâches se créent avec le bouton principal, puis se déplacent ici.</div>
+          {p.tasks.length > 0 && (
+            <div className="list-tools status-sort">
+              <label className="lt-lbl">Trier</label>
+              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as TaskSort)} aria-label="Trier les tâches par">
+                <option value="priority">Priorité</option>
+                <option value="due">Échéance</option>
+                <option value="title">Titre</option>
+                <option value="manual">Manuel</option>
+              </select>
+              <button className="btn sm" onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}</button>
+            </div>
+          )}
+          <div className="section-h">Tâches</div>
       {p.tasks.length === 0 && <div className="empty"><div className="big">✓</div>Aucune tâche pour l’instant.</div>}
-      {grouped ? groupByAssignee() : roots.map(renderRoot)}
+          {renderUserStatusBoard()}
+        </section>
+      </div>
     </div>
   )
 }
@@ -529,11 +638,24 @@ function PollsTab({ p, reload }: { p: Project; reload: () => void }) {
 function EditProject({ p, onClose, onSaved }: { p: Project; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(p.name)
   const [deadline, setDeadline] = useState(p.deadline || '')
+  const [labels, setLabels] = useState<ProjectLabel[]>([])
+  const [labelId, setLabelId] = useState(p.labelId || '')
   const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    api<{ labels: ProjectLabel[] }>('GET', '/project-labels')
+      .then((r) => {
+        setLabels(r.labels)
+        if (!labelId) {
+          const fallback = r.labels.find((l) => l.label.toLowerCase() === 'travail') || r.labels[0]
+          if (fallback) setLabelId(fallback.id)
+        }
+      })
+      .catch(() => {})
+  }, [])
   async function save() {
     if (!name.trim()) { toastErr('Le nom ne peut pas être vide'); return }
     setBusy(true)
-    try { await api('PATCH', '/projects/' + p.id, { name: name.trim(), deadline: deadline || null }); toast('Projet mis à jour ✓'); onSaved() }
+    try { await api('PATCH', '/projects/' + p.id, { name: name.trim(), deadline: deadline || null, labelId: labelId || null }); toast('Projet mis à jour ✓'); onSaved() }
     catch (e: any) { toastErr(e.message); setBusy(false) }
   }
   return (
@@ -542,6 +664,11 @@ function EditProject({ p, onClose, onSaved }: { p: Project; onClose: () => void;
         <MicInput value={name} onChange={setName} placeholder="Nom du projet" /></div>
       <div className="field"><label>Date de livraison</label>
         <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></div>
+      <div className="field"><label>Liste de libellés</label>
+        <select value={labelId} onChange={(e) => setLabelId(e.target.value)}>
+          {labels.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+        </select>
+      </div>
       <div className="sheet-actions">
         <button className="btn primary" disabled={busy} onClick={save}>Enregistrer</button>
         <button className="btn ghost" onClick={onClose}>Annuler</button>
@@ -560,6 +687,8 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
     est: t.estHours != null ? String(t.estHours) : '',
     spent: t.spentHours != null ? String(t.spentHours) : '',
     prio: prio(t.priority),
+    statusKey: t.statusKey || (t.done ? 'done' : 'todo'),
+    transferredTo: t.transferredTo || '',
   })
   const typeOpts = [...new Set([...types, ...(t.type ? [t.type] : [])])]
   const [busy, setBusy] = useState(false)
@@ -573,6 +702,8 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
       body.estHours = f.est === '' ? null : Number(f.est)
       body.spentHours = f.spent === '' ? null : Number(f.spent)
     }
+    body.statusKey = f.statusKey
+    body.transferredTo = f.statusKey === 'transferred' ? (f.transferredTo || null) : null
     setBusy(true)
     try { await api('PATCH', '/tasks/' + t.id, body); toast('Tâche mise à jour ✓'); onSaved() }
     catch (e: any) { toastErr(e.message); setBusy(false) }
@@ -612,6 +743,17 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
       )}
       <div className="field"><label>Priorité</label>
         <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={f.prio === n ? 'on o' + n : ''} onClick={() => setF({ ...f, prio: n })}>P{n}</button>)}</div></div>
+      <div className="field"><label>Statut</label>
+        <div className="type-pick">
+          {(p.statuses || []).map((s) => <button key={s.key} className={f.statusKey === s.key ? 'on' : ''} onClick={() => setF({ ...f, statusKey: s.key })}><span className="status-dot-inline" style={{ background: s.color }} />{s.label}</button>)}
+        </div></div>
+      {f.statusKey === 'transferred' && (
+        <div className="field"><label>Transféré à</label>
+          <select value={f.transferredTo} onChange={(e) => setF({ ...f, transferredTo: e.target.value })}>
+            <option value="">— Choisir une personne</option>
+            {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select></div>
+      )}
       <div className="sheet-actions">
         <button className="btn primary" disabled={busy} onClick={save}>Enregistrer</button>
         <button className="btn ghost" onClick={onClose}>Annuler</button>

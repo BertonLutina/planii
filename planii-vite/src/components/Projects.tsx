@@ -4,17 +4,35 @@ import { toast, toastErr, Modal, health } from '@/lib/ui'
 import { ROLE_LABEL } from '@/lib/dates'
 import { MicInput } from './Mic'
 import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
-import type { InviteInfo, ProjectSummary } from '@/lib/types'
+import type { InviteInfo, ProjectLabel, ProjectSummary } from '@/lib/types'
+
+const DEFAULT_PROJECT_LABELS: ProjectLabel[] = [
+  { id: 'default-work', label: 'Travail', color: '#f59e0b', position: 0, fixed: true },
+  { id: 'default-private', label: 'Privé', color: '#ef4444', position: 1, fixed: true },
+]
 
 export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: string) => void; onJoin: () => void; openSignal?: number }) {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
+  const [labels, setLabels] = useState<ProjectLabel[]>(DEFAULT_PROJECT_LABELS)
   const [err, setErr] = useState<string | null>(null)
   const [newOpen, setNewOpen] = useState(false)
   const [tab, setTab] = useState<'active' | 'done'>('active')
   const [pSort, setPSort] = useState<ProjSort>('title')
   const [pDir, setPDir] = useState<Dir>('asc')
   const [dragId, setDragId] = useState<string | null>(null)
-  const load = useCallback(() => { api<{ projects: ProjectSummary[] }>('GET', '/projects').then((r) => setProjects(r.projects)).catch((e) => setErr(e.message)) }, [])
+  const load = useCallback(() => {
+    api<{ projects: ProjectSummary[] }>('GET', '/projects')
+      .then(async (r) => {
+        setProjects(r.projects)
+        try {
+          const lr = await api<{ labels: ProjectLabel[] }>('GET', '/project-labels')
+          setLabels(lr.labels.length ? lr.labels : DEFAULT_PROJECT_LABELS)
+        } catch {
+          setLabels(DEFAULT_PROJECT_LABELS)
+        }
+      })
+      .catch((e) => setErr(e.message))
+  }, [])
   useEffect(load, [load])
   useEffect(() => { if (openSignal) setNewOpen(true) }, [openSignal])
 
@@ -24,6 +42,20 @@ export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: stri
   const done = projects.filter((p) => p.status === 'done')
   const list = (tab === 'active' ? active : done).slice().sort(projectComparator(pSort, pDir))
   const canDrag = pSort === 'manual' && tab === 'active'
+  const legendLabels = (() => {
+    const byKey = new Map<string, ProjectLabel>()
+    labels.forEach((l) => byKey.set(l.id || l.label, l))
+    projects.forEach((p) => {
+      if (p.labelName && p.labelColor) byKey.set(p.labelId || p.labelName, {
+        id: p.labelId || p.labelName,
+        label: p.labelName,
+        color: p.labelColor,
+        position: 99,
+        fixed: false,
+      })
+    })
+    return [...byKey.values()].sort((a, b) => a.position - b.position || a.label.localeCompare(b.label))
+  })()
 
   function dropOn(targetId: string) {
     if (!canDrag || !dragId || dragId === targetId) { setDragId(null); return }
@@ -52,20 +84,34 @@ export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: stri
         </select>
         <button className="btn sm" onClick={() => setPDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{pDir === 'asc' ? '↑ A→Z' : '↓ Z→A'}</button>
       </div>
+      <div className="project-legend" aria-label="Légende des libellés">
+        {legendLabels.map((l) => (
+          <span key={l.id} className="project-legend-item"><i style={{ background: l.color }} />{l.label}</span>
+        ))}
+      </div>
       {canDrag && <div className="sub" style={{ margin: '0 2px 8px' }}>Glissez les projets pour changer l’ordre.</div>}
       <div className="proj-grid">
         {list.map((p) => {
           const h = health(p.taskCount, p.doneCount, p.status)
           const typeShort = ({ solo: '1-à-1', team: 'Équipe', group: 'Groupe' } as Record<string, string>)[p.type] || p.type
-          const sub = typeShort + (p.type !== 'group' ? ' · ' + (ROLE_LABEL[p.my_role] || p.my_role) : '') + ` · ${h.done}/${h.total} tâches`
+          const memberCount = Number.isFinite(Number(p.memberCount)) ? Number(p.memberCount) : 1
+          const memberText = `👥 ${memberCount} membre${memberCount > 1 ? 's' : ''}`
+          const label = legendLabels.find((l) => l.id === p.labelId || l.label === p.labelName) || legendLabels[0]
+          const labelName = p.labelName || label?.label || 'Travail'
+          const labelColor = p.labelColor || label?.color || '#f59e0b'
+          const sub = typeShort + (p.type !== 'group' ? ' · ' + (ROLE_LABEL[p.my_role] || p.my_role) : '') + ` · ${memberText} · ${h.done}/${h.total} tâches`
           return (
             <button key={p.id} className={'proj-card' + (canDrag ? ' draggable' : '') + (dragId === p.id ? ' dragging' : '')} onClick={() => onOpen(p.id)}
+              style={{ borderLeftColor: labelColor }}
               draggable={canDrag}
               onDragStart={canDrag ? () => setDragId(p.id) : undefined}
               onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
               onDrop={canDrag ? (e) => { e.preventDefault(); dropOn(p.id) } : undefined}>
               {canDrag && <span className="drag-handle" aria-hidden="true">⠿</span>}
-              <div className="pc-name">{p.name}</div>
+              <div className="pc-top">
+                <div className="pc-name">{p.name}</div>
+                <span className="pc-label" style={{ background: labelColor }}>{labelName}</span>
+              </div>
               <div className="pc-sub">{sub}</div>
               <div className="mini-bar"><i style={{ width: h.pct + '%', background: p.status === 'done' ? 'var(--ok)' : 'var(--accent)' }} /></div>
             </button>
@@ -74,19 +120,21 @@ export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: stri
         {tab === 'active' && <button className="proj-card new" onClick={() => setNewOpen(true)}>＋ Nouveau projet</button>}
       </div>
       {list.length === 0 && tab === 'done' && <div className="empty"><div className="big">◎</div>Aucun projet terminé.</div>}
-      {newOpen && <NewProject onClose={() => setNewOpen(false)} onCreated={(pid) => { setNewOpen(false); onOpen(pid) }} />}
+      {newOpen && <NewProject labels={labels} onClose={() => setNewOpen(false)} onCreated={(pid) => { setNewOpen(false); onOpen(pid) }} />}
     </div>
   )
 }
 
-function NewProject({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
-  const [f, setF] = useState({ name: '', type: 'solo', deadline: '' })
+function NewProject({ labels, onClose, onCreated }: { labels: ProjectLabel[]; onClose: () => void; onCreated: (id: string) => void }) {
+  const defaultLabel = labels.find((l) => l.label.toLowerCase() === 'travail') || labels[0]
+  const [f, setF] = useState({ name: '', type: 'solo', deadline: '', labelId: defaultLabel?.id || '' })
   const [busy, setBusy] = useState(false)
+  useEffect(() => { if (!f.labelId && defaultLabel) setF((x) => ({ ...x, labelId: defaultLabel.id })) }, [defaultLabel, f.labelId])
   async function create() {
     if (!f.name.trim()) return
     setBusy(true)
     try {
-      const r = await api<{ project: { id: string } }>('POST', '/projects', { name: f.name.trim(), type: f.type, deadline: f.deadline || null })
+      const r = await api<{ project: { id: string } }>('POST', '/projects', { name: f.name.trim(), type: f.type, deadline: f.deadline || null, labelId: f.labelId || null })
       toast('Projet créé ✓'); onCreated(r.project.id)
     } catch (e: any) { toastErr(e.message); setBusy(false) }
   }
@@ -100,6 +148,11 @@ function NewProject({ onClose, onCreated }: { onClose: () => void; onCreated: (i
             <button key={k} className={f.type === k ? 'on' : ''} style={{ textAlign: 'left' }} onClick={() => setF({ ...f, type: k })}>{l}</button>
           ))}
         </div></div>
+      <div className="field"><label>Liste de libellés</label>
+        <select value={f.labelId} onChange={(e) => setF({ ...f, labelId: e.target.value })}>
+          {labels.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+        </select>
+      </div>
       <div className="field"><label>Date de livraison (optionnel)</label>
         <input type="date" value={f.deadline} onChange={(e) => setF({ ...f, deadline: e.target.value })} /></div>
       <div className="sheet-actions">

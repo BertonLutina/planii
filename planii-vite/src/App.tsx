@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, getTok, setTok } from '@/lib/api'
 import { Toaster, Avatar, health, toast, toastErr } from '@/lib/ui'
-import type { User } from '@/lib/types'
+import type { ProjectLabel, User } from '@/lib/types'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
 import { MicInput } from './components/Mic'
 import { Auth } from './components/Auth'
@@ -103,6 +103,100 @@ function ListEditor({ me, onUpdate, title, desc, field, get, placeholder, maxLen
   )
 }
 
+const LABEL_COLORS = ['#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b']
+
+function ProjectLabelEditor() {
+  const [labels, setLabels] = useState<ProjectLabel[]>([])
+  const [palette, setPalette] = useState<string[]>(LABEL_COLORS)
+  const [name, setName] = useState('')
+  const [color, setColor] = useState(LABEL_COLORS[0])
+  const [busy, setBusy] = useState(false)
+
+  const load = () => api<{ labels: ProjectLabel[]; colors?: string[] }>('GET', '/project-labels')
+    .then((r) => {
+      setLabels(r.labels)
+      const colors = r.colors && r.colors.length ? r.colors : LABEL_COLORS
+      setPalette(colors)
+      if (!colors.some((c) => c.toLowerCase() === color.toLowerCase())) setColor(colors[0] || LABEL_COLORS[0])
+    })
+    .catch((e: any) => toastErr(e.message))
+  useEffect(() => { load() }, [])
+
+  async function addPaletteColor(next: string) {
+    setColor(next)
+    if (palette.some((c) => c.toLowerCase() === next.toLowerCase())) return
+    try {
+      const r = await api<{ colors: string[] }>('PATCH', '/project-label-colors', { color: next })
+      setPalette(r.colors)
+    } catch (e: any) { toastErr(e.message) }
+  }
+
+  async function removePaletteColor(c: string) {
+    try {
+      const r = await api<{ colors: string[] }>('DELETE', '/project-label-colors/' + encodeURIComponent(c.replace('#', '')))
+      setPalette(r.colors)
+      if (color.toLowerCase() === c.toLowerCase()) setColor(r.colors[0] || LABEL_COLORS[0])
+    } catch (e: any) { toastErr(e.message) }
+  }
+
+  async function add() {
+    const label = name.trim()
+    if (!label) return
+    setBusy(true)
+    try {
+      await api('POST', '/project-labels', { label, color })
+      setName('')
+      setColor(palette[(labels.length + 1) % palette.length] || LABEL_COLORS[0])
+      await load()
+      toast('Libellé ajouté ✓')
+    } catch (e: any) { toastErr(e.message) } finally { setBusy(false) }
+  }
+
+  async function remove(id: string) {
+    try {
+      await api('DELETE', '/project-labels/' + id)
+      await load()
+      toast('Libellé supprimé')
+    } catch (e: any) { toastErr(e.message) }
+  }
+
+  return (
+    <>
+      <div className="section-h">Mes libellés de projets</div>
+      <div className="card">
+        <p className="sub" style={{ marginTop: 0 }}>Ces libellés colorent tes projets et apparaissent dans la légende.</p>
+        <div className="label-chip-list">
+          {labels.map((l) => (
+            <span key={l.id} className="label-chip" style={{ borderColor: l.color, color: l.color }}>
+              <i style={{ background: l.color }} />{l.label}
+              {!l.fixed && <button className="chip-x" onClick={() => remove(l.id)} aria-label={'Retirer ' + l.label}>×</button>}
+            </span>
+          ))}
+        </div>
+        <div className="label-add-row">
+          <MicInput value={name} maxLength={28} placeholder="Nouveau libellé…" onChange={setName} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
+          <div className="label-color-pick" aria-label="Couleur du libellé">
+            {palette.map((c) => {
+              const custom = !LABEL_COLORS.some((d) => d.toLowerCase() === c.toLowerCase())
+              return (
+                <span key={c} className="label-color-wrap">
+                  <button className={color === c ? 'on' : ''} style={{ background: c }} onClick={() => setColor(c)} aria-label={'Couleur ' + c} />
+                  {custom && <button className="label-color-x" onClick={() => removePaletteColor(c)} aria-label={'Supprimer la couleur ' + c}>×</button>}
+                </span>
+              )
+            })}
+            <label className="label-color-custom" title="Choisir une couleur">
+              <input type="color" value={color} onChange={(e) => addPaletteColor(e.target.value)} />
+              <span>＋</span>
+            </label>
+          </div>
+          <button className="btn sm" disabled={busy} onClick={add}>Ajouter</button>
+        </div>
+      </div>
+    </>
+  )
+}
+
 function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void }) {
   const [first, setFirst] = useState(me.firstName || '')
   const [last, setLast] = useState(me.lastName || '')
@@ -121,44 +215,54 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
   }
 
   return (
-    <div className="settings-page">
-      <div className="card">
+    <div className="settings-page profile-page">
+      <div className="card profile-hero">
         <div className="who" style={{ gap: 12 }}>
           <Avatar name={me.name} size={48} />
           <div><p className="title-lg" style={{ fontSize: 16 }}>{me.name}</p><p className="sub">{me.email}{me.job ? ' · ' + me.job : ''}</p></div>
         </div>
       </div>
 
-      <div className="section-h">Mes informations</div>
-      <div className="card">
-        <div className="field"><label>Prénom</label>
-          <MicInput value={first} onChange={setFirst} placeholder="Ton prénom" maxLength={60} /></div>
-        <div className="field"><label>Nom</label>
-          <MicInput value={last} onChange={setLast} placeholder="Ton nom" maxLength={60} /></div>
-        <div className="field"><label>Métier</label>
-          <MicInput value={job} onChange={setJob} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
-        <button className="btn primary block" style={{ marginTop: 6 }} disabled={!dirty || saving} onClick={save}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </button>
+      <div className="profile-grid">
+        <div className="profile-col">
+          <div className="section-h">Mes informations</div>
+          <div className="card">
+            <div className="field"><label>Prénom</label>
+              <MicInput value={first} onChange={setFirst} placeholder="Ton prénom" maxLength={60} /></div>
+            <div className="field"><label>Nom</label>
+              <MicInput value={last} onChange={setLast} placeholder="Ton nom" maxLength={60} /></div>
+            <div className="field"><label>Métier</label>
+              <MicInput value={job} onChange={setJob} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
+            <button className="btn primary block" style={{ marginTop: 6 }} disabled={!dirty || saving} onClick={save}>
+              {saving ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+          </div>
+
+          <ListEditor me={me} onUpdate={onUpdate}
+            title="Mes rôles" field="roleLibrary" get={roleLibraryOf}
+            desc="Bibliothèque de rôles réutilisables dans tes projets (ex. Chef de projet, Développeur, Consultant)."
+            placeholder="Nouveau rôle…" maxLen={40}
+            emptyNote="Aucun rôle — ajoutes-en pour les réutiliser dans tes projets." />
+        </div>
+
+        <div className="profile-col">
+          <ProjectLabelEditor />
+
+          <ListEditor me={me} onUpdate={onUpdate}
+            title="Mes types de tâches" field="taskTypes" get={taskTypesOf}
+            desc="Ces types s’appliquent à toutes tes tâches (ex. Tâche, Bug, Amélioration…)."
+            placeholder="Nouveau type…" maxLen={30}
+            emptyNote="Aucun type — les défauts (Tâche, Bug) seront utilisés." />
+
+          <div className="profile-actions">
+            {me.admin && (
+              <button className="btn primary block" style={{ marginTop: 4 }} onClick={onAdmin}>🛡️ Espace admin</button>
+            )}
+            <ThemeControl />
+            <button className="btn danger block" style={{ marginTop: 16 }} onClick={onLogout}>Se déconnecter</button>
+          </div>
+        </div>
       </div>
-
-      <ListEditor me={me} onUpdate={onUpdate}
-        title="Mes rôles" field="roleLibrary" get={roleLibraryOf}
-        desc="Bibliothèque de rôles réutilisables dans tes projets (ex. Chef de projet, Développeur, Consultant)."
-        placeholder="Nouveau rôle…" maxLen={40}
-        emptyNote="Aucun rôle — ajoutes-en pour les réutiliser dans tes projets." />
-
-      <ListEditor me={me} onUpdate={onUpdate}
-        title="Mes types de tâches" field="taskTypes" get={taskTypesOf}
-        desc="Ces types s’appliquent à toutes tes tâches (ex. Tâche, Bug, Amélioration…)."
-        placeholder="Nouveau type…" maxLen={30}
-        emptyNote="Aucun type — les défauts (Tâche, Bug) seront utilisés." />
-
-      {me.admin && (
-        <button className="btn primary block" style={{ marginTop: 4 }} onClick={onAdmin}>🛡️ Espace admin</button>
-      )}
-      <ThemeControl />
-      <button className="btn danger block" style={{ marginTop: 16 }} onClick={onLogout}>Se déconnecter</button>
     </div>
   )
 }
