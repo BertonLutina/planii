@@ -26,6 +26,7 @@ export interface Task {
   position?: number | null
   statusKey?: string | null
   transferable?: boolean
+  commentCount?: number
   transferredFrom?: string | null
   transferredTo?: string | null
   transferHistory?: {
@@ -38,6 +39,63 @@ export interface Task {
     createdByName: string
     at: string
   }[]
+}
+
+export interface TaskComment {
+  id: string
+  taskId: string
+  projectId: string
+  userId: string
+  userName: string
+  body: string
+  deleted: boolean
+  canDelete: boolean
+  at: string
+}
+
+export interface TaskEvent {
+  id: string
+  taskId: string
+  projectId: string
+  actorId: string | null
+  actorName: string
+  type: string
+  payload: Record<string, unknown>
+  at: string
+}
+
+export interface TodayTask {
+  id: string
+  projectId: string
+  projectName: string
+  title: string
+  assigneeId: string | null
+  assigneeName: string | null
+  due: string | null
+  done: boolean
+  priority: number
+  statusKey: string
+  transferable?: boolean
+  transferredFrom?: string | null
+  transferredFromName?: string | null
+  transferredTo?: string | null
+  transferredToName?: string | null
+}
+
+export interface TodayDiscussion {
+  projectId: string
+  projectName: string
+  lastMessageAt: string
+  count: number
+}
+
+export interface TodayPayload {
+  dueToday: TodayTask[]
+  overdue: TodayTask[]
+  highPriority: TodayTask[]
+  transferred: TodayTask[]
+  review: TodayTask[]
+  activeDiscussions: TodayDiscussion[]
 }
 
 export interface PollOption { id: string; label: string; votes: number }

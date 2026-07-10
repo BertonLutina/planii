@@ -5,7 +5,7 @@ import { TYPE_LABEL, ROLE_LABEL, INVITE_ROLES, canManage, formatDue, isOverdue }
 import { memberPoints, projectPoints, levelOf, taskPoints } from '@/lib/points'
 import { prio, prioMeta, PRIORITIES } from '@/lib/priority'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
-import type { Member, Poll, Project, ProjectLabel, ProjectRole, Task, TaskStatus, User } from '@/lib/types'
+import type { Member, Poll, Project, ProjectLabel, ProjectRole, Task, TaskComment, TaskEvent, TaskStatus, User } from '@/lib/types'
 import { Meeting } from './Meeting'
 import { Mic, MicInput, MicTextarea } from './Mic'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
@@ -259,6 +259,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
               {t.due && <span className={'tag ' + (over ? 'late' : 'due')}>📅 {formatDue(t.due)}</span>}
               {hasHours && <span className="tag hours">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? ` / ~${t.estHours}h` : ''}</span>}
               {t.transferable && <span className="tag acc">⇄ transférable</span>}
+              {!!t.commentCount && <span className="tag due">💬 {t.commentCount}</span>}
               {subs.length > 0 && <span className="tag due">☑ {subDone}/{subs.length}</span>}
               <span className="tag due">{statuses.find((s) => s.key === statusOf(t))?.label || 'À faire'}</span>
               {statusOf(t) === 'transferred' && <span className="tag acc">↪ {nameOf(t.transferredFrom)} → {nameOf(t.transferredTo)}</span>}
@@ -821,6 +822,8 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
             {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select></div>
       )}
+      <TaskComments task={t} projectClosed={p.status === 'done'} />
+      <TaskTimeline taskId={t.id} />
       <div className="sheet-actions">
         <button className="btn primary" disabled={busy} onClick={save}>Enregistrer</button>
         <button className="btn ghost" onClick={onClose}>Annuler</button>
@@ -850,6 +853,107 @@ function TransferTaskModal({ p, t, me, onClose, onTransfer }: { p: Project; t: T
         <button className="btn ghost" onClick={onClose}>Annuler</button>
       </div>
     </Modal>
+  )
+}
+
+function TaskComments({ task, projectClosed }: { task: Task; projectClosed: boolean }) {
+  const [comments, setComments] = useState<TaskComment[] | null>(null)
+  const [body, setBody] = useState('')
+  const [busy, setBusy] = useState(false)
+  const load = useCallback(() => {
+    api<{ comments: TaskComment[] }>('GET', '/tasks/' + task.id + '/comments')
+      .then((r) => setComments(r.comments))
+      .catch((e: any) => toastErr(e.message))
+  }, [task.id])
+  useEffect(load, [load])
+
+  async function add() {
+    const text = body.trim()
+    if (!text) return
+    setBusy(true)
+    try {
+      const r = await api<{ comment: TaskComment }>('POST', '/tasks/' + task.id + '/comments', { body: text })
+      setComments((list) => [...(list || []), r.comment])
+      setBody('')
+      toast('Commentaire ajouté ✓')
+    } catch (e: any) { toastErr(e.message) }
+    finally { setBusy(false) }
+  }
+  async function remove(c: TaskComment) {
+    try {
+      await api('DELETE', '/task-comments/' + c.id)
+      setComments((list) => (list || []).map((x) => x.id === c.id ? { ...x, body: '[commentaire supprimé]', deleted: true, canDelete: false } : x))
+      toast('Commentaire supprimé ✓')
+    } catch (e: any) { toastErr(e.message) }
+  }
+
+  return (
+    <div className="task-side-panel">
+      <div className="task-side-head"><b>Commentaires</b><span>{comments ? comments.filter((c) => !c.deleted).length : 0}</span></div>
+      {!comments && <div className="sub">Chargement…</div>}
+      {comments && comments.length === 0 && <div className="sub">Aucun commentaire pour l’instant.</div>}
+      <div className="task-comments">
+        {(comments || []).map((c) => (
+          <div key={c.id} className={'task-comment' + (c.deleted ? ' deleted' : '')}>
+            <Avatar name={c.userName} size={26} />
+            <div>
+              <div className="task-comment-meta"><b>{c.userName}</b><span>{new Date(c.at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>
+              <p>{c.body}</p>
+              {c.canDelete && <button className="btn-link" onClick={() => remove(c)}>Supprimer</button>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {!projectClosed && (
+        <div className="task-comment-form">
+          <MicTextarea value={body} onChange={setBody} placeholder="Ajouter un commentaire…" />
+          <button className="btn primary sm" disabled={busy || !body.trim()} onClick={add}>Commenter</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const EVENT_LABEL: Record<string, string> = {
+  task_created: 'Tâche créée',
+  task_done: 'Tâche terminée',
+  task_reopened: 'Tâche rouverte',
+  task_status_changed: 'Statut modifié',
+  task_transferred: 'Tâche transférée',
+  task_hours_updated: 'Heures mises à jour',
+  task_priority_changed: 'Priorité modifiée',
+  task_updated: 'Tâche modifiée',
+  task_claimed: 'Tâche prise',
+  task_reminded: 'Relance envoyée',
+  task_deleted: 'Tâche supprimée',
+  comment_added: 'Commentaire ajouté',
+  comment_deleted: 'Commentaire supprimé',
+}
+
+function TaskTimeline({ taskId }: { taskId: string }) {
+  const [events, setEvents] = useState<TaskEvent[] | null>(null)
+  useEffect(() => {
+    api<{ events: TaskEvent[] }>('GET', '/tasks/' + taskId + '/events')
+      .then((r) => setEvents(r.events))
+      .catch((e: any) => toastErr(e.message))
+  }, [taskId])
+  return (
+    <div className="task-side-panel">
+      <div className="task-side-head"><b>Historique</b><span>{events ? events.length : 0}</span></div>
+      {!events && <div className="sub">Chargement…</div>}
+      {events && events.length === 0 && <div className="sub">Aucun historique pour l’instant.</div>}
+      <div className="task-timeline">
+        {(events || []).map((e) => (
+          <div key={e.id} className="task-event">
+            <i />
+            <div>
+              <b>{EVENT_LABEL[e.type] || e.type}</b>
+              <p>{e.actorName} · {new Date(e.at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

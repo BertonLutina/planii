@@ -8,7 +8,7 @@ import { taskPoints, levelOf, pointsFor } from '@/lib/points'
 import { prio, prioMeta } from '@/lib/priority'
 import { CalendarView } from './Calendar'
 import { TaskDrawer } from './TaskDrawer'
-import type { Project, Task, User } from '@/lib/types'
+import type { Project, Task, TodayPayload, TodayTask, User } from '@/lib/types'
 
 export function LevelCard({ points, name }: { points: number; name?: string }) {
   const l = levelOf(points)
@@ -30,8 +30,11 @@ export function LevelCard({ points, name }: { points: number; name?: string }) {
 export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOpen: (id: string) => void; refreshKey?: number; view: 'list' | 'board' | 'agenda'; setView: (v: 'list' | 'board' | 'agenda') => void }) {
   const { projects, reload } = useAllProjects()
   const [drawerId, setDrawerId] = useState<string | null>(null)
+  const [today, setToday] = useState<TodayPayload | null>(null)
+  const loadToday = () => api<{ today: TodayPayload }>('GET', '/today').then((r) => setToday(r.today)).catch((e: any) => toastErr(e.message))
   useEffect(() => { if (refreshKey) reload() }, [refreshKey, reload])
-  useRealtime((m) => { if (m.type === 'project' || m.type === 'notif') reload() })
+  useEffect(() => { loadToday() }, [])
+  useRealtime((m) => { if (m.type === 'project' || m.type === 'notif') { reload(); loadToday() } })
   if (!projects) return <div className="empty">Chargement…</div>
 
   let drawer: { t: Task; p: Project } | null = null
@@ -62,9 +65,12 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
     .map((p) => ({ p, tasks: mine.filter((x) => x.p.id === p.id).map((x) => x.t).sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || prio(a.priority) - prio(b.priority)) }))
     .filter((c) => c.tasks.length > 0)
 
+  const openTodayTask = (t: TodayTask) => onOpen(t.projectId)
+
   return (
     <div>
       <LevelCard points={myPoints} />
+      <TodayDashboard today={today} onOpenTask={openTodayTask} onOpenProject={onOpen} />
       <div className="home-toolbar only-mobile-flex">
         <div className="viewseg">
           <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>☰ Liste</button>
@@ -162,5 +168,62 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
         />
       )}
     </div>
+  )
+}
+
+function TodayDashboard({ today, onOpenTask, onOpenProject }: { today: TodayPayload | null; onOpenTask: (t: TodayTask) => void; onOpenProject: (id: string) => void }) {
+  if (!today) return <div className="today-board"><div className="today-head"><div><h2>Aujourd’hui</h2><p>Chargement de tes priorités…</p></div></div></div>
+  const sections: { key: keyof TodayPayload; title: string; tone: string; empty: string }[] = [
+    { key: 'overdue', title: 'En retard', tone: 'danger', empty: 'Aucun retard.' },
+    { key: 'dueToday', title: 'À faire aujourd’hui', tone: 'accent', empty: 'Rien à rendre aujourd’hui.' },
+    { key: 'highPriority', title: 'Priorités fortes', tone: 'warn', empty: 'Aucune priorité P1/P2.' },
+    { key: 'transferred', title: 'Transférées', tone: 'blue', empty: 'Aucune tâche transférée.' },
+    { key: 'review', title: 'À valider', tone: 'ok', empty: 'Rien en revue.' },
+  ]
+  const total = sections.reduce((sum, s) => sum + (today[s.key] as TodayTask[]).length, 0)
+  return (
+    <section className="today-board">
+      <div className="today-head">
+        <div>
+          <h2>Aujourd’hui</h2>
+          <p>{total ? `${total} point${total > 1 ? 's' : ''} à surveiller maintenant.` : 'Tout est calme pour le moment.'}</p>
+        </div>
+        <span className="today-pill">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
+      </div>
+      <div className="today-grid">
+        {sections.map((s) => {
+          const items = today[s.key] as TodayTask[]
+          return (
+            <div key={s.key} className={'today-section ' + s.tone}>
+              <div className="today-section-head"><b>{s.title}</b><span>{items.length}</span></div>
+              {items.length === 0 ? <div className="today-empty">{s.empty}</div> : items.slice(0, 5).map((t) => <TodayTaskCard key={s.key + t.id} t={t} onOpen={() => onOpenTask(t)} />)}
+            </div>
+          )
+        })}
+        <div className="today-section discussions">
+          <div className="today-section-head"><b>Discussions actives</b><span>{today.activeDiscussions.length}</span></div>
+          {today.activeDiscussions.length === 0 ? <div className="today-empty">Aucun meeting récent.</div> : today.activeDiscussions.map((d) => (
+            <button key={d.projectId} className="today-discussion" onClick={() => onOpenProject(d.projectId)}>
+              <span>{d.projectName}</span>
+              <small>{d.count} message{d.count > 1 ? 's' : ''}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function TodayTaskCard({ t, onOpen }: { t: TodayTask; onOpen: () => void }) {
+  const pm = prioMeta(t.priority)
+  return (
+    <button className="today-task-card" onClick={onOpen}>
+      <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>
+      <span className="today-task-main">
+        <b>{t.title}</b>
+        <small>{t.projectName}{t.due ? ' · ' + formatDue(t.due) : ''}</small>
+      </span>
+      {t.statusKey === 'transferred' && <span className="today-transfer">⇄</span>}
+    </button>
   )
 }

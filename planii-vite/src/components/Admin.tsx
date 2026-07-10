@@ -214,6 +214,7 @@ function Tasks() {
   const list = tasks.filter((t) => (t.title + ' ' + t.projectName + ' ' + (t.assigneeName || '')).toLowerCase().includes(q.trim().toLowerCase()))
   return (
     <>
+      <div className="privacy-badge"><span>🔒</span> Données client anonymisées</div>
       <div className="field"><input placeholder="Rechercher une tâche…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       <div className="grp-h">{list.length} TÂCHE·S</div>
       {list.map((t) => {
@@ -257,6 +258,7 @@ function Projects() {
   const list = projects.filter((p) => (p.name + ' ' + p.ownerName).toLowerCase().includes(q.trim().toLowerCase()))
   return (
     <>
+      <div className="privacy-badge"><span>🔒</span> Données client anonymisées</div>
       <div className="field"><input placeholder="Rechercher un projet…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       <div className="grp-h">{list.length} PROJET·S</div>
       {list.map((p) => (
