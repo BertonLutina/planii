@@ -793,6 +793,11 @@ body{background:var(--bg);font-weight:400}
 .type-pick{display:flex;gap:6px;flex-wrap:wrap}
 .type-pick button{border:1px solid var(--line-strong);background:var(--bg);border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:600;color:var(--muted)}
 .type-pick button.on{border-width:2px;padding:7px 10px}
+.type-pick button.disabled,.type-pick button:disabled{opacity:.45;cursor:not-allowed;background:var(--surface-2)}
+.checkline{display:flex;align-items:center;gap:9px;margin:2px 0 14px;font-size:14px;font-weight:700;color:var(--text)}
+.checkline input{width:18px;height:18px;accent-color:var(--accent)}
+.transfer-path{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.transfer-path span{font-size:11.5px;font-weight:700;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 7px}
 .tt-a{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
 .tt-b{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
 .tt-c{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
@@ -965,6 +970,13 @@ body{background:var(--bg);font-weight:400}
 .meet-input input{flex:1;min-width:0;border:1px solid var(--line-strong);border-radius:10px;background:var(--bg);color:var(--text);padding:10px 11px;font-size:14px}
 .meet-task-composer{padding:14px;display:flex;flex-direction:column;gap:10px;overflow:auto}
 .meet-task-composer .field{margin-bottom:0}
+.meet-delegates{border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:9px}
+.meet-delegates b{font-size:13.5px}
+.meet-delegates p{margin:3px 0 0;color:var(--muted);font-size:12.5px;line-height:1.3}
+.meet-delegate-list{display:flex;flex-direction:column;gap:6px}
+.meet-delegate{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:12.5px;font-weight:700;color:var(--text)}
+.meet-delegate input{width:16px;height:16px;accent-color:var(--accent);flex:none}
+.meet-delegate span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:900px){
   .meet-layout{grid-template-columns:1fr;padding:8px}
   .meet-chat-panel{min-height:420px}

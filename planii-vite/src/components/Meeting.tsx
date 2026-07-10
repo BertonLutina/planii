@@ -23,10 +23,12 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
   const [messages, setMessages] = useState<MeetingMessage[]>([])
   const [text, setText] = useState('')
   const [tab, setTab] = useState<'chat' | 'tasks'>('chat')
-  const [draft, setDraft] = useState({ title: '', assigneeId: '', statusKey: 'todo', priority: 3, messageId: '' })
+  const [draft, setDraft] = useState({ title: '', assigneeId: '', statusKey: 'todo', priority: 3, messageId: '', transferable: false })
   const [busy, setBusy] = useState(false)
+  const [delegates, setDelegates] = useState<string[]>([])
   const listRef = useRef<HTMLDivElement>(null)
   const manage = canManage(p.my_role)
+  const canCreateTasks = manage || delegates.includes(me.id)
 
   const loadMessages = useCallback(() => {
     api<{ messages: MeetingMessage[] }>('GET', '/projects/' + p.id + '/meeting/messages')
@@ -34,8 +36,20 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
       .catch((e) => toastErr(e.message))
   }, [p.id])
 
+  const loadDelegates = useCallback(() => {
+    api<{ userIds: string[] }>('GET', '/projects/' + p.id + '/meeting/task-delegates')
+      .then((r) => setDelegates(r.userIds))
+      .catch(() => setDelegates([]))
+  }, [p.id])
+
   useEffect(loadMessages, [loadMessages])
-  useRealtime((m) => { if (m.type === 'meeting_chat' && m.projectId === p.id) loadMessages() })
+  useEffect(loadDelegates, [loadDelegates])
+  useRealtime((m) => {
+    if (m.type === 'meeting_chat' && m.projectId === p.id) {
+      loadMessages()
+      loadDelegates()
+    }
+  })
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
@@ -79,8 +93,21 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
     setDraft((d) => ({ ...d, title: inferTaskTitle(msg.body), messageId: msg.id }))
   }
 
+  async function toggleDelegate(userId: string) {
+    const next = delegates.includes(userId) ? delegates.filter((id) => id !== userId) : [...delegates, userId]
+    setDelegates(next)
+    try {
+      const r = await api<{ userIds: string[] }>('PUT', '/projects/' + p.id + '/meeting/task-delegates', { userIds: next })
+      setDelegates(r.userIds)
+      toast('Accès tâches mis à jour ✓')
+    } catch (e: any) {
+      toastErr(e.message)
+      loadDelegates()
+    }
+  }
+
   async function createTask() {
-    if (!manage) return toastErr('Seul le chef du projet peut créer une tâche depuis le meeting')
+    if (!canCreateTasks) return toastErr('Le chef du projet doit vous autoriser à créer des tâches depuis ce meeting')
     if (!draft.title.trim()) return toastErr('Titre requis')
     setBusy(true)
     try {
@@ -90,9 +117,10 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
         statusKey: draft.statusKey,
         priority: draft.priority,
         messageId: draft.messageId || null,
+        transferable: draft.transferable,
       })
       toast('Tâche créée depuis le meeting ✓')
-      setDraft({ title: '', assigneeId: '', statusKey: 'todo', priority: 3, messageId: '' })
+      setDraft({ title: '', assigneeId: '', statusKey: 'todo', priority: 3, messageId: '', transferable: false })
       setTab('chat')
       loadMessages()
     } catch (e: any) { toastErr(e.message) }
@@ -142,7 +170,7 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
                       <div className="meet-bubble">{msg.body}</div>
                       {msg.createdTaskId ? (
                         <div className="meet-task-made">✓ Tâche créée</div>
-                      ) : manage && (
+                      ) : canCreateTasks && (
                         <button className="meet-create-link" onClick={() => startTaskFromMessage(msg)}>＋ Créer tâche</button>
                       )}
                     </div>
@@ -156,7 +184,24 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
             </>
           ) : (
             <div className="meet-task-composer">
-              {!manage && <div className="banner" style={{ margin: 0 }}>Seul le chef du projet peut créer des tâches depuis le meeting.</div>}
+              {manage && (
+                <div className="meet-delegates">
+                  <div>
+                    <b>Personnes autorisées</b>
+                    <p>Ces membres peuvent créer et assigner des tâches depuis ce meeting.</p>
+                  </div>
+                  <div className="meet-delegate-list">
+                    {p.members.map((m) => (
+                      <label key={m.id} className="meet-delegate">
+                        <input type="checkbox" checked={delegates.includes(m.id)} onChange={() => toggleDelegate(m.id)} />
+                        <Avatar name={m.name} size={24} />
+                        <span>{m.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!canCreateTasks && <div className="banner" style={{ margin: 0 }}>Le chef du projet doit vous autoriser à créer des tâches depuis ce meeting.</div>}
               <div className="field"><label>Titre</label><input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Ex. Vérifier les photos" /></div>
               <div className="field"><label>Responsable</label>
                 <select value={draft.assigneeId} onChange={(e) => setDraft({ ...draft, assigneeId: e.target.value })}>
@@ -165,11 +210,12 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
                 </select></div>
               <div className="field"><label>Statut</label>
                 <select value={draft.statusKey} onChange={(e) => setDraft({ ...draft, statusKey: e.target.value })}>
-                  {(p.statuses || []).map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                  {(p.statuses || []).map((s) => <option key={s.key} value={s.key} disabled={s.key === 'transferred' && !draft.transferable}>{s.label}</option>)}
                 </select></div>
               <div className="field"><label>Priorité</label>
                 <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={draft.priority === n ? 'on o' + n : ''} onClick={() => setDraft({ ...draft, priority: n })}>P{n}</button>)}</div></div>
-              <button className="btn primary block" disabled={!manage || busy} onClick={createTask}>Ajouter</button>
+              <label className="checkline"><input type="checkbox" checked={draft.transferable} onChange={(e) => setDraft({ ...draft, transferable: e.target.checked, statusKey: e.target.checked ? draft.statusKey : (draft.statusKey === 'transferred' ? 'todo' : draft.statusKey) })} /> Tâche transférable</label>
+              <button className="btn primary block" disabled={!canCreateTasks || busy} onClick={createTask}>Ajouter</button>
             </div>
           )}
         </aside>

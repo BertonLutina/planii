@@ -147,6 +147,11 @@ async function initSchema() {
   await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS status_key text NOT NULL DEFAULT 'todo'`);
   await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS transferred_from text`);
   await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS transferred_to text`);
+  await q(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS transferable boolean NOT NULL DEFAULT false`);
+  await q(`CREATE TABLE IF NOT EXISTS task_transfers (
+    id text PRIMARY KEY, task_id text NOT NULL, project_id text NOT NULL,
+    from_user_id text, to_user_id text NOT NULL, created_by text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now());`);
   await q(`ALTER TABLE memberships ADD COLUMN IF NOT EXISTS position int`);
   await q(`CREATE TABLE IF NOT EXISTS task_statuses (
     id text PRIMARY KEY, project_id text NOT NULL, key text NOT NULL, label text NOT NULL,
@@ -159,6 +164,10 @@ async function initSchema() {
   await q(`CREATE TABLE IF NOT EXISTS member_roles (
     project_id text NOT NULL, user_id text NOT NULL, role_id text NOT NULL,
     PRIMARY KEY(project_id, user_id, role_id));`);
+  await q(`CREATE TABLE IF NOT EXISTS project_meeting_task_delegates (
+    project_id text NOT NULL, user_id text NOT NULL, created_by text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY(project_id, user_id));`);
   await q(`CREATE TABLE IF NOT EXISTS task_reminders (
     task_id text NOT NULL, for_date date NOT NULL, PRIMARY KEY(task_id, for_date));`);
   await q(`CREATE TABLE IF NOT EXISTS invites (
@@ -230,6 +239,7 @@ const cleanLabels = (arr, maxLen, maxCount) => {
 const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, firstName: u.first_name || '', lastName: u.last_name || '', job: u.job || '', taskTypes: taskTypesOf(u), roleLibrary: roleLibraryOf(u), admin: isAdmin(u), superAdmin: isSuperAdmin(u) };
 const sign = (u) => jwt.sign({ sub: u.id }, JWT_SECRET, { expiresIn: '30d' });
 const canManage = (role) => role === 'owner' || role === 'lead';
+const REOPEN_DAYS = 30;
 
 const userByEmail = (e) => one('SELECT * FROM users WHERE email=$1', [e]);
 const userById = (id) => one('SELECT * FROM users WHERE id=$1', [id]);
@@ -238,6 +248,17 @@ const taskById = (id) => one('SELECT * FROM tasks WHERE id=$1', [id]);
 const membership = (pid, uidv) => one('SELECT * FROM memberships WHERE project_id=$1 AND user_id=$2', [pid, uidv]);
 const projectMembers = (pid) => many('SELECT user_id, role FROM memberships WHERE project_id=$1', [pid]);
 const slugStatus = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32) || ('status_' + uid().slice(0, 6));
+const projectClosed = (p) => p && p.status === 'done';
+const reopenUntil = (p) => p && p.done_at ? new Date(new Date(p.done_at).getTime() + REOPEN_DAYS * 864e5) : null;
+const canReopenProject = (p) => {
+  const until = reopenUntil(p);
+  return projectClosed(p) && until && until >= new Date();
+};
+function assertProjectOpen(p, res) {
+  if (!projectClosed(p)) return false;
+  res.status(423).json({ error: 'Projet clôturé : seule la réouverture ou la suppression est autorisée' });
+  return true;
+}
 
 async function ensureProjectStatuses(projectId) {
   const existing = await many('SELECT key, fixed FROM task_statuses WHERE project_id=$1', [projectId]);
@@ -518,8 +539,27 @@ async function projectDetail(p, userId) {
   const members = (await many(`SELECT m.user_id AS id, m.role, u.name, u.email, u.job
       FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.project_id=$1 ORDER BY m.joined_at`, [p.id]))
     .map(m => ({ id: m.id, role: m.role, name: m.name, email: m.email, job: m.job || '', roleIds: rolesByMember[m.id] || [] }));
+  const transferRows = await many(`SELECT tr.*, fu.name AS from_name, tu.name AS to_name, cu.name AS created_by_name
+      FROM task_transfers tr
+      LEFT JOIN users fu ON fu.id=tr.from_user_id
+      JOIN users tu ON tu.id=tr.to_user_id
+      JOIN users cu ON cu.id=tr.created_by
+      WHERE tr.project_id=$1 ORDER BY tr.created_at ASC`, [p.id]);
+  const transfersByTask = {};
+  for (const tr of transferRows) {
+    (transfersByTask[tr.task_id] = transfersByTask[tr.task_id] || []).push({
+      id: tr.id,
+      fromUserId: tr.from_user_id || null,
+      fromName: tr.from_name || null,
+      toUserId: tr.to_user_id,
+      toName: tr.to_name,
+      createdBy: tr.created_by,
+      createdByName: tr.created_by_name,
+      at: tr.created_at,
+    });
+  }
   const tasks = (await many('SELECT * FROM tasks WHERE project_id=$1 ORDER BY priority ASC, created_at ASC', [p.id]))
-    .map(t => ({ id: t.id, title: t.title, description: t.description || null, type: t.type || null, assigneeId: t.assignee_id, createdBy: t.created_by, due: t.due, done: t.done, doneAt: t.done_at, estHours: t.est_hours == null ? null : Number(t.est_hours), spentHours: t.spent_hours == null ? null : Number(t.spent_hours), priority: t.priority == null ? 6 : Number(t.priority), parentId: t.parent_id || null, position: t.position == null ? null : Number(t.position), statusKey: t.status_key || (t.done ? 'done' : 'todo'), transferredFrom: t.transferred_from || null, transferredTo: t.transferred_to || null }));
+    .map(t => ({ id: t.id, title: t.title, description: t.description || null, type: t.type || null, assigneeId: t.assignee_id, createdBy: t.created_by, due: t.due, done: t.done, doneAt: t.done_at, estHours: t.est_hours == null ? null : Number(t.est_hours), spentHours: t.spent_hours == null ? null : Number(t.spent_hours), priority: t.priority == null ? 6 : Number(t.priority), parentId: t.parent_id || null, position: t.position == null ? null : Number(t.position), statusKey: t.status_key || (t.done ? 'done' : 'todo'), transferable: t.transferable === true, transferredFrom: t.transferred_from || null, transferredTo: t.transferred_to || null, transferHistory: transfersByTask[t.id] || [] }));
   const pollRows = await many('SELECT * FROM polls WHERE project_id=$1 ORDER BY created_at DESC', [p.id]);
   const polls = [];
   for (const pl of pollRows) {
@@ -536,6 +576,9 @@ async function projectDetail(p, userId) {
     .map(a => ({ id: a.id, type: a.type, detail: a.detail, user: a.user_name, at: a.created_at }));
   return {
     ...p,
+    closedAt: p.done_at || null,
+    reopenUntil: reopenUntil(p)?.toISOString() || null,
+    canReopen: canReopenProject(p),
     labelId: (projectLabel && projectLabel.id) || fallbackLabel.id,
     labelName: (projectLabel && projectLabel.label) || fallbackLabel.label,
     labelColor: (projectLabel && projectLabel.color) || fallbackLabel.color,
@@ -556,8 +599,21 @@ app.post('/api/projects/:id/close', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  if (projectClosed(p)) return res.json({ ok: true });
   await q(`UPDATE projects SET status='done', done_at=now() WHERE id=$1`, [p.id]);
   await logActivity(p.id, req.user.id, 'project_closed', 'a clôturé le projet');
+  res.json({ ok: true });
+}));
+
+app.post('/api/projects/:id/reopen', auth, h(async (req, res) => {
+  const p = await projectById(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+  if (p.owner_id !== req.user.id) return res.status(403).json({ error: 'Seul le propriétaire peut réouvrir le projet' });
+  if (!projectClosed(p)) return res.json({ ok: true });
+  if (!canReopenProject(p)) return res.status(410).json({ error: 'Le délai de réouverture de 30 jours est dépassé' });
+  await q(`UPDATE projects SET status='active', done_at=NULL WHERE id=$1`, [p.id]);
+  await logActivity(p.id, req.user.id, 'project_reopened', 'a réouvert le projet');
+  await notifyProject(p.id, { type: 'project', projectId: p.id });
   res.json({ ok: true });
 }));
 
@@ -566,6 +622,7 @@ app.patch('/api/projects/:id', auth, h(async (req, res) => {
   const p = await projectById(req.params.id);
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   if (p.owner_id !== req.user.id) return res.status(403).json({ error: 'Seul le propriétaire peut modifier le projet' });
+  if (assertProjectOpen(p, res)) return;
   const sets = [], vals = [];
   if (typeof req.body.name === 'string') {
     const name = req.body.name.trim();
@@ -608,6 +665,9 @@ app.delete('/api/projects/:id', auth, h(async (req, res) => {
     await client.query('DELETE FROM poll_votes WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [p.id]);
     await client.query('DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [p.id]);
     await client.query('DELETE FROM polls WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM task_transfers WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM project_meeting_task_delegates WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM meeting_messages WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM tasks WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM invites WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM activity WHERE project_id=$1', [p.id]);
@@ -627,6 +687,7 @@ app.post('/api/projects/:id/invites', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  if (assertProjectOpen(p, res)) return;
   const role = req.body.role;
   const allowed = { solo: ['client'], team: ['client', 'provider'], group: ['member'] };
   if (!allowed[p.type].includes(role)) return res.status(400).json({ error: 'Rôle invalide pour ce type de projet' });
@@ -666,6 +727,7 @@ app.post('/api/invites/:token/accept', auth, h(async (req, res) => {
   if (!inv.multi && inv.uses >= 1) return res.status(410).json({ error: 'Invitation déjà utilisée' });
   const p = await projectById(inv.project_id);
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+  if (assertProjectOpen(p, res)) return;
   if (await membership(p.id, req.user.id)) return res.json({ project: { id: p.id }, already: true });
   await q('INSERT INTO memberships (id,project_id,user_id,role) VALUES ($1,$2,$3,$4) ON CONFLICT (project_id,user_id) DO NOTHING', [uid(), p.id, req.user.id, inv.role]);
   await q('UPDATE invites SET uses=uses+1 WHERE token=$1', [inv.token]);
@@ -689,6 +751,7 @@ app.post('/api/projects/:id/roles', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  if (assertProjectOpen(p, res)) return;
   const name = (req.body.name || '').trim().slice(0, 40);
   if (!name) return res.status(400).json({ error: 'Nom du rôle requis' });
   const existing = await many('SELECT id FROM project_roles WHERE project_id=$1', [p.id]);
@@ -707,6 +770,7 @@ app.delete('/api/projects/:id/roles/:roleId', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  if (assertProjectOpen(p, res)) return;
   const role = await one('SELECT * FROM project_roles WHERE id=$1 AND project_id=$2', [req.params.roleId, p.id]);
   if (!role) return res.status(404).json({ error: 'Rôle introuvable' });
   await q('DELETE FROM member_roles WHERE project_id=$1 AND role_id=$2', [p.id, role.id]);
@@ -721,6 +785,7 @@ app.put('/api/projects/:id/members/:userId/roles', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  if (assertProjectOpen(p, res)) return;
   const target = await membership(p.id, req.params.userId);
   if (!target) return res.status(400).json({ error: 'Ce membre ne fait pas partie du projet' });
   const wanted = Array.isArray(req.body.roleIds) ? req.body.roleIds : [];
@@ -745,6 +810,7 @@ app.post('/api/projects/:id/task-statuses', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  if (assertProjectOpen(p, res)) return;
   const label = (req.body.label || '').trim().slice(0, 32);
   if (!label) return res.status(400).json({ error: 'Nom du statut requis' });
   const count = await one('SELECT count(*)::int AS c FROM task_statuses WHERE project_id=$1', [p.id]);
@@ -764,6 +830,7 @@ app.delete('/api/projects/:id/task-statuses/:key', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au propriétaire ou leader' });
+  if (assertProjectOpen(p, res)) return;
   const st = await one('SELECT * FROM task_statuses WHERE project_id=$1 AND key=$2', [p.id, req.params.key]);
   if (!st) return res.status(404).json({ error: 'Statut introuvable' });
   if (st.fixed) return res.status(400).json({ error: 'Ce statut fixe ne peut pas être supprimé' });
@@ -776,6 +843,9 @@ app.delete('/api/projects/:id/task-statuses/:key', auth, h(async (req, res) => {
 /* ---------- tasks ---------- */
 // Ordre manuel des tâches d'un projet (drag-and-drop, partagé aux membres)
 app.put('/api/projects/:id/tasks/order', auth, h(async (req, res) => {
+  const p = await projectById(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+  if (assertProjectOpen(p, res)) return;
   const m = await membership(req.params.id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
   const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
@@ -795,6 +865,7 @@ app.post('/api/projects/:id/tasks', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
+  if (assertProjectOpen(p, res)) return;
   const title = (req.body.title || '').trim();
   if (!title) return res.status(400).json({ error: 'Intitulé requis' });
   const assignee = req.body.assigneeId || null;
@@ -804,15 +875,17 @@ app.post('/api/projects/:id/tasks', auth, h(async (req, res) => {
   const prio = prioOrDefault(req.body.priority);
   const description = (req.body.description || '').trim() || null;
   const type = (req.body.type || '').trim().slice(0, 30) || null;
+  const transferable = req.body.transferable === true;
   const statuses = await ensureProjectStatuses(p.id);
   const statusKey = statuses.some((s) => s.key === req.body.statusKey) ? req.body.statusKey : 'todo';
+  if (statusKey === 'transferred' && !transferable) return res.status(400).json({ error: 'Cette tâche doit être marquée transférable' });
   let parentId = req.body.parentId || null;
   if (parentId) {
     const parent = await taskById(parentId);
     if (!parent || parent.project_id !== p.id) return res.status(400).json({ error: 'Tâche parente invalide' });
     if (parent.parent_id) parentId = parent.parent_id; // pas de sous-sous-tâche : rattache au parent racine
   }
-  await q('INSERT INTO tasks (id,project_id,title,description,type,assignee_id,created_by,due,est_hours,priority,parent_id,status_key,done,done_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)', [id, p.id, title, description, type, assignee, req.user.id, req.body.due || null, est, prio, parentId, statusKey, statusKey === 'done', statusKey === 'done' ? new Date().toISOString() : null]);
+  await q('INSERT INTO tasks (id,project_id,title,description,type,assignee_id,created_by,due,est_hours,priority,parent_id,status_key,done,done_at,transferable) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)', [id, p.id, title, description, type, assignee, req.user.id, req.body.due || null, est, prio, parentId, statusKey, statusKey === 'done', statusKey === 'done' ? new Date().toISOString() : null, transferable]);
   await logActivity(p.id, req.user.id, 'task_created', `a ajouté « ${title} »`);
   (async () => {
     if (assignee) await sendTaskAssignmentMails({
@@ -828,7 +901,7 @@ app.post('/api/projects/:id/tasks', auth, h(async (req, res) => {
       }
     }
   })().catch((e) => console.error('mail task_created', e.message));
-  res.json({ task: { id, title, description, type, assigneeId: assignee, createdBy: req.user.id, due: req.body.due || null, done: statusKey === 'done', estHours: est, spentHours: null, priority: prio, parentId, statusKey } });
+  res.json({ task: { id, title, description, type, assigneeId: assignee, createdBy: req.user.id, due: req.body.due || null, done: statusKey === 'done', estHours: est, spentHours: null, priority: prio, parentId, statusKey, transferable } });
 }));
 
 app.patch('/api/tasks/:id', auth, h(async (req, res) => {
@@ -836,6 +909,8 @@ app.patch('/api/tasks/:id', auth, h(async (req, res) => {
   if (!t) return res.status(404).json({ error: 'Tâche introuvable' });
   const m = await membership(t.project_id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
+  const p = await projectById(t.project_id);
+  if (assertProjectOpen(p, res)) return;
   const b = req.body || {};
   const isCreator = t.created_by === req.user.id;
   const isAssignee = t.assignee_id === req.user.id;
@@ -855,11 +930,25 @@ app.patch('/api/tasks/:id', auth, h(async (req, res) => {
     let transferredTo = 'transferredTo' in b ? (b.transferredTo || null) : t.transferred_to;
     if (transferredTo && !(await membership(t.project_id, transferredTo))) return res.status(400).json({ error: 'Le destinataire doit être membre' });
     const isTransfer = nextStatus === 'transferred';
+    if (isTransfer && !t.transferable) return res.status(400).json({ error: 'Cette tâche n’est pas transférable' });
+    if (isTransfer && !transferredTo) return res.status(400).json({ error: 'Choisissez la personne à qui transférer' });
+    if (isTransfer && transferredTo === t.assignee_id) return res.status(400).json({ error: 'Choisissez une autre personne' });
     const done = nextStatus === 'done';
-    await q(`UPDATE tasks SET status_key=$1, done=$2, done_at=$3, transferred_from=$4, transferred_to=$5 WHERE id=$6`,
-      [nextStatus, done, done ? (t.done_at || new Date().toISOString()) : null, isTransfer ? req.user.id : null, isTransfer ? transferredTo : null, t.id]);
+    await q(`UPDATE tasks SET status_key=$1, done=$2, done_at=$3, transferred_from=$4, transferred_to=$5, assignee_id=$6 WHERE id=$7`,
+      [nextStatus, done, done ? (t.done_at || new Date().toISOString()) : null, isTransfer ? (t.assignee_id || req.user.id) : null, isTransfer ? transferredTo : null, isTransfer ? transferredTo : t.assignee_id, t.id]);
     await logActivity(t.project_id, req.user.id, 'task_status', `a déplacé « ${t.title} » vers ${nextStatus}`);
-    if (isTransfer && transferredTo && transferredTo !== req.user.id) await notify(transferredTo, 'task_transferred', `Tâche transférée : ${t.title}`, `${req.user.name} vous a transféré une tâche.`);
+    if (isTransfer) {
+      await q('INSERT INTO task_transfers (id,task_id,project_id,from_user_id,to_user_id,created_by) VALUES ($1,$2,$3,$4,$5,$6)',
+        [uid(), t.id, t.project_id, t.assignee_id || req.user.id, transferredTo, req.user.id]);
+      if (transferredTo !== req.user.id) await notify(transferredTo, 'task_transferred', `Tâche transférée : ${t.title}`, `${req.user.name} vous a transféré une tâche.`);
+      const p = await projectById(t.project_id);
+      await sendTaskAssignmentMails({
+        project: p,
+        task: { id: t.id, title: t.title, priority: t.priority, due: t.due },
+        actor: req.user,
+        assigneeId: transferredTo,
+      });
+    }
   }
 
   // Heures (estimées / passées) : responsable ou propriétaire/leader
@@ -880,7 +969,7 @@ app.patch('/api/tasks/:id', auth, h(async (req, res) => {
   }
 
   // Édition (titre / description / type / échéance / responsable) : créateur ou propriétaire/leader
-  if ('title' in b || 'description' in b || 'type' in b || 'due' in b || 'assigneeId' in b) {
+  if ('title' in b || 'description' in b || 'type' in b || 'due' in b || 'assigneeId' in b || 'transferable' in b) {
     if (!(isCreator || manage)) return res.status(403).json({ error: 'Modification réservée au créateur ou au propriétaire' });
     const sets = [], vals = [];
     let nextTitle = t.title;
@@ -901,6 +990,7 @@ app.patch('/api/tasks/:id', auth, h(async (req, res) => {
       sets.push(`assignee_id=$${sets.length + 1}`); vals.push(a);
       nextAssignee = a;
     }
+    if ('transferable' in b) { sets.push(`transferable=$${sets.length + 1}`); vals.push(b.transferable === true); }
     if (sets.length) { vals.push(t.id); await q(`UPDATE tasks SET ${sets.join(', ')} WHERE id=$${vals.length}`, vals); }
     await logActivity(t.project_id, req.user.id, 'task_updated', `a modifié « ${t.title} »`);
     if ('assigneeId' in b && nextAssignee && nextAssignee !== t.assignee_id) {
@@ -923,6 +1013,8 @@ app.post('/api/tasks/:id/claim', auth, h(async (req, res) => {
   if (!t) return res.status(404).json({ error: 'Tâche introuvable' });
   const m = await membership(t.project_id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
+  const p = await projectById(t.project_id);
+  if (assertProjectOpen(p, res)) return;
   if (t.assignee_id) return res.status(409).json({ error: 'Tâche déjà prise' });
   await q('UPDATE tasks SET assignee_id=$1 WHERE id=$2', [req.user.id, t.id]);
   await logActivity(t.project_id, req.user.id, 'task_claimed', `a pris « ${t.title} »`);
@@ -934,10 +1026,11 @@ app.post('/api/tasks/:id/remind', auth, h(async (req, res) => {
   if (!t) return res.status(404).json({ error: 'Tâche introuvable' });
   const m = await membership(t.project_id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
+  const p = await projectById(t.project_id);
+  if (assertProjectOpen(p, res)) return;
   if (!t.assignee_id) return res.status(400).json({ error: 'Cette tâche n’a pas de responsable' });
   const manage = canManage(m.role);
   if (!(manage || t.created_by === req.user.id)) return res.status(403).json({ error: 'Relance réservée au créateur ou au responsable du projet' });
-  const p = await projectById(t.project_id);
   const assignee = await userById(t.assignee_id);
   if (!assignee || !assignee.email) return res.status(400).json({ error: 'Pas d’email pour ce responsable' });
   const rows = [['Projet', p.name], ['Tâche', t.title], ['Responsable', assignee.name], t.due ? ['Échéance', t.due] : null, ['Priorité', 'P' + (t.priority || 6)]];
@@ -955,6 +1048,8 @@ app.delete('/api/tasks/:id', auth, h(async (req, res) => {
   if (!t) return res.status(404).json({ error: 'Tâche introuvable' });
   const m = await membership(t.project_id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
+  const p = await projectById(t.project_id);
+  if (assertProjectOpen(p, res)) return;
   if (t.created_by !== req.user.id && !canManage(m.role)) return res.status(403).json({ error: 'Suppression réservée au créateur ou au propriétaire' });
   await q('DELETE FROM tasks WHERE id=$1 OR parent_id=$1', [t.id]);
   bump(t.project_id);
@@ -967,6 +1062,7 @@ app.get('/api/projects/:id/meeting/messages', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
+  if (assertProjectOpen(p, res)) return;
   const rows = await many(`SELECT mm.*, u.name AS user_name
       FROM meeting_messages mm JOIN users u ON u.id=mm.user_id
       WHERE mm.project_id=$1 ORDER BY mm.created_at ASC LIMIT 200`, [p.id]);
@@ -983,6 +1079,7 @@ app.post('/api/projects/:id/meeting/messages', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
+  if (assertProjectOpen(p, res)) return;
   const body = String(req.body.body || '').trim().slice(0, 1200);
   if (!body) return res.status(400).json({ error: 'Message vide' });
   const id = uid();
@@ -991,11 +1088,45 @@ app.post('/api/projects/:id/meeting/messages', auth, h(async (req, res) => {
   res.json({ message: { id, projectId: p.id, userId: req.user.id, userName: req.user.name, body, createdTaskId: null, at: new Date().toISOString() } });
 }));
 
+app.get('/api/projects/:id/meeting/task-delegates', auth, h(async (req, res) => {
+  const p = await projectById(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+  const m = await membership(p.id, req.user.id);
+  if (!m) return res.status(403).json({ error: 'Non membre' });
+  if (assertProjectOpen(p, res)) return;
+  const rows = await many('SELECT user_id FROM project_meeting_task_delegates WHERE project_id=$1', [p.id]);
+  res.json({ userIds: rows.map((r) => r.user_id) });
+}));
+
+app.put('/api/projects/:id/meeting/task-delegates', auth, h(async (req, res) => {
+  const p = await projectById(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+  const m = await membership(p.id, req.user.id);
+  if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Réservé au chef du projet' });
+  if (assertProjectOpen(p, res)) return;
+  const wanted = Array.isArray(req.body.userIds) ? [...new Set(req.body.userIds.filter(Boolean))] : [];
+  const members = await projectMembers(p.id);
+  const memberIds = new Set(members.map((x) => x.user_id));
+  const ids = wanted.filter((id) => memberIds.has(id));
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM project_meeting_task_delegates WHERE project_id=$1', [p.id]);
+    for (const id of ids) await client.query('INSERT INTO project_meeting_task_delegates (project_id,user_id,created_by) VALUES ($1,$2,$3)', [p.id, id, req.user.id]);
+    await client.query('COMMIT');
+  } catch (e) { await client.query('ROLLBACK'); throw e; }
+  finally { client.release(); }
+  await notifyProject(p.id, { type: 'meeting_chat', projectId: p.id });
+  res.json({ userIds: ids });
+}));
+
 app.post('/api/projects/:id/meeting/tasks', auth, h(async (req, res) => {
   const p = await projectById(req.params.id);
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
-  if (!m || !canManage(m.role)) return res.status(403).json({ error: 'Seul le chef du projet peut créer une tâche depuis le meeting' });
+  if (assertProjectOpen(p, res)) return;
+  const delegated = await one('SELECT 1 FROM project_meeting_task_delegates WHERE project_id=$1 AND user_id=$2', [p.id, req.user.id]);
+  if (!m || !(canManage(m.role) || delegated)) return res.status(403).json({ error: 'Vous n’êtes pas autorisé à créer des tâches depuis ce meeting' });
   const title = String(req.body.title || '').trim().slice(0, 160);
   if (!title) return res.status(400).json({ error: 'Titre requis' });
   const assignee = req.body.assigneeId || null;
@@ -1004,9 +1135,11 @@ app.post('/api/projects/:id/meeting/tasks', auth, h(async (req, res) => {
   const statusKey = statuses.some((s) => s.key === req.body.statusKey) ? req.body.statusKey : 'todo';
   const prio = prioOrDefault(req.body.priority);
   const description = String(req.body.description || '').trim().slice(0, 1000) || null;
+  const transferable = req.body.transferable === true;
   const id = uid();
-  await q('INSERT INTO tasks (id,project_id,title,description,type,assignee_id,created_by,due,priority,status_key,done,done_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
-    [id, p.id, title, description, 'Tâche', assignee, req.user.id, req.body.due || null, prio, statusKey, statusKey === 'done', statusKey === 'done' ? new Date().toISOString() : null]);
+  if (statusKey === 'transferred' && !transferable) return res.status(400).json({ error: 'Cette tâche doit être marquée transférable' });
+  await q('INSERT INTO tasks (id,project_id,title,description,type,assignee_id,created_by,due,priority,status_key,done,done_at,transferable) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
+    [id, p.id, title, description, 'Tâche', assignee, req.user.id, req.body.due || null, prio, statusKey, statusKey === 'done', statusKey === 'done' ? new Date().toISOString() : null, transferable]);
   const sourceMessageId = req.body.messageId || null;
   if (sourceMessageId) await q('UPDATE meeting_messages SET created_task_id=$1 WHERE id=$2 AND project_id=$3', [id, sourceMessageId, p.id]);
   await logActivity(p.id, req.user.id, 'meeting_task_created', `a créé depuis le meeting « ${title} »`);
@@ -1021,7 +1154,7 @@ app.post('/api/projects/:id/meeting/tasks', auth, h(async (req, res) => {
   }
   await notifyProject(p.id, { type: 'meeting_chat', projectId: p.id });
   await notifyProject(p.id, { type: 'project', projectId: p.id });
-  res.json({ task: { id, title, description, type: 'Tâche', assigneeId: assignee, createdBy: req.user.id, due: req.body.due || null, done: statusKey === 'done', priority: prio, statusKey } });
+  res.json({ task: { id, title, description, type: 'Tâche', assigneeId: assignee, createdBy: req.user.id, due: req.body.due || null, done: statusKey === 'done', priority: prio, statusKey, transferable } });
 }));
 
 /* ---------- polls ---------- */
@@ -1030,6 +1163,7 @@ app.post('/api/projects/:id/polls', auth, h(async (req, res) => {
   if (!p) return res.status(404).json({ error: 'Projet introuvable' });
   const m = await membership(p.id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
+  if (assertProjectOpen(p, res)) return;
   const question = (req.body.question || '').trim();
   const options = (req.body.options || []).map(o => (o || '').trim()).filter(Boolean);
   if (!question || options.length < 2) return res.status(400).json({ error: 'Question et au moins 2 options requises' });
@@ -1045,6 +1179,8 @@ app.post('/api/polls/:id/vote', auth, h(async (req, res) => {
   if (!poll) return res.status(404).json({ error: 'Sondage introuvable' });
   const m = await membership(poll.project_id, req.user.id);
   if (!m) return res.status(403).json({ error: 'Non membre' });
+  const p = await projectById(poll.project_id);
+  if (assertProjectOpen(p, res)) return;
   const opt = await one('SELECT * FROM poll_options WHERE poll_id=$1 AND id=$2', [poll.id, req.body.optionId]);
   if (!opt) return res.status(400).json({ error: 'Option invalide' });
   await q(`INSERT INTO poll_votes (poll_id,option_id,user_id) VALUES ($1,$2,$3)
@@ -1160,6 +1296,9 @@ app.delete('/api/admin/users/:id', auth, adminOnly, h(async (req, res) => {
       await client.query('DELETE FROM poll_votes WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [pr.id]);
       await client.query('DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [pr.id]);
       await client.query('DELETE FROM polls WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM task_transfers WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM project_meeting_task_delegates WHERE project_id=$1', [pr.id]);
+      await client.query('DELETE FROM meeting_messages WHERE project_id=$1', [pr.id]);
       await client.query('DELETE FROM tasks WHERE project_id=$1', [pr.id]);
       await client.query('DELETE FROM invites WHERE project_id=$1', [pr.id]);
       await client.query('DELETE FROM activity WHERE project_id=$1', [pr.id]);
@@ -1288,6 +1427,9 @@ app.delete('/api/admin/projects/:id', auth, adminOnly, h(async (req, res) => {
     await client.query('DELETE FROM poll_votes WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [p.id]);
     await client.query('DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [p.id]);
     await client.query('DELETE FROM polls WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM task_transfers WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM project_meeting_task_delegates WHERE project_id=$1', [p.id]);
+    await client.query('DELETE FROM meeting_messages WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM tasks WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM invites WHERE project_id=$1', [p.id]);
     await client.query('DELETE FROM activity WHERE project_id=$1', [p.id]);

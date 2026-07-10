@@ -18,6 +18,7 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
   const [tab, setTab] = useState<'taches' | 'equipe' | 'membres' | 'sondages' | 'activite'>('taches')
   const [meet, setMeet] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [confirmClose, setConfirmClose] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
   const load = useCallback(() => { api<{ project: Project }>('GET', '/projects/' + id).then((r) => setP(r.project)).catch((e) => setErr(e.message)) }, [id])
   useEffect(load, [load])
@@ -30,15 +31,19 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
   const h = health(p.tasks.length, p.tasks.filter((t) => t.done).length, p.status)
   const manage = canManage(p.my_role)
   const isOwner = me.id === p.owner_id
+  const closed = p.status === 'done'
   const memberName = (uid: string | null) => { const m = p.members.find((x) => x.id === uid); return m ? m.name : '—' }
 
   async function closeProject() {
-    try { await api('POST', '/projects/' + id + '/close'); toast('Projet clôturé'); load() } catch (e: any) { toastErr(e.message) }
+    try { await api('POST', '/projects/' + id + '/close'); setConfirmClose(false); toast('Projet clôturé ✓'); load() } catch (e: any) { toastErr(e.message) }
+  }
+  async function reopenProject() {
+    try { await api('POST', '/projects/' + id + '/reopen'); toast('Projet réouvert ✓'); load() } catch (e: any) { toastErr(e.message) }
   }
   async function deleteProject() {
     try {
       const r = await api<{ notified: number }>('DELETE', '/projects/' + id)
-      toast(r.notified > 0 ? `Projet supprimé — ${r.notified} membre(s) averti(s)` : 'Projet supprimé')
+      toast(r.notified > 0 ? `Projet supprimé ✓ — ${r.notified} membre(s) averti(s)` : 'Projet supprimé ✓')
       onBack()
     } catch (e: any) { toastErr(e.message) }
   }
@@ -61,14 +66,35 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
           </div>
           <div className="mini-bar"><i style={{ width: h.pct + '%', background: p.status === 'done' ? 'var(--ok)' : 'var(--accent)' }} /></div>
           <div className="sheet-actions" style={{ marginTop: 12, flexWrap: 'wrap' }}>
-            <button className="btn sm primary" onClick={() => setMeet(true)}>🎥 Meeting</button>
-            {manage && p.status !== 'done' && h.total > 0 && <button className="btn sm ghost" onClick={closeProject}>✓ Clôturer</button>}
-            {isOwner && <button className="btn sm ghost" onClick={() => setEditing(true)}>✏️ Modifier</button>}
+            {!closed && <button className="btn sm primary" onClick={() => setMeet(true)}>🎥 Meeting</button>}
+            {manage && !closed && <button className="btn sm ghost" onClick={() => setConfirmClose(true)}>✓ Clôturer</button>}
+            {isOwner && closed && p.canReopen && <button className="btn sm primary" onClick={reopenProject}>↻ Réouvrir</button>}
+            {isOwner && !closed && <button className="btn sm ghost" onClick={() => setEditing(true)}>✏️ Modifier</button>}
             {isOwner && <button className="btn sm danger" onClick={() => setConfirmDel(true)}>🗑 Supprimer</button>}
           </div>
         </div>
 
+        {closed && (
+          <div className="banner closed-project-banner">
+            <b>Projet clôturé.</b> Les tâches, le meeting, les sondages et les modifications sont bloqués.
+            {isOwner && p.canReopen && p.reopenUntil ? ` Vous pouvez le réouvrir jusqu’au ${new Date(p.reopenUntil).toLocaleDateString('fr-FR')}.` : ''}
+            {isOwner && !p.canReopen ? ' Le délai de réouverture de 30 jours est dépassé.' : ''}
+          </div>
+        )}
+
         {editing && <EditProject p={p} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); load() }} />}
+        {confirmClose && (
+          <Modal title="Clôturer le projet ?" onClose={() => setConfirmClose(false)}>
+            <p className="sub" style={{ marginTop: 0 }}>
+              Le projet <b>« {p.name} »</b> passera en lecture seule : plus de meeting, plus de modification, plus d’action sur les tâches.
+              Le propriétaire pourra le réouvrir pendant 30 jours.
+            </p>
+            <div className="sheet-actions">
+              <button className="btn primary" onClick={closeProject}>Oui, clôturer</button>
+              <button className="btn ghost" onClick={() => setConfirmClose(false)}>Annuler</button>
+            </div>
+          </Modal>
+        )}
         {confirmDel && (
           <Modal title="Supprimer le projet ?" onClose={() => setConfirmDel(false)}>
             <p className="sub" style={{ marginTop: 0 }}>
@@ -102,10 +128,12 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
   const myTypes = taskTypesOf(me)
   const [adding, setAdding] = useState(false)
   const [voice, setVoice] = useState(false)
-  const [nf, setNf] = useState<{ title: string; desc: string; type: string; assigneeId: string; due: string; est: string; priority: number }>({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6 })
+  const [nf, setNf] = useState<{ title: string; desc: string; type: string; assigneeId: string; due: string; est: string; priority: number; transferable: boolean }>({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6, transferable: false })
   const [editId, setEditId] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [prioId, setPrioId] = useState<string | null>(null)
+  const [transferId, setTransferId] = useState<string | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
   const [addSubFor, setAddSubFor] = useState<string | null>(null)
   const [subTitle, setSubTitle] = useState('')
   const [sortMode, setSortMode] = useState<TaskSort>('priority')
@@ -127,6 +155,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
   ] as TaskStatus[]).slice().sort((a, b) => a.position - b.position)
   const statusOf = (t: Task) => t.statusKey || (t.done ? 'done' : 'todo')
   const nameOf = (id?: string | null) => id ? (member(id)?.name || '—') : '—'
+  const closed = p.status === 'done'
 
   function dropOn(targetId: string) {
     if (sortMode !== 'manual' || !dragId || dragId === targetId) { setDragId(null); return }
@@ -140,7 +169,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
 
   async function addTask() {
     if (!nf.title.trim()) return
-    try { await api('POST', '/projects/' + p.id + '/tasks', { title: nf.title.trim(), description: nf.desc || null, type: nf.type || null, assigneeId: nf.assigneeId || null, due: nf.due || null, estHours: nf.est || null, priority: nf.priority }); setNf({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6 }); setAdding(false); reload() }
+    try { await api('POST', '/projects/' + p.id + '/tasks', { title: nf.title.trim(), description: nf.desc || null, type: nf.type || null, assigneeId: nf.assigneeId || null, due: nf.due || null, estHours: nf.est || null, priority: nf.priority, transferable: nf.transferable }); setNf({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6, transferable: false }); setAdding(false); toast('Tâche créée ✓'); reload() }
     catch (e: any) { toastErr(e.message) }
   }
   async function addSub(parentId: string) {
@@ -148,15 +177,24 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
     try { await api('POST', '/projects/' + p.id + '/tasks', { title: subTitle.trim(), parentId, priority: 6 }); setSubTitle(''); setAddSubFor(null); reload() }
     catch (e: any) { toastErr(e.message) }
   }
-  async function toggle(t: Task) { try { await api('PATCH', '/tasks/' + t.id, { done: !t.done }); reload() } catch (e: any) { toastErr(e.message) } }
+  async function toggle(t: Task) { try { await api('PATCH', '/tasks/' + t.id, { done: !t.done }); if (!t.done) toast('Tâche terminée ✓'); reload() } catch (e: any) { toastErr(e.message) } }
   async function claim(t: Task) { try { await api('POST', '/tasks/' + t.id + '/claim', {}); toast('Tâche prise ✓'); reload() } catch (e: any) { toastErr(e.message) } }
-  async function del(t: Task) { try { await api('DELETE', '/tasks/' + t.id); reload() } catch (e: any) { toastErr(e.message) } }
+  async function del(t: Task) { try { await api('DELETE', '/tasks/' + t.id); setDeleteId(null); toast('Tâche supprimée ✓'); reload() } catch (e: any) { toastErr(e.message) } }
   async function setPriority(t: Task, n: number) { try { await api('PATCH', '/tasks/' + t.id, { priority: n }); setPrioId(null); toast('Priorité P' + n); reload() } catch (e: any) { toastErr(e.message) } }
   async function moveTask(t: Task, statusKey: string) {
+    if (statusKey === 'transferred' && !t.transferable) { toastErr('Cette tâche n’est pas transférable'); return }
     const other = p.members.find((m) => m.id !== (t.assigneeId || me.id))
     const transferTo = statusKey === 'transferred' ? (t.transferredTo || other?.id || t.assigneeId || null) : null
-    try { await api('PATCH', '/tasks/' + t.id, { statusKey, transferredTo: transferTo }); setDragId(null); reload() }
+    try { await api('PATCH', '/tasks/' + t.id, { statusKey, transferredTo: transferTo }); setDragId(null); toast(statusKey === 'transferred' ? 'Tâche transférée ✓' : 'Statut mis à jour ✓'); reload() }
     catch (e: any) { toastErr(e.message); setDragId(null) }
+  }
+  async function transferTask(t: Task, userId: string) {
+    try {
+      await api('PATCH', '/tasks/' + t.id, { statusKey: 'transferred', transferredTo: userId })
+      setTransferId(null)
+      toast('Tâche transférée ✓')
+      reload()
+    } catch (e: any) { toastErr(e.message) }
   }
   async function addStatus() {
     const label = newStatus.trim()
@@ -190,23 +228,25 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
     const unassigned = !t.assigneeId
     const am = member(t.assigneeId)
     const manage = canManage(p.my_role)
-    const canRelance = over && !mine && !unassigned && am && am.email && (manage || t.createdBy === me.id)
-    const canDel = t.createdBy === me.id || manage
-    const canEditMeta = t.createdBy === me.id || manage
-    const canLogHours = mine || manage
+    const canRelance = !closed && over && !mine && !unassigned && am && am.email && (manage || t.createdBy === me.id)
+    const canDel = !closed && (t.createdBy === me.id || manage)
+    const canEditMeta = !closed && (t.createdBy === me.id || manage)
+    const canLogHours = !closed && (mine || manage)
     const hasHours = t.spentHours != null || t.estHours != null
     const pm = prioMeta(t.priority)
-    const canPrio = mine || canEditMeta
+    const canPrio = !closed && (mine || canEditMeta)
+    const canMove = !closed && (mine || t.createdBy === me.id || manage)
+    const canTransfer = canMove && t.transferable === true && p.members.some((m) => m.id !== (t.assigneeId || me.id))
     const subs = isSub ? [] : p.tasks.filter((s) => s.parentId === t.id)
     const subDone = subs.filter((s) => s.done).length
-    const hasMenu = canEditMeta || canLogHours || canDel || canPrio || (unassigned && p.status !== 'done')
+    const hasMenu = canEditMeta || canLogHours || canDel || canPrio || canTransfer || (unassigned && !closed)
     return (
       <div key={t.id} className={'task status-task' + (isSub ? ' subtask' : '') + (t.done ? ' done' : '') + (over ? ' overdue' : '') + (dragId === t.id ? ' dragging' : '')}
-        draggable={!isSub && p.status !== 'done'}
-        onDragStart={!isSub && p.status !== 'done' ? () => setDragId(t.id) : undefined}
-        onDragEnd={!isSub && p.status !== 'done' ? () => setDragId(null) : undefined}>
+        draggable={!isSub && !closed}
+        onDragStart={!isSub && !closed ? () => setDragId(t.id) : undefined}
+        onDragEnd={!isSub && !closed ? () => setDragId(null) : undefined}>
         <div className="tt">
-          <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine ? '' : ' locked')} disabled={!mine} onClick={mine ? () => toggle(t) : undefined} title={mine ? '' : 'Seul le responsable peut cocher'} aria-label="Cocher">{t.done ? '✓' : (mine ? '' : '🔒')}</button>
+          <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} title={closed ? 'Projet clôturé' : mine ? '' : 'Seul le responsable peut cocher'} aria-label="Cocher">{t.done ? '✓' : (mine && !closed ? '' : '🔒')}</button>
           <div className="tname">
             <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
@@ -218,10 +258,17 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
               <span className={'tag ' + (unassigned ? 'due' : 'client')}>{unassigned ? '👐 à prendre' : '👤 ' + memberName(t.assigneeId)}</span>
               {t.due && <span className={'tag ' + (over ? 'late' : 'due')}>📅 {formatDue(t.due)}</span>}
               {hasHours && <span className="tag hours">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? ` / ~${t.estHours}h` : ''}</span>}
+              {t.transferable && <span className="tag acc">⇄ transférable</span>}
               {subs.length > 0 && <span className="tag due">☑ {subDone}/{subs.length}</span>}
               <span className="tag due">{statuses.find((s) => s.key === statusOf(t))?.label || 'À faire'}</span>
               {statusOf(t) === 'transferred' && <span className="tag acc">↪ {nameOf(t.transferredFrom)} → {nameOf(t.transferredTo)}</span>}
+              {t.transferHistory && t.transferHistory.length > 0 && <span className="tag due">parcours {t.transferHistory.length}</span>}
             </div>
+            {t.transferHistory && t.transferHistory.length > 0 && (
+              <div className="transfer-path">
+                {t.transferHistory.map((h) => <span key={h.id}>{h.fromName || 'Départ'} → {h.toName}</span>)}
+              </div>
+            )}
           </div>
           {hasMenu && <button className="more-btn" onClick={() => setMenuId(t.id)} aria-label="Actions">⋯</button>}
         </div>
@@ -229,11 +276,24 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
         {menuId === t.id && (
           <Modal title={t.title} onClose={() => setMenuId(null)}>
             {(canEditMeta || canLogHours) && <button className="mact" onClick={() => { setMenuId(null); setEditId(t.id) }}><span className="mi">✏️</span>Modifier la tâche</button>}
-            {!isSub && p.status !== 'done' && <button className="mact" onClick={() => { setMenuId(null); setSubTitle(''); setAddSubFor(t.id) }}><span className="mi">➕</span>Ajouter une sous-tâche</button>}
+            {!isSub && !closed && <button className="mact" onClick={() => { setMenuId(null); setSubTitle(''); setAddSubFor(t.id) }}><span className="mi">➕</span>Ajouter une sous-tâche</button>}
             {canPrio && <button className="mact" onClick={() => { setMenuId(null); setPrioId(t.id) }}><span className="mi">🚩</span>Changer la priorité</button>}
-            {unassigned && p.status !== 'done' && <button className="mact" onClick={() => { setMenuId(null); claim(t) }}><span className="mi">👐</span>Je m’en occupe</button>}
+            {canTransfer && <button className="mact" onClick={() => { setMenuId(null); setTransferId(t.id) }}><span className="mi">⇄</span>Transférer la tâche</button>}
+            {unassigned && !closed && <button className="mact" onClick={() => { setMenuId(null); claim(t) }}><span className="mi">👐</span>Je m’en occupe</button>}
             {canRelance && <button className="mact" onClick={() => { setMenuId(null); relance(t) }}><span className="mi">✉️</span>Relancer</button>}
-            {canDel && <button className="mact danger" onClick={() => { setMenuId(null); del(t) }}><span className="mi">🗑</span>Supprimer{subs.length > 0 ? ' (et ses sous-tâches)' : ''}</button>}
+            {canDel && <button className="mact danger" onClick={() => { setMenuId(null); setDeleteId(t.id) }}><span className="mi">🗑</span>Supprimer{subs.length > 0 ? ' (et ses sous-tâches)' : ''}</button>}
+          </Modal>
+        )}
+        {transferId === t.id && <TransferTaskModal p={p} t={t} me={me} onClose={() => setTransferId(null)} onTransfer={(userId) => transferTask(t, userId)} />}
+        {deleteId === t.id && (
+          <Modal title="Supprimer la tâche ?" onClose={() => setDeleteId(null)}>
+            <p className="sub" style={{ marginTop: 0 }}>
+              La tâche <b>« {t.title} »</b>{subs.length > 0 ? ' et ses sous-tâches' : ''} seront supprimées définitivement.
+            </p>
+            <div className="sheet-actions">
+              <button className="btn danger" onClick={() => del(t)}>Oui, supprimer</button>
+              <button className="btn ghost" onClick={() => setDeleteId(null)}>Annuler</button>
+            </div>
           </Modal>
         )}
         {prioId === t.id && (
@@ -332,7 +392,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
                   <div className="status-col-head">
                     <span><i style={{ background: s.color }} />{s.label}</span>
                     <b>{list.length}</b>
-                    {canManage(p.my_role) && !s.fixed && <button className="status-remove" onClick={() => removeStatus(s.key)} title="Supprimer ce statut">×</button>}
+                    {canManage(p.my_role) && !closed && !s.fixed && <button className="status-remove" onClick={() => removeStatus(s.key)} title="Supprimer ce statut">×</button>}
                   </div>
                   <div className="status-drop-label">Déposer ici</div>
                   {list.map((t) => renderRoot(t))}
@@ -374,6 +434,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
           <div className="field"><label>Échéance</label><input type="date" value={nf.due} onChange={(e) => setNf({ ...nf, due: e.target.value })} /></div>
           <div className="field"><label>Priorité</label>
             <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={nf.priority === n ? 'on o' + n : ''} onClick={() => setNf({ ...nf, priority: n })}>P{n}</button>)}</div></div>
+          <label className="checkline"><input type="checkbox" checked={nf.transferable} onChange={(e) => setNf({ ...nf, transferable: e.target.checked })} /> Tâche transférable</label>
           <div className="field"><label>Heures estimées (optionnel)</label><input type="number" min="0" step="0.5" value={nf.est} onChange={(e) => setNf({ ...nf, est: e.target.value })} placeholder="ex. 5" /></div>
           <div className="sheet-actions"><button className="btn primary sm" onClick={addTask}>Ajouter</button><button className="btn ghost sm" onClick={() => setAdding(false)}>Annuler</button></div>
         </div>
@@ -387,7 +448,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
           <div className="status-filter-sep" />
           <button className={statusFilter === 'all' ? 'on' : ''} onClick={() => setStatusFilter('all')}>Tous les statuts</button>
           {statuses.map((s) => <button key={s.key} className={statusFilter === s.key ? 'on' : ''} onClick={() => setStatusFilter(s.key)}><i style={{ background: s.color }} />{s.label}</button>)}
-          {canManage(p.my_role) && (
+          {canManage(p.my_role) && !closed && (
             <div className="status-admin">
               <input value={newStatus} onChange={(e) => setNewStatus(e.target.value)} placeholder="Nouveau statut…" onKeyDown={(e) => { if (e.key === 'Enter') addStatus() }} />
               <button className="btn sm" disabled={statusBusy} onClick={addStatus}>Ajouter</button>
@@ -395,7 +456,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
           )}
         </aside>
         <section className="status-main">
-          <div className="status-hint">Glissez une tâche d’un statut à un autre. Les tâches se créent avec le bouton principal, puis se déplacent ici.</div>
+          <div className="status-hint">{closed ? 'Projet clôturé : les tâches sont affichées en lecture seule.' : 'Glissez une tâche d’un statut à un autre. Les tâches se créent avec le bouton principal, puis se déplacent ici.'}</div>
           {p.tasks.length > 0 && (
             <div className="list-tools status-sort">
               <label className="lt-lbl">Trier</label>
@@ -418,6 +479,7 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
 }
 
 function TeamBoard({ p, me, reload }: { p: Project; me: User; reload: () => void }) {
+  const closed = p.status === 'done'
   async function toggle(t: Task) { try { await api('PATCH', '/tasks/' + t.id, { done: !t.done }); if (!t.done) toast('+ points 🎉'); reload() } catch (e: any) { toastErr(e.message) } }
   const ranked = [...p.members].map((m) => ({ m, pts: memberPoints(p, m.id) })).sort((a, b) => b.pts - a.pts)
   const unassigned = p.tasks.filter((t) => !t.assigneeId && !t.done)
@@ -441,7 +503,7 @@ function TeamBoard({ p, me, reload }: { p: Project; me: User; reload: () => void
                   const mine = t.assigneeId === me.id
                   return (
                     <div key={t.id} className={'board-task' + (t.done ? ' done' : '')}>
-                      <button className={'check' + (t.done ? ' done' : '') + (mine ? '' : ' locked')} disabled={!mine} onClick={mine ? () => toggle(t) : undefined} aria-label="Cocher">{t.done ? '✓' : (mine ? '' : '🔒')}</button>
+                      <button className={'check' + (t.done ? ' done' : '') + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} aria-label="Cocher">{t.done ? '✓' : (mine && !closed ? '' : '🔒')}</button>
                       <span className="bt-title">{t.title}{t.done ? ` · +${taskPoints(t)}` : ''}</span>
                     </div>
                   )
@@ -689,6 +751,7 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
     prio: prio(t.priority),
     statusKey: t.statusKey || (t.done ? 'done' : 'todo'),
     transferredTo: t.transferredTo || '',
+    transferable: t.transferable === true,
   })
   const typeOpts = [...new Set([...types, ...(t.type ? [t.type] : [])])]
   const [busy, setBusy] = useState(false)
@@ -696,7 +759,7 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
     const body: any = { priority: f.prio }
     if (canEditMeta) {
       if (!f.title.trim()) { toastErr('L’intitulé ne peut pas être vide'); return }
-      body.title = f.title.trim(); body.description = f.desc || null; body.type = f.type || null; body.due = f.due || null; body.assigneeId = f.assigneeId || null
+      body.title = f.title.trim(); body.description = f.desc || null; body.type = f.type || null; body.due = f.due || null; body.assigneeId = f.assigneeId || null; body.transferable = f.transferable
     }
     if (canLogHours) {
       body.estHours = f.est === '' ? null : Number(f.est)
@@ -728,6 +791,7 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
             </select></div>
           <div className="field"><label>Échéance</label>
             <input type="date" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></div>
+          <label className="checkline"><input type="checkbox" checked={f.transferable} onChange={(e) => setF({ ...f, transferable: e.target.checked, statusKey: e.target.checked ? f.statusKey : (f.statusKey === 'transferred' ? 'todo' : f.statusKey) })} /> Tâche transférable</label>
         </>
       )}
       {canLogHours && (
@@ -745,7 +809,10 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
         <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={f.prio === n ? 'on o' + n : ''} onClick={() => setF({ ...f, prio: n })}>P{n}</button>)}</div></div>
       <div className="field"><label>Statut</label>
         <div className="type-pick">
-          {(p.statuses || []).map((s) => <button key={s.key} className={f.statusKey === s.key ? 'on' : ''} onClick={() => setF({ ...f, statusKey: s.key })}><span className="status-dot-inline" style={{ background: s.color }} />{s.label}</button>)}
+          {(p.statuses || []).map((s) => {
+            const blocked = s.key === 'transferred' && !f.transferable
+            return <button key={s.key} disabled={blocked} className={(f.statusKey === s.key ? 'on' : '') + (blocked ? ' disabled' : '')} onClick={() => !blocked && setF({ ...f, statusKey: s.key })}><span className="status-dot-inline" style={{ background: s.color }} />{s.label}</button>
+          })}
         </div></div>
       {f.statusKey === 'transferred' && (
         <div className="field"><label>Transféré à</label>
@@ -756,6 +823,30 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
       )}
       <div className="sheet-actions">
         <button className="btn primary" disabled={busy} onClick={save}>Enregistrer</button>
+        <button className="btn ghost" onClick={onClose}>Annuler</button>
+      </div>
+    </Modal>
+  )
+}
+
+function TransferTaskModal({ p, t, me, onClose, onTransfer }: { p: Project; t: Task; me: User; onClose: () => void; onTransfer: (userId: string) => void }) {
+  const current = t.assigneeId || me.id
+  const targets = p.members.filter((m) => m.id !== current)
+  return (
+    <Modal title="Transférer la tâche" onClose={onClose}>
+      <p className="sub" style={{ marginTop: 0 }}>Choisis la personne à qui transférer <b>« {t.title} »</b>.</p>
+      {targets.length === 0 && <div className="empty">Aucun autre membre disponible.</div>}
+      {targets.map((m) => (
+        <button key={m.id} className="prow" onClick={() => onTransfer(m.id)}>
+          <Avatar name={m.name} size={30} />
+          <span style={{ flex: 1 }}>
+            <b>{m.name}</b>
+            <span className="sub" style={{ display: 'block', fontSize: '12px' }}>{ROLE_LABEL[m.role] || m.role}{m.id === me.id ? ' · moi' : ''}</span>
+          </span>
+          <span>Transférer</span>
+        </button>
+      ))}
+      <div className="sheet-actions" style={{ marginTop: 12 }}>
         <button className="btn ghost" onClick={onClose}>Annuler</button>
       </div>
     </Modal>

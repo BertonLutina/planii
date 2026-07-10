@@ -25,8 +25,19 @@ export interface Task {
   priority?: number | null
   position?: number | null
   statusKey?: string | null
+  transferable?: boolean
   transferredFrom?: string | null
   transferredTo?: string | null
+  transferHistory?: {
+    id: string
+    fromUserId: string | null
+    fromName: string | null
+    toUserId: string
+    toName: string
+    createdBy: string
+    createdByName: string
+    at: string
+  }[]
 }
 
 export interface PollOption { id: string; label: string; votes: number }
@@ -47,6 +58,9 @@ export interface ProjectSummary {
   type: ProjectType
   status: string
   deadline: string | null
+  closedAt?: string | null
+  reopenUntil?: string | null
+  canReopen?: boolean
   owner_id: string
   my_role: Role
   memberCount: number
