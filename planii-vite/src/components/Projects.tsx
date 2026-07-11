@@ -10,8 +10,9 @@ const DEFAULT_PROJECT_LABELS: ProjectLabel[] = [
   { id: 'default-work', label: 'Travail', color: '#f59e0b', position: 0, fixed: true },
   { id: 'default-private', label: 'Privé', color: '#ef4444', position: 1, fixed: true },
 ]
+const labelKey = (label: string) => label.trim().toLowerCase()
 
-export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: string) => void; onJoin: () => void; openSignal?: number }) {
+export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed }: { onOpen: (id: string) => void; onJoin: () => void; openSignal?: number; onOpenSignalConsumed?: () => void }) {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
   const [labels, setLabels] = useState<ProjectLabel[]>(DEFAULT_PROJECT_LABELS)
   const [err, setErr] = useState<string | null>(null)
@@ -34,7 +35,11 @@ export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: stri
       .catch((e) => setErr(e.message))
   }, [])
   useEffect(load, [load])
-  useEffect(() => { if (openSignal) setNewOpen(true) }, [openSignal])
+  useEffect(() => {
+    if (!openSignal) return
+    setNewOpen(true)
+    onOpenSignalConsumed?.()
+  }, [openSignal, onOpenSignalConsumed])
 
   if (err) return <div className="empty">Impossible de charger : {err}</div>
   if (!projects) return <div className="empty">Chargement…</div>
@@ -44,15 +49,22 @@ export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: stri
   const canDrag = pSort === 'manual' && tab === 'active'
   const legendLabels = (() => {
     const byKey = new Map<string, ProjectLabel>()
-    labels.forEach((l) => byKey.set(l.id || l.label, l))
+    labels.forEach((l) => {
+      const key = labelKey(l.label)
+      if (!byKey.has(key)) byKey.set(key, l)
+    })
     projects.forEach((p) => {
-      if (p.labelName && p.labelColor) byKey.set(p.labelId || p.labelName, {
-        id: p.labelId || p.labelName,
-        label: p.labelName,
-        color: p.labelColor,
-        position: 99,
-        fixed: false,
-      })
+      if (!p.labelName || !p.labelColor) return
+      const key = labelKey(p.labelName)
+      if (!byKey.has(key)) {
+        byKey.set(key, {
+          id: p.labelId || p.labelName,
+          label: p.labelName,
+          color: p.labelColor,
+          position: 99,
+          fixed: false,
+        })
+      }
     })
     return [...byKey.values()].sort((a, b) => a.position - b.position || a.label.localeCompare(b.label))
   })()
@@ -76,18 +88,20 @@ export function ProjectsList({ onOpen, onJoin, openSignal }: { onOpen: (id: stri
         </div>
         <button className="btn-link" onClick={onJoin}>Rejoindre un projet…</button>
       </div>
-      <div className="list-tools">
-        <label className="lt-lbl">Trier</label>
-        <select value={pSort} onChange={(e) => setPSort(e.target.value as ProjSort)} aria-label="Trier les projets par">
-          <option value="title">Titre</option>
-          <option value="manual">Manuel</option>
-        </select>
-        <button className="btn sm" onClick={() => setPDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{pDir === 'asc' ? '↑ A→Z' : '↓ Z→A'}</button>
-      </div>
-      <div className="project-legend" aria-label="Légende des libellés">
-        {legendLabels.map((l) => (
-          <span key={l.id} className="project-legend-item"><i style={{ background: l.color }} />{l.label}</span>
-        ))}
+      <div className="project-controls">
+        <div className="list-tools">
+          <label className="lt-lbl">Trier</label>
+          <select value={pSort} onChange={(e) => setPSort(e.target.value as ProjSort)} aria-label="Trier les projets par">
+            <option value="title">Titre</option>
+            <option value="manual">Manuel</option>
+          </select>
+          <button className="btn sm" onClick={() => setPDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{pDir === 'asc' ? '↑ A→Z' : '↓ Z→A'}</button>
+        </div>
+        <div className="project-legend" aria-label="Légende des libellés">
+          {legendLabels.map((l) => (
+            <span key={l.id} className="project-legend-item"><i style={{ background: l.color }} />{l.label}</span>
+          ))}
+        </div>
       </div>
       {canDrag && <div className="sub" style={{ margin: '0 2px 8px' }}>Glissez les projets pour changer l’ordre.</div>}
       <div className="proj-grid">

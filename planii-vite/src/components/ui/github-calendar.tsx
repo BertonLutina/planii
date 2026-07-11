@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { format, subDays, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns'
+import { effectiveTheme, getTheme } from '@/lib/theme'
 
 export interface ContributionDay {
   date: string // ISO date string (e.g., "2025-09-13")
@@ -11,14 +12,31 @@ interface GitHubCalendarProps {
   colors?: string[]
 }
 
+const LIGHT_COLORS = ['#f1efe8', '#cecbf6', '#afa9ec', '#7f77dd', '#534ab7']
+const DARK_COLORS = ['#302e27', '#3d3660', '#534ab7', '#7f77dd', '#afa9ec']
+
 const CELL = 17
 const GAP = 4
 
 // Planii purple scale by default (was GitHub greens)
 export function GitHubCalendar({
   data,
-  colors = ['#f1efe8', '#cecbf6', '#afa9ec', '#7f77dd', '#534ab7'],
+  colors,
 }: GitHubCalendarProps) {
+  const [dark, setDark] = useState(() => effectiveTheme(getTheme()) === 'dark')
+  useEffect(() => {
+    const sync = () => setDark(effectiveTheme(getTheme()) === 'dark')
+    sync()
+    const obs = new MutationObserver(sync)
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    mq.addEventListener('change', sync)
+    return () => { obs.disconnect(); mq.removeEventListener('change', sync) }
+  }, [])
+  const palette = useMemo(
+    () => colors ?? (dark ? DARK_COLORS : LIGHT_COLORS),
+    [colors, dark],
+  )
   const [contributions, setContributions] = useState<{ date: Date; count: number }[]>([])
   const today = new Date()
   const startDate = subDays(today, 364)
@@ -29,11 +47,11 @@ export function GitHubCalendar({
   }, [data])
 
   const getColor = (count: number) => {
-    if (count === 0) return colors[0]
-    if (count === 1) return colors[1]
-    if (count === 2) return colors[2]
-    if (count === 3) return colors[3]
-    return colors[4] || colors[colors.length - 1]
+    if (count === 0) return palette[0]
+    if (count === 1) return palette[1]
+    if (count === 2) return palette[2]
+    if (count === 3) return palette[3]
+    return palette[4] || palette[palette.length - 1]
   }
 
   const cellStyle = (bg: string, future = false): React.CSSProperties => ({
@@ -54,7 +72,7 @@ export function GitHubCalendar({
         <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
           {weekDays.map((day, index) => {
             const contribution = contributions.find((c) => isSameDay(c.date, day))
-            const color = contribution ? getColor(contribution.count) : colors[0]
+            const color = contribution ? getColor(contribution.count) : palette[0]
             const future = day > today
             return (
               <div key={index} style={cellStyle(color, future)} title={`${format(day, 'PPP')} : ${contribution?.count || 0} tâche(s)`} />
@@ -97,7 +115,7 @@ export function GitHubCalendar({
         </div>
         <div style={{ marginTop: 8, display: 'flex', gap: 6, fontSize: 11, alignItems: 'center', justifyContent: 'flex-end', color: 'var(--muted)' }}>
           <span>Moins</span>
-          {colors.map((color, index) => (<div key={index} style={cellStyle(color)} />))}
+          {palette.map((color, index) => (<div key={index} style={cellStyle(color)} />))}
           <span>Plus</span>
         </div>
       </div>

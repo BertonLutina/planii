@@ -363,7 +363,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
         </header>
         <div className="wrap">
           {tab === 'accueil' && <Home me={me} onOpen={setOpenId} refreshKey={refresh} view={homeView} setView={setHomeView} />}
-          {tab === 'projets' && <ProjectsList onOpen={setOpenId} onJoin={() => setJoinOpen(true)} openSignal={newSignal} />}
+          {tab === 'projets' && <ProjectsList onOpen={setOpenId} onJoin={() => setJoinOpen(true)} openSignal={newSignal} onOpenSignalConsumed={() => setNewSignal(0)} />}
           {tab === 'calendrier' && <CalendarView onOpen={setOpenId} />}
           {tab === 'classement' && <Leaderboard onOpen={setOpenId} />}
           {tab === 'profil' && <Profile me={me} onLogout={onLogout} onUpdate={onUpdate} onAdmin={() => setTab('admin')} />}
