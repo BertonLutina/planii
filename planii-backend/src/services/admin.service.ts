@@ -54,8 +54,8 @@ export async function listUsers(query: Record<string, unknown> = {}) {
       (SELECT coalesce(sum(
         CASE
           WHEN t.due IS NULL THEN 10
-          WHEN t.done_at::date < t.due THEN 20
-          WHEN t.done_at::date = t.due THEN 15
+          WHEN t.done_at::date < NULLIF(t.due,'')::date THEN 20
+          WHEN t.done_at::date = NULLIF(t.due,'')::date THEN 15
           ELSE 5
         END
       ), 0)::int FROM tasks t WHERE t.assignee_id=u.id AND t.done) AS points

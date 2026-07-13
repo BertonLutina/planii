@@ -184,8 +184,8 @@ async function projectDetail(p, userId, opts = {}) {
         CASE
           WHEN NOT done THEN 0
           WHEN due IS NULL THEN 10
-          WHEN done_at::date < due THEN 20
-          WHEN done_at::date = due THEN 15
+          WHEN done_at::date < NULLIF(due,'')::date THEN 20
+          WHEN done_at::date = NULLIF(due,'')::date THEN 15
           ELSE 5
         END
       ), 0)::int AS points
@@ -328,8 +328,8 @@ async function listProjects(userId, query = {}) {
         CASE
           WHEN NOT t.done THEN 0
           WHEN t.due IS NULL THEN 10
-          WHEN t.done_at::date < t.due THEN 20
-          WHEN t.done_at::date = t.due THEN 15
+          WHEN t.done_at::date < NULLIF(t.due,'')::date THEN 20
+          WHEN t.done_at::date = NULLIF(t.due,'')::date THEN 15
           ELSE 5
         END
       ), 0)::int FROM tasks t WHERE t.project_id=p.id) AS "totalPoints"

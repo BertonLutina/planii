@@ -13,14 +13,14 @@ async function listCalendarEvents(userId, from, to) {
       FROM tasks t
       JOIN projects p ON p.id = t.project_id
       JOIN memberships m ON m.project_id = p.id AND m.user_id = $1
-      WHERE t.due IS NOT NULL AND t.due >= $2::date AND t.due <= $3::date
+      WHERE t.due IS NOT NULL AND NULLIF(t.due,'')::date >= $2::date AND NULLIF(t.due,'')::date <= $3::date
       ORDER BY t.due ASC, t.title ASC`, [userId, from, to]);
     const deadlineRows = await (0, pool_1.many)(`SELECT ('dl-' || p.id) AS id, ('Livraison — ' || p.name) AS title, p.deadline::text AS due,
       p.id AS project_id, p.name AS project_name
       FROM projects p
       JOIN memberships m ON m.project_id = p.id AND m.user_id = $1
       WHERE p.deadline IS NOT NULL AND p.status <> 'done'
-        AND p.deadline >= $2::date AND p.deadline <= $3::date
+        AND NULLIF(p.deadline,'')::date >= $2::date AND NULLIF(p.deadline,'')::date <= $3::date
       ORDER BY p.deadline ASC`, [userId, from, to]);
     const events = [
         ...taskRows.map((r) => ({
