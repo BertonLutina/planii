@@ -5,6 +5,7 @@ import { projectsRoutes } from './projects.routes'
 import { tasksRoutes } from './tasks.routes'
 import { invitesRoutes } from './invites.routes'
 import { meetingRoutes } from './meeting.routes'
+import { appointmentRoutes } from './appointment.routes'
 import { pollsRoutes } from './polls.routes'
 import { notificationsRoutes } from './notifications.routes'
 import { todayRoutes } from './today.routes'
@@ -20,6 +21,7 @@ export function apiRoutes() {
   r.use(tasksRoutes())
   r.use(invitesRoutes())
   r.use(meetingRoutes())
+  r.use(appointmentRoutes())
   r.use(pollsRoutes())
   r.use(notificationsRoutes())
   r.use(todayRoutes())

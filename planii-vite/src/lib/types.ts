@@ -108,6 +108,20 @@ export interface Poll {
   myVote: string | null
 }
 
+export interface AppointmentParticipant { id: string; name: string }
+
+export interface Appointment {
+  id: string
+  title: string
+  description: string | null
+  date: string
+  timeStart: string
+  timeEnd: string
+  createdBy: string
+  at: string
+  participants: AppointmentParticipant[]
+}
+
 export interface Activity { id: string; type: string; detail: string; user: string | null; at: string }
 
 export interface ProjectSummary {
@@ -153,6 +167,7 @@ export interface Project extends ProjectSummary {
   members: Member[]
   tasks: Task[]
   polls: Poll[]
+  appointments: Appointment[]
   activity: Activity[]
   roles: ProjectRole[]
   statuses: TaskStatus[]

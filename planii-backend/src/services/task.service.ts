@@ -316,6 +316,7 @@ export async function listMyTasks(userId: string) {
       members,
       tasks: projectTasks,
       polls: [],
+      appointments: [],
       activity: [],
       roles: [],
       statuses: [],

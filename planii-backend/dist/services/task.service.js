@@ -410,6 +410,7 @@ async function listMyTasks(userId) {
             members,
             tasks: projectTasks,
             polls: [],
+            appointments: [],
             activity: [],
             roles: [],
             statuses: [],

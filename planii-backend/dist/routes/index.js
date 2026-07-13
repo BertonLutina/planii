@@ -8,6 +8,7 @@ const projects_routes_1 = require("./projects.routes");
 const tasks_routes_1 = require("./tasks.routes");
 const invites_routes_1 = require("./invites.routes");
 const meeting_routes_1 = require("./meeting.routes");
+const appointment_routes_1 = require("./appointment.routes");
 const polls_routes_1 = require("./polls.routes");
 const notifications_routes_1 = require("./notifications.routes");
 const today_routes_1 = require("./today.routes");
@@ -22,6 +23,7 @@ function apiRoutes() {
     r.use((0, tasks_routes_1.tasksRoutes)());
     r.use((0, invites_routes_1.invitesRoutes)());
     r.use((0, meeting_routes_1.meetingRoutes)());
+    r.use((0, appointment_routes_1.appointmentRoutes)());
     r.use((0, polls_routes_1.pollsRoutes)());
     r.use((0, notifications_routes_1.notificationsRoutes)());
     r.use((0, today_routes_1.todayRoutes)());

@@ -5,7 +5,7 @@ import { TYPE_LABEL, ROLE_LABEL, INVITE_ROLES, canManage, formatDue, isOverdue }
 import { memberPoints, projectPoints, levelOf, taskPoints } from '@/lib/points'
 import { prio, prioMeta, PRIORITIES } from '@/lib/priority'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
-import type { Member, Poll, Project, ProjectLabel, ProjectRole, Task, TaskComment, TaskEvent, TaskStatus, User, PaginatedResponse, Activity } from '@/lib/types'
+import type { Member, Poll, Appointment, Project, ProjectLabel, ProjectRole, Task, TaskComment, TaskEvent, TaskStatus, User, PaginatedResponse, Activity } from '@/lib/types'
 import { LoadMoreButton } from '@/lib/usePagination'
 import { Meeting } from './Meeting'
 import { Mic, MicInput, MicTextarea } from './Mic'
@@ -19,7 +19,7 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
   const [tasksPage, setTasksPage] = useState(1)
   const [tasksHasMore, setTasksHasMore] = useState(false)
   const [tasksLoading, setTasksLoading] = useState(false)
-  const [tab, setTab] = useState<'taches' | 'equipe' | 'membres' | 'sondages' | 'activite'>('taches')
+  const [tab, setTab] = useState<'taches' | 'rendezvous' | 'equipe' | 'membres' | 'sondages' | 'activite'>('taches')
   const [meet, setMeet] = useState(false)
   const [editing, setEditing] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
@@ -106,7 +106,7 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
 
         {closed && (
           <div className="banner closed-project-banner">
-            <b>Projet clôturé.</b> Les tâches, le meeting, les sondages et les modifications sont bloqués.
+            <b>Projet clôturé.</b> Les tâches, les rendez-vous, le meeting, les sondages et les modifications sont bloqués.
             {isOwner && p.canReopen && p.reopenUntil ? ` Vous pouvez le réouvrir jusqu’au ${new Date(p.reopenUntil).toLocaleDateString('fr-FR')}.` : ''}
             {isOwner && !p.canReopen ? ' Le délai de réouverture de 30 jours est dépassé.' : ''}
           </div>
@@ -139,12 +139,13 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
         )}
 
         <div className="tabs" style={{ marginTop: 6 }}>
-          {([['taches', 'Tâches'], ['equipe', 'Équipe'], ['membres', 'Membres'], ['sondages', 'Sondages'], ['activite', 'Activité']] as const).map(([k, l]) => (
+          {([['taches', 'Tâches'], ['rendezvous', 'Rendez-vous'], ['equipe', 'Équipe'], ['membres', 'Membres'], ['sondages', 'Sondages'], ['activite', 'Activité']] as const).map(([k, l]) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
           ))}
         </div>
 
         {tab === 'taches' && <TasksTab p={p} me={me} memberName={memberName} reload={load} loadMore={loadMoreTasks} hasMore={tasksHasMore} loadingMore={tasksLoading} />}
+        {tab === 'rendezvous' && <AppointmentsTab p={p} me={me} reload={load} />}
         {tab === 'equipe' && <TeamBoard p={p} me={me} reload={load} />}
         {tab === 'membres' && <MembersTab p={p} me={me} manage={manage} reload={load} />}
         {tab === 'sondages' && <PollsTab p={p} reload={load} />}
@@ -683,6 +684,214 @@ function AssignRoles({ member, roles, onClose, onSave }: { member: Member; roles
       ))}
       <div className="sheet-actions" style={{ marginTop: 12 }}>
         <button className="btn primary" onClick={() => onSave(sel)}>Enregistrer</button>
+        <button className="btn ghost" onClick={onClose}>Annuler</button>
+      </div>
+    </Modal>
+  )
+}
+
+function AppointmentsTab({ p, me, reload }: { p: Project; me: User; reload: () => void }) {
+  const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<Appointment | null>(null)
+  const [deleting, setDeleting] = useState<Appointment | null>(null)
+  const closed = p.status === 'done'
+  const manage = canManage(p.my_role)
+
+  function formatDate(date: string) {
+    const d = new Date(date + 'T12:00:00')
+    return Number.isNaN(d.getTime())
+      ? date
+      : d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  }
+
+  function canEdit(a: Appointment) {
+    return !closed && (a.createdBy === me.id || manage)
+  }
+
+  async function remove() {
+    if (!deleting) return
+    try {
+      await api('DELETE', '/appointments/' + deleting.id)
+      toast('Rendez-vous supprimé ✓')
+      setDeleting(null)
+      reload()
+    } catch (e: any) { toastErr(e.message) }
+  }
+
+  const items = [...(p.appointments || [])].sort((a, b) => {
+    const da = a.date + a.timeStart
+    const db = b.date + b.timeStart
+    return da.localeCompare(db)
+  })
+
+  return (
+    <div>
+      {!closed && (
+        <button className="btn block" style={{ marginBottom: 12 }} onClick={() => setCreating(true)}>
+          ＋ Nouveau rendez-vous
+        </button>
+      )}
+      {items.length === 0 && <div className="empty">Aucun rendez-vous planifié.</div>}
+      {items.map((a) => (
+        <div key={a.id} className="card">
+          <div className="row">
+            <div>
+              <p className="title-lg" style={{ fontSize: 15 }}>{a.title}</p>
+              <p className="sub" style={{ marginTop: 4 }}>
+                📅 {formatDate(a.date)} · {a.timeStart} – {a.timeEnd}
+              </p>
+            </div>
+            {canEdit(a) && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button className="btn sm ghost" onClick={() => setEditing(a)}>✏️ Modifier</button>
+                <button className="btn sm danger" onClick={() => setDeleting(a)}>🗑 Supprimer</button>
+              </div>
+            )}
+          </div>
+          {a.description && <p className="sub" style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>{a.description}</p>}
+          <p className="sub" style={{ marginTop: 8 }}>
+            Participants : {a.participants.length ? a.participants.map((x) => x.name).join(', ') : '—'}
+          </p>
+        </div>
+      ))}
+
+      {creating && (
+        <AppointmentModal
+          p={p}
+          me={me}
+          title="Nouveau rendez-vous"
+          onClose={() => setCreating(false)}
+          onSaved={() => { setCreating(false); reload() }}
+        />
+      )}
+      {editing && (
+        <AppointmentModal
+          p={p}
+          me={me}
+          title="Modifier le rendez-vous"
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); reload() }}
+        />
+      )}
+      {deleting && (
+        <Modal title="Supprimer le rendez-vous ?" onClose={() => setDeleting(null)}>
+          <p className="sub" style={{ marginTop: 0 }}>
+            Le rendez-vous <b>« {deleting.title} »</b> sera supprimé définitivement.
+          </p>
+          <div className="sheet-actions">
+            <button className="btn danger" onClick={remove}>Supprimer</button>
+            <button className="btn ghost" onClick={() => setDeleting(null)}>Annuler</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+function AppointmentModal({
+  p,
+  me,
+  title,
+  initial,
+  onClose,
+  onSaved,
+}: {
+  p: Project
+  me: User
+  title: string
+  initial?: Appointment
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [f, setF] = useState({
+    title: initial?.title || '',
+    description: initial?.description || '',
+    date: initial?.date || '',
+    timeStart: initial?.timeStart || '09:00',
+    timeEnd: initial?.timeEnd || '10:00',
+    participants: initial?.participants.map((x) => x.id) || [me.id],
+  })
+  const [busy, setBusy] = useState(false)
+
+  const toggleParticipant = (id: string) => {
+    setF((prev) => {
+      const has = prev.participants.includes(id)
+      const next = has ? prev.participants.filter((x) => x !== id) : [...prev.participants, id]
+      return { ...prev, participants: next }
+    })
+  }
+
+  async function save() {
+    if (!f.title.trim()) { toastErr('L’intitulé est requis'); return }
+    if (!f.date) { toastErr('La date est requise'); return }
+    if (!f.timeStart || !f.timeEnd) { toastErr('Le créneau horaire est requis'); return }
+    if (f.timeStart >= f.timeEnd) { toastErr('L’heure de fin doit être après l’heure de début'); return }
+    if (!f.participants.length) { toastErr('Sélectionnez au moins un participant'); return }
+    setBusy(true)
+    const body = {
+      title: f.title.trim(),
+      description: f.description.trim() || null,
+      date: f.date,
+      timeStart: f.timeStart,
+      timeEnd: f.timeEnd,
+      participantIds: f.participants,
+    }
+    try {
+      if (initial) {
+        await api('PATCH', '/appointments/' + initial.id, body)
+        toast('Rendez-vous modifié ✓')
+      } else {
+        await api('POST', '/projects/' + p.id + '/appointments', body)
+        toast('Rendez-vous créé ✓ — les participants seront notifiés par e-mail')
+      }
+      onSaved()
+    } catch (e: any) {
+      toastErr(e.message)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal title={title} onClose={onClose}>
+      <div className="field">
+        <label>Intitulé</label>
+        <MicInput value={f.title} onChange={(v) => setF({ ...f, title: v })} placeholder="Ex. Point d’équipe hebdomadaire" />
+      </div>
+      <div className="field">
+        <label>Description</label>
+        <MicTextarea value={f.description} onChange={(v) => setF({ ...f, description: v })} placeholder="Ordre du jour, lieu, lien visio…" rows={3} />
+      </div>
+      <div className="field">
+        <label>Date</label>
+        <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+      </div>
+      <div className="field">
+        <label>Créneau</label>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input type="time" value={f.timeStart} onChange={(e) => setF({ ...f, timeStart: e.target.value })} />
+          <span className="sub">à</span>
+          <input type="time" value={f.timeEnd} onChange={(e) => setF({ ...f, timeEnd: e.target.value })} />
+        </div>
+      </div>
+      <div className="field">
+        <label>Participants</label>
+        <p className="sub" style={{ marginTop: 0, marginBottom: 8 }}>Cochez les personnes invitées au rendez-vous.</p>
+        {p.members.map((m) => (
+          <label key={m.id} className="checkline" style={{ display: 'flex', marginBottom: 6 }}>
+            <input
+              type="checkbox"
+              checked={f.participants.includes(m.id)}
+              onChange={() => toggleParticipant(m.id)}
+            />
+            <span>{m.name}{m.id === me.id ? ' (vous)' : ''}</span>
+          </label>
+        ))}
+      </div>
+      <div className="sheet-actions">
+        <button className="btn primary" disabled={busy} onClick={save}>
+          {initial ? 'Enregistrer' : 'Créer le rendez-vous'}
+        </button>
         <button className="btn ghost" onClick={onClose}>Annuler</button>
       </div>
     </Modal>

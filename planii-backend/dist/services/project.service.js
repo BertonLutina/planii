@@ -65,6 +65,7 @@ const UserModel = __importStar(require("../models/User.model"));
 const TaskView = __importStar(require("../views/Task.view"));
 const mail_service_1 = require("./mail.service");
 const notification_service_1 = require("./notification.service");
+const appointment_service_1 = require("./appointment.service");
 function assertProjectOpen(p) {
     if (ProjectModel.isClosed(p))
         (0, http_error_1.fail)(423, 'Projet clôturé : seule la réouverture ou la suppression est autorisée');
@@ -209,6 +210,7 @@ async function projectDetail(p, userId, opts = {}) {
         });
     }
     const activity = [];
+    const appointments = await (0, appointment_service_1.appointmentsForProject)(p.id);
     return {
         ...p,
         closedAt: p.done_at || null,
@@ -225,10 +227,13 @@ async function projectDetail(p, userId, opts = {}) {
         doneCount: Number(counts.done) || 0,
         totalPoints: Number(counts.points) || 0,
         polls,
+        appointments,
         activity,
     };
 }
 async function deleteProjectCascade(client, projectId) {
+    await client.query('DELETE FROM appointment_participants WHERE appointment_id IN (SELECT id FROM appointments WHERE project_id=$1)', [projectId]);
+    await client.query('DELETE FROM appointments WHERE project_id=$1', [projectId]);
     await client.query('DELETE FROM poll_votes WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [projectId]);
     await client.query('DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [projectId]);
     await client.query('DELETE FROM polls WHERE project_id=$1', [projectId]);

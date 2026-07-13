@@ -22,7 +22,7 @@ beforeAll(async () => {
 export async function resetDb() {
   if (!dbAvailable) return
   await pool.query(`TRUNCATE
-    poll_votes, poll_options, polls, task_reminders, task_events, task_comments,
+    appointment_participants, appointments, poll_votes, poll_options, polls, task_reminders, task_events, task_comments,
     task_transfers, meeting_messages, notifications, activity, invites,
     member_roles, project_roles, task_statuses, tasks, memberships, projects,
     project_labels, admin_audit, users

@@ -16,6 +16,7 @@ import * as UserModel from '../models/User.model'
 import * as TaskView from '../views/Task.view'
 import { sendMail } from './mail.service'
 import { logActivity, notify, notifyProject, bump } from './notification.service'
+import { appointmentsForProject } from './appointment.service'
 
 export function assertProjectOpen(p: DbProject | null) {
   if (ProjectModel.isClosed(p)) fail(423, 'Projet clôturé : seule la réouverture ou la suppression est autorisée')
@@ -178,6 +179,7 @@ export async function projectDetail(p: DbProject, userId: string, opts: { includ
     })
   }
   const activity: { id: string; type: string; detail: string; user: string | null; at: string }[] = []
+  const appointments = await appointmentsForProject(p.id)
   return {
     ...p,
     closedAt: p.done_at || null,
@@ -194,11 +196,14 @@ export async function projectDetail(p: DbProject, userId: string, opts: { includ
     doneCount: Number(counts.done) || 0,
     totalPoints: Number(counts.points) || 0,
     polls,
+    appointments,
     activity,
   }
 }
 
 export async function deleteProjectCascade(client: PoolClient, projectId: string) {
+  await client.query('DELETE FROM appointment_participants WHERE appointment_id IN (SELECT id FROM appointments WHERE project_id=$1)', [projectId])
+  await client.query('DELETE FROM appointments WHERE project_id=$1', [projectId])
   await client.query('DELETE FROM poll_votes WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [projectId])
   await client.query('DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE project_id=$1)', [projectId])
   await client.query('DELETE FROM polls WHERE project_id=$1', [projectId])
