@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-REPO="${PLANII_REPO:-/opt/planii}"
+REPO="${PLANII_REPO:-/root/planii}"
 BACKEND="${REPO}/planii-backend"
 FRONTEND="${REPO}/planii-vite"
 
@@ -24,13 +24,13 @@ git reset --hard origin/main
 
 log "Backend…"
 cd "${BACKEND}"
-docker compose build --pull
-docker compose up -d
+docker compose build --no-cache --pull
+docker compose up -d --force-recreate
 
 log "Frontend…"
 cd "${FRONTEND}"
 docker compose build --pull
-docker compose up -d
+docker compose up -d --force-recreate
 
 log "Vérification…"
 sleep 5

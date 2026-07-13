@@ -14,5 +14,6 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY migrations ./migrations
 COPY server.js ./
+RUN test -f dist/index.js
 EXPOSE 4000
-CMD ["node", "server.js"]
+CMD ["node", "dist/index.js"]
