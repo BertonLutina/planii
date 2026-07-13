@@ -3,9 +3,9 @@ import { api } from '@/lib/api'
 import { toastErr } from '@/lib/ui'
 import {
   MONTHS, MONTHS_FULL, DOW, todayMid, isoLocal, parseISO, addDays, addMonths,
-  isSameDay, isSameMonth, startOfWeekMon, monthGrid, formatDue, isOverdue, trunc,
+  isSameDay, isSameMonth, startOfWeekMon, monthGrid, formatDue, trunc,
 } from '@/lib/dates'
-import type { CalEvent, Project, ProjectSummary } from '@/lib/types'
+import type { ApiCalEvent, CalEvent } from '@/lib/types'
 import { GitHubCalendar, type ContributionDay } from './ui/github-calendar'
 
 type View = 'mois' | 'semaine' | 'jour' | 'agenda' | 'annee'
@@ -18,23 +18,30 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
   useEffect(() => {
     (async () => {
       try {
-        const { projects } = await api<{ projects: ProjectSummary[] }>('GET', '/projects')
-        const all: CalEvent[] = []
-        for (const p of projects) {
-          const { project } = await api<{ project: Project }>('GET', '/projects/' + p.id)
-          project.tasks.forEach((t) => {
-            const d = parseISO(t.due)
-            if (d) all.push({ id: t.id, date: d, title: t.title, done: t.done, over: isOverdue(t), pid: p.id, pname: p.name })
-          })
-          if (project.deadline) {
-            const d = parseISO(project.deadline)
-            if (d && project.status !== 'done') all.push({ id: 'dl-' + p.id, date: d, title: 'Livraison — ' + p.name, deadline: true, pid: p.id })
-          }
-        }
+        const year = cur.getFullYear()
+        const from = `${year - 1}-01-01`
+        const to = `${year + 1}-12-31`
+        const { events: raw } = await api<{ events: ApiCalEvent[] }>('GET', `/calendar?from=${from}&to=${to}`)
+        const all: CalEvent[] = raw.flatMap((e) => {
+          const d = parseISO(e.date)
+          if (!d) return []
+          const done = !!e.done
+          const over = !e.deadline && !done && d < todayMid()
+          return [{
+            id: e.id,
+            date: d,
+            title: e.title,
+            done,
+            over,
+            deadline: e.deadline,
+            pid: e.projectId,
+            pname: e.projectName,
+          }]
+        })
         setEvents(all)
       } catch (e: any) { setEvents([]); toastErr(e.message) }
     })()
-  }, [])
+  }, [cur.getFullYear()])
 
   const contributionData = useMemo<ContributionDay[]>(() => {
     if (!events) return []

@@ -1,8 +1,21 @@
 # Planii — backend : déploiement sur ton VPS Hostinger (avec PostgreSQL)
 
-Backend Node.js + Express, connecté à **PostgreSQL**. Le pilote `pg` est 100 % JavaScript : aucune compilation native. Les tables se créent automatiquement au premier démarrage.
+Backend **TypeScript + Express + PostgreSQL**. Architecture modulaire (`src/`), migrations SQL versionnées, tests Vitest.
 
 VPS repéré : `srv1797721.hstgr.cloud` (`31.97.53.228`) · domaine `planii.app`.
+
+## Architecture MVC
+
+```
+src/
+  models/        M — accès données (SQL, types)
+  views/         V — sérialisation JSON (réponses API)
+  controllers/   C — couche HTTP fine (req → service → res)
+  services/      logique métier (règles, orchestration)
+  routes/        câblage Express uniquement
+  middleware/    auth, rate limit, erreurs
+  core/          HttpError
+```
 
 ## Ce que fait le backend
 
@@ -25,7 +38,7 @@ GRANT ALL PRIVILEGES ON DATABASE planii TO planii;
 ```
 
 Note la chaîne de connexion : `postgres://planii:un-mot-de-passe-solide@localhost:5432/planii`.
-Les tables seront créées automatiquement au démarrage du serveur.
+Les migrations s'appliquent automatiquement au démarrage (`npm run migrate` ou `npm start`).
 
 ## 2. Installer Node.js
 
@@ -47,7 +60,15 @@ Sur le VPS :
 
 ```bash
 cd /opt/planii-backend
-npm install --omit=dev
+npm ci
+npm run build
+```
+
+En production, seules les dépendances runtime sont nécessaires après build :
+
+```bash
+npm ci --omit=dev
+npm run build
 ```
 
 ## 4. Configurer
@@ -61,14 +82,24 @@ nano .env
 - `PGSSL` : `false` si Postgres est sur le même VPS ; `true` si base distante/managée.
 - `JWT_SECRET` : `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
 - `APP_URL` : `https://planii.app` (sert aux liens d'invitation).
+- `CORS_ORIGINS` : `https://planii.app` (ou plusieurs origines séparées par des virgules).
 
 ## 5. Lancer en continu (PM2)
 
 ```bash
 sudo npm install -g pm2
-pm2 start server.js --name planii
+npm run build
+pm2 start npm --name planii -- start
 pm2 save && pm2 startup
 curl http://localhost:4000/api/health   # {"ok":true,"db":"postgres"}
+```
+
+Développement local :
+
+```bash
+npm run dev          # rechargement auto (tsx)
+npm test             # tests (PostgreSQL planii_test requis)
+npm run migrate      # migrations seules
 ```
 
 ## 6. Exposer en HTTPS (Nginx + Certbot)

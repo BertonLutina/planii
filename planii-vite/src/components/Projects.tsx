@@ -4,7 +4,8 @@ import { toast, toastErr, Modal, health } from '@/lib/ui'
 import { ROLE_LABEL } from '@/lib/dates'
 import { MicInput } from './Mic'
 import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
-import type { InviteInfo, ProjectLabel, ProjectSummary } from '@/lib/types'
+import type { InviteInfo, ProjectLabel, ProjectSummary, PaginatedResponse } from '@/lib/types'
+import { LoadMoreButton } from '@/lib/usePagination'
 
 const DEFAULT_PROJECT_LABELS: ProjectLabel[] = [
   { id: 'default-work', label: 'Travail', color: '#f59e0b', position: 0, fixed: true },
@@ -21,10 +22,39 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
   const [pSort, setPSort] = useState<ProjSort>('title')
   const [pDir, setPDir] = useState<Dir>('asc')
   const [dragId, setDragId] = useState<string | null>(null)
-  const load = useCallback(() => {
-    api<{ projects: ProjectSummary[] }>('GET', '/projects')
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState(0)
+  const [counts, setCounts] = useState({ active: 0, done: 0 })
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const load = useCallback((pageNum = 1, append = false) => {
+    const paginate = pSort !== 'manual'
+    const path = paginate
+      ? `/projects?page=${pageNum}&limit=24&status=${tab}`
+      : `/projects?status=${tab}`
+    const req = paginate
+      ? api<PaginatedResponse<ProjectSummary> & { counts: { active: number; done: number } }>('GET', path)
+      : api<{ projects: ProjectSummary[] }>('GET', path)
+    if (append) setLoadingMore(true)
+    req
       .then(async (r) => {
-        setProjects(r.projects)
+        if ('items' in r) {
+          setProjects((prev) => (append && prev ? [...prev, ...r.items] : r.items))
+          setPage(r.page)
+          setTotal(r.total)
+          setHasMore(r.hasMore)
+          setCounts(r.counts)
+        } else {
+          setProjects(r.projects)
+          setPage(1)
+          setTotal(r.projects.length)
+          setHasMore(false)
+          setCounts({
+            active: r.projects.filter((p) => p.status !== 'done').length,
+            done: r.projects.filter((p) => p.status === 'done').length,
+          })
+        }
         try {
           const lr = await api<{ labels: ProjectLabel[] }>('GET', '/project-labels')
           setLabels(lr.labels.length ? lr.labels : DEFAULT_PROJECT_LABELS)
@@ -33,8 +63,10 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
         }
       })
       .catch((e) => setErr(e.message))
-  }, [])
-  useEffect(load, [load])
+      .finally(() => setLoadingMore(false))
+  }, [tab, pSort])
+
+  useEffect(() => { load(1, false) }, [load])
   useEffect(() => {
     if (!openSignal) return
     setNewOpen(true)
@@ -43,9 +75,9 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
 
   if (err) return <div className="empty">Impossible de charger : {err}</div>
   if (!projects) return <div className="empty">Chargement…</div>
-  const active = projects.filter((p) => p.status !== 'done')
-  const done = projects.filter((p) => p.status === 'done')
-  const list = (tab === 'active' ? active : done).slice().sort(projectComparator(pSort, pDir))
+  const activeCount = counts.active
+  const doneCount = counts.done
+  const list = projects.slice().sort(projectComparator(pSort, pDir))
   const canDrag = pSort === 'manual' && tab === 'active'
   const legendLabels = (() => {
     const byKey = new Map<string, ProjectLabel>()
@@ -76,15 +108,15 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
     if (from < 0 || to < 0) { setDragId(null); return }
     ids.splice(to, 0, ids.splice(from, 1)[0])
     setDragId(null)
-    api('PUT', '/projects/order', { ids: [...ids, ...done.map((p) => p.id)] }).then(load).catch((e: any) => toastErr(e.message))
+    api('PUT', '/projects/order', { ids: [...ids, ...projects.filter((p) => p.status === 'done').map((p) => p.id)] }).then(() => load(1, false)).catch((e: any) => toastErr(e.message))
   }
 
   return (
     <div>
       <div className="proj-head">
         <div className="tabs" style={{ margin: 0, maxWidth: 280 }}>
-          <button className={tab === 'active' ? 'on' : ''} onClick={() => setTab('active')}>Actifs ({active.length})</button>
-          <button className={tab === 'done' ? 'on' : ''} onClick={() => setTab('done')}>Terminés ({done.length})</button>
+          <button className={tab === 'active' ? 'on' : ''} onClick={() => setTab('active')}>Actifs ({activeCount})</button>
+          <button className={tab === 'done' ? 'on' : ''} onClick={() => setTab('done')}>Terminés ({doneCount})</button>
         </div>
         <button className="btn-link" onClick={onJoin}>Rejoindre un projet…</button>
       </div>
@@ -133,6 +165,13 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
         })}
         {tab === 'active' && <button className="proj-card new" onClick={() => setNewOpen(true)}>＋ Nouveau projet</button>}
       </div>
+      <LoadMoreButton
+        hasMore={hasMore && pSort !== 'manual'}
+        loading={loadingMore}
+        loaded={projects.length}
+        total={total}
+        onClick={() => load(page + 1, true)}
+      />
       {list.length === 0 && tab === 'done' && <div className="empty"><div className="big">◎</div>Aucun projet terminé.</div>}
       {newOpen && <NewProject labels={labels} onClose={() => setNewOpen(false)} onCreated={(pid) => { setNewOpen(false); onOpen(pid) }} />}
     </div>

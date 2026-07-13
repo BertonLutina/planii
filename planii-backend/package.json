@@ -2,20 +2,45 @@
   "name": "planii-backend",
   "version": "1.0.0",
   "description": "Backend Planii — projets multi-modes, invitations, sondages, activité (PostgreSQL)",
-  "main": "server.js",
+  "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "migrate": "tsx src/db/migrate.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^7.5.0",
     "imapflow": "^1.4.6",
     "jsonwebtoken": "^9.0.2",
     "mailparser": "^3.9.14",
     "nodemailer": "^6.9.14",
     "pg": "^8.22.0",
-    "ws": "^8.18.0"
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.13.10",
+    "@types/nodemailer": "^6.4.17",
+    "@types/pg": "^8.11.11",
+    "@types/ws": "^8.5.14",
+    "pino-pretty": "^13.0.0",
+    "supertest": "^7.1.0",
+    "@types/supertest": "^6.0.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
   }
 }

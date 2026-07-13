@@ -4,7 +4,8 @@ import { toast, toastErr, Modal } from '@/lib/ui'
 import { PRIORITIES, prioMeta } from '@/lib/priority'
 import { formatDue } from '@/lib/dates'
 import { MicInput, MicTextarea } from './Mic'
-import type { User } from '@/lib/types'
+import type { User, PaginatedResponse } from '@/lib/types'
+import { LoadMoreButton } from '@/lib/usePagination'
 
 type Section = 'dash' | 'users' | 'tasks' | 'projects' | 'admins' | 'audit' | 'mail'
 
@@ -139,21 +140,37 @@ function Users({ me, isSuper, adminsOnly }: { me: User; isSuper: boolean; admins
   const [users, setUsers] = useState<AUser[] | null>(null)
   const [q, setQ] = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
-  const load = useCallback(() => { api<{ users: AUser[] }>('GET', '/admin/users').then((r) => setUsers(r.users)).catch((e: any) => toastErr(e.message)) }, [])
-  useEffect(() => { load() }, [load])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const load = useCallback((pageNum = 1, append = false) => {
+    if (append) setLoadingMore(true)
+    api<PaginatedResponse<AUser>>('GET', `/admin/users?page=${pageNum}&limit=30`)
+      .then((r) => {
+        setUsers((prev) => (append && prev ? [...prev, ...r.items] : r.items))
+        setPage(r.page)
+        setTotal(r.total)
+        setHasMore(r.hasMore)
+      })
+      .catch((e: any) => toastErr(e.message))
+      .finally(() => setLoadingMore(false))
+  }, [])
+  useEffect(() => { load(1, false) }, [load])
 
   async function del(u: AUser) {
     try {
       const r = await api<{ deletedProjects: number }>('DELETE', '/admin/users/' + u.id)
       toast(`« ${u.name} » supprimé${r.deletedProjects ? ` (+${r.deletedProjects} projet·s)` : ''}`)
-      setConfirmId(null); load()
+      setConfirmId(null); load(1, false)
     } catch (e: any) { toastErr(e.message) }
   }
   async function toggleAdmin(u: AUser) {
     try {
       await api('PATCH', `/admin/users/${u.id}/admin`, { admin: !u.admin })
       toast(u.admin ? `Rôle admin retiré à « ${u.name} »` : `« ${u.name} » est maintenant admin`)
-      load()
+      load(1, false)
     } catch (e: any) { toastErr(e.message) }
   }
 
@@ -166,7 +183,7 @@ function Users({ me, isSuper, adminsOnly }: { me: User; isSuper: boolean; admins
   return (
     <>
       <div className="field"><input placeholder={adminsOnly ? 'Rechercher un admin…' : 'Rechercher un utilisateur…'} value={q} onChange={(e) => setQ(e.target.value)} /></div>
-      <div className="grp-h">{list.length} {adminsOnly ? 'ADMIN·S' : 'UTILISATEUR·S'}</div>
+      <div className="grp-h">{list.length}{total > list.length ? ` / ${total}` : ''} {adminsOnly ? 'ADMIN·S' : 'UTILISATEUR·S'}</div>
       {adminsOnly && list.length === 0 && <div className="empty">Aucun admin pour l’instant — promeus un utilisateur depuis l’onglet « Utilisateurs ».</div>}
       {list.map((u) => (
         <div key={u.id} className="admin-card">
@@ -192,6 +209,7 @@ function Users({ me, isSuper, adminsOnly }: { me: User; isSuper: boolean; admins
           </div>
         </div>
       ))}
+      <LoadMoreButton hasMore={hasMore} loading={loadingMore} loaded={users.length} total={total} onClick={() => load(page + 1, true)} />
     </>
   )
 }
@@ -199,8 +217,23 @@ function Users({ me, isSuper, adminsOnly }: { me: User; isSuper: boolean; admins
 function Tasks() {
   const [tasks, setTasks] = useState<ATask[] | null>(null)
   const [q, setQ] = useState('')
-  const load = useCallback(() => { api<{ tasks: ATask[] }>('GET', '/admin/tasks').then((r) => setTasks(r.tasks)).catch((e: any) => toastErr(e.message)) }, [])
-  useEffect(() => { load() }, [load])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const load = useCallback((pageNum = 1, append = false) => {
+    if (append) setLoadingMore(true)
+    api<PaginatedResponse<ATask>>('GET', `/admin/tasks?page=${pageNum}&limit=50`)
+      .then((r) => {
+        setTasks((prev) => (append && prev ? [...prev, ...r.items] : r.items))
+        setPage(r.page)
+        setTotal(r.total)
+        setHasMore(r.hasMore)
+      })
+      .catch((e: any) => toastErr(e.message))
+      .finally(() => setLoadingMore(false))
+  }, [])
+  useEffect(() => { load(1, false) }, [load])
 
   async function setPrio(t: ATask, n: number) {
     try {
@@ -216,7 +249,7 @@ function Tasks() {
     <>
       <div className="privacy-badge"><span>🔒</span> Données client anonymisées</div>
       <div className="field"><input placeholder="Rechercher une tâche…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-      <div className="grp-h">{list.length} TÂCHE·S</div>
+      <div className="grp-h">{list.length}{total > list.length ? ` / ${total}` : ''} TÂCHE·S</div>
       {list.map((t) => {
         const pm = prioMeta(t.priority)
         return (
@@ -238,6 +271,7 @@ function Tasks() {
           </div>
         )
       })}
+      <LoadMoreButton hasMore={hasMore} loading={loadingMore} loaded={tasks.length} total={total} onClick={() => load(page + 1, true)} />
     </>
   )
 }
@@ -246,11 +280,26 @@ function Projects() {
   const [projects, setProjects] = useState<AProject[] | null>(null)
   const [q, setQ] = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
-  const load = useCallback(() => { api<{ projects: AProject[] }>('GET', '/admin/projects').then((r) => setProjects(r.projects)).catch((e: any) => toastErr(e.message)) }, [])
-  useEffect(() => { load() }, [load])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const load = useCallback((pageNum = 1, append = false) => {
+    if (append) setLoadingMore(true)
+    api<PaginatedResponse<AProject>>('GET', `/admin/projects?page=${pageNum}&limit=30`)
+      .then((r) => {
+        setProjects((prev) => (append && prev ? [...prev, ...r.items] : r.items))
+        setPage(r.page)
+        setTotal(r.total)
+        setHasMore(r.hasMore)
+      })
+      .catch((e: any) => toastErr(e.message))
+      .finally(() => setLoadingMore(false))
+  }, [])
+  useEffect(() => { load(1, false) }, [load])
 
   async function del(p: AProject) {
-    try { await api('DELETE', '/admin/projects/' + p.id); toast(`Projet « ${p.name} » supprimé`); setConfirmId(null); load() }
+    try { await api('DELETE', '/admin/projects/' + p.id); toast(`Projet « ${p.name} » supprimé`); setConfirmId(null); load(1, false) }
     catch (e: any) { toastErr(e.message) }
   }
 
@@ -260,7 +309,7 @@ function Projects() {
     <>
       <div className="privacy-badge"><span>🔒</span> Données client anonymisées</div>
       <div className="field"><input placeholder="Rechercher un projet…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-      <div className="grp-h">{list.length} PROJET·S</div>
+      <div className="grp-h">{list.length}{total > list.length ? ` / ${total}` : ''} PROJET·S</div>
       {list.map((p) => (
         <div key={p.id} className="admin-card">
           <div className="ac-main">
@@ -272,6 +321,7 @@ function Projects() {
             : <button className="btn ghost sm" onClick={() => setConfirmId(p.id)}>Supprimer</button>}
         </div>
       ))}
+      <LoadMoreButton hasMore={hasMore} loading={loadingMore} loaded={projects.length} total={total} onClick={() => load(page + 1, true)} />
     </>
   )
 }
@@ -372,12 +422,29 @@ function Mailbox() {
 
 function Audit() {
   const [rows, setRows] = useState<AAudit[] | null>(null)
-  useEffect(() => { api<{ audit: AAudit[] }>('GET', '/admin/audit').then((r) => setRows(r.audit)).catch((e: any) => toastErr(e.message)) }, [])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const load = useCallback((pageNum = 1, append = false) => {
+    if (append) setLoadingMore(true)
+    api<PaginatedResponse<AAudit> & { audit: AAudit[] }>('GET', `/admin/audit?page=${pageNum}&limit=50`)
+      .then((r) => {
+        const batch = r.audit || r.items
+        setRows((prev) => (append && prev ? [...prev, ...batch] : batch))
+        setPage(r.page)
+        setTotal(r.total)
+        setHasMore(r.hasMore)
+      })
+      .catch((e: any) => toastErr(e.message))
+      .finally(() => setLoadingMore(false))
+  }, [])
+  useEffect(() => { load(1, false) }, [load])
   if (!rows) return <div className="empty">Chargement…</div>
   if (!rows.length) return <div className="empty">Aucune action enregistrée pour l’instant.</div>
   return (
     <>
-      <div className="grp-h">{rows.length} ACTION·S (100 dernières)</div>
+      <div className="grp-h">{rows.length}{total > rows.length ? ` / ${total}` : ''} ACTION·S</div>
       {rows.map((r) => (
         <div key={r.id} className="admin-card">
           <div className="ac-main">
@@ -387,6 +454,7 @@ function Audit() {
           </div>
         </div>
       ))}
+      <LoadMoreButton hasMore={hasMore} loading={loadingMore} loaded={rows.length} total={total} onClick={() => load(page + 1, true)} />
     </>
   )
 }

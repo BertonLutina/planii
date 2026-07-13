@@ -1,9 +1,9 @@
-import { useAllProjects } from '@/lib/useProjects'
+import { useProjectSummaries } from '@/lib/useProjects'
 import { projectPoints, levelOf, TEAM_BONUS } from '@/lib/points'
 import { TYPE_LABEL } from '@/lib/dates'
 
 export function Leaderboard({ onOpen }: { onOpen: (id: string) => void }) {
-  const { projects } = useAllProjects()
+  const { projects } = useProjectSummaries()
   if (!projects) return <div className="empty">Chargement…</div>
   if (projects.length === 0) return <div className="empty"><div className="big">🏆</div>Aucune équipe pour l’instant. Créez ou rejoignez un projet !</div>
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { toast, toastErr } from '@/lib/ui'
 import { formatDue, isOverdue, isoLocal } from '@/lib/dates'
-import { useAllProjects } from '@/lib/useProjects'
+import { useMyTasks } from '@/lib/useProjects'
 import { useRealtime } from '@/lib/realtime'
 import { taskPoints, levelOf, pointsFor } from '@/lib/points'
 import { prio, prioMeta } from '@/lib/priority'
@@ -28,7 +28,7 @@ export function LevelCard({ points, name }: { points: number; name?: string }) {
 }
 
 export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOpen: (id: string) => void; refreshKey?: number; view: 'list' | 'board' | 'agenda'; setView: (v: 'list' | 'board' | 'agenda') => void }) {
-  const { projects, reload } = useAllProjects()
+  const { projects, reload } = useMyTasks()
   const [drawerId, setDrawerId] = useState<string | null>(null)
   const [today, setToday] = useState<TodayPayload | null>(null)
   const loadToday = () => api<{ today: TodayPayload }>('GET', '/today').then((r) => setToday(r.today)).catch((e: any) => toastErr(e.message))

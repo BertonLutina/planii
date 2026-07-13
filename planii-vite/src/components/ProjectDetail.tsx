@@ -5,7 +5,8 @@ import { TYPE_LABEL, ROLE_LABEL, INVITE_ROLES, canManage, formatDue, isOverdue }
 import { memberPoints, projectPoints, levelOf, taskPoints } from '@/lib/points'
 import { prio, prioMeta, PRIORITIES } from '@/lib/priority'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
-import type { Member, Poll, Project, ProjectLabel, ProjectRole, Task, TaskComment, TaskEvent, TaskStatus, User } from '@/lib/types'
+import type { Member, Poll, Project, ProjectLabel, ProjectRole, Task, TaskComment, TaskEvent, TaskStatus, User, PaginatedResponse, Activity } from '@/lib/types'
+import { LoadMoreButton } from '@/lib/usePagination'
 import { Meeting } from './Meeting'
 import { Mic, MicInput, MicTextarea } from './Mic'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
@@ -15,20 +16,49 @@ import { taskComparator, type TaskSort, type Dir } from '@/lib/sort'
 export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack: () => void }) {
   const [p, setP] = useState<Project | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [tasksPage, setTasksPage] = useState(1)
+  const [tasksHasMore, setTasksHasMore] = useState(false)
+  const [tasksLoading, setTasksLoading] = useState(false)
   const [tab, setTab] = useState<'taches' | 'equipe' | 'membres' | 'sondages' | 'activite'>('taches')
   const [meet, setMeet] = useState(false)
   const [editing, setEditing] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
-  const load = useCallback(() => { api<{ project: Project }>('GET', '/projects/' + id).then((r) => setP(r.project)).catch((e) => setErr(e.message)) }, [id])
-  useEffect(load, [load])
+
+  const loadTasks = useCallback(async (page: number, replace: boolean) => {
+    setTasksLoading(true)
+    try {
+      const r = await api<PaginatedResponse<Task>>('GET', `/projects/${id}/tasks?page=${page}&limit=100`)
+      setP((prev) => {
+        if (!prev) return prev
+        const merged = replace ? r.items : [...prev.tasks, ...r.items.filter((t) => !prev.tasks.some((x) => x.id === t.id))]
+        return { ...prev, tasks: merged }
+      })
+      setTasksPage(r.page)
+      setTasksHasMore(r.hasMore)
+    } catch (e: any) { setErr(e.message) }
+    finally { setTasksLoading(false) }
+  }, [id])
+
+  const load = useCallback(async () => {
+    try {
+      const { project } = await api<{ project: Project }>('GET', '/projects/' + id)
+      setP({ ...project, tasks: [] })
+      setErr(null)
+      await loadTasks(1, true)
+    } catch (e: any) { setErr(e.message) }
+  }, [id, loadTasks])
+
+  const loadMoreTasks = () => { if (!tasksLoading && tasksHasMore) loadTasks(tasksPage + 1, false) }
+
+  useEffect(() => { load() }, [load])
   useRealtime((m) => { if (m.type === 'project' && m.projectId === id) load() })
 
   if (err) return <div className="app project-detail-app"><div className="wrap"><button className="btn-link" onClick={onBack}>‹ Retour</button><div className="empty">{err}</div></div></div>
   if (!p) return <div className="app project-detail-app"><div className="wrap"><div className="empty">Chargement…</div></div></div>
   if (meet) return <Meeting p={p} me={me} onClose={() => setMeet(false)} />
 
-  const h = health(p.tasks.length, p.tasks.filter((t) => t.done).length, p.status)
+  const h = health(p.taskCount ?? p.tasks.length, p.doneCount ?? p.tasks.filter((t) => t.done).length, p.status)
   const manage = canManage(p.my_role)
   const isOwner = me.id === p.owner_id
   const closed = p.status === 'done'
@@ -114,17 +144,20 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
           ))}
         </div>
 
-        {tab === 'taches' && <TasksTab p={p} me={me} memberName={memberName} reload={load} />}
+        {tab === 'taches' && <TasksTab p={p} me={me} memberName={memberName} reload={load} loadMore={loadMoreTasks} hasMore={tasksHasMore} loadingMore={tasksLoading} />}
         {tab === 'equipe' && <TeamBoard p={p} me={me} reload={load} />}
         {tab === 'membres' && <MembersTab p={p} me={me} manage={manage} reload={load} />}
         {tab === 'sondages' && <PollsTab p={p} reload={load} />}
-        {tab === 'activite' && <ActivityTab p={p} />}
+        {tab === 'activite' && <ActivityTab projectId={id} />}
       </div>
     </div>
   )
 }
 
-function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberName: (id: string | null) => string; reload: () => void }) {
+function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }: {
+  p: Project; me: User; memberName: (id: string | null) => string; reload: () => void
+  loadMore?: () => void; hasMore?: boolean; loadingMore?: boolean
+}) {
   const myTypes = taskTypesOf(me)
   const [adding, setAdding] = useState(false)
   const [voice, setVoice] = useState(false)
@@ -471,8 +504,15 @@ function TasksTab({ p, me, memberName, reload }: { p: Project; me: User; memberN
             </div>
           )}
           <div className="section-h">Tâches</div>
-      {p.tasks.length === 0 && <div className="empty"><div className="big">✓</div>Aucune tâche pour l’instant.</div>}
+      {p.tasks.length === 0 && !loadingMore && <div className="empty"><div className="big">✓</div>Aucune tâche pour l’instant.</div>}
           {renderUserStatusBoard()}
+          {hasMore && loadMore && (
+            <div className="sheet-actions" style={{ marginTop: 12 }}>
+              <button className="btn ghost" disabled={loadingMore} onClick={loadMore}>
+                {loadingMore ? 'Chargement…' : `Charger plus (${p.tasks.length}/${p.taskCount ?? '?'})`}
+              </button>
+            </div>
+          )}
         </section>
       </div>
     </div>
@@ -957,11 +997,36 @@ function TaskTimeline({ taskId }: { taskId: string }) {
   )
 }
 
-function ActivityTab({ p }: { p: Project }) {
-  if (!p.activity.length) return <div className="empty">Aucune activité pour l’instant.</div>
+function ActivityTab({ projectId }: { projectId: string }) {
+  const [activity, setActivity] = useState<Activity[]>([])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const load = useCallback((pageNum = 1, append = false) => {
+    if (append) setLoadingMore(true)
+    else setLoading(true)
+    api<PaginatedResponse<Activity> & { activity: Activity[] }>('GET', `/projects/${projectId}/activity?page=${pageNum}&limit=30`)
+      .then((r) => {
+        const batch = r.activity || r.items
+        setActivity((prev) => (append ? [...prev, ...batch] : batch))
+        setPage(r.page)
+        setTotal(r.total)
+        setHasMore(r.hasMore)
+      })
+      .catch((e: any) => toastErr(e.message))
+      .finally(() => { setLoading(false); setLoadingMore(false) })
+  }, [projectId])
+
+  useEffect(() => { load(1, false) }, [load])
+
+  if (loading && activity.length === 0) return <div className="empty">Chargement de l’activité…</div>
+  if (!activity.length) return <div className="empty">Aucune activité pour l’instant.</div>
   return (
     <div style={{ marginTop: 6 }}>
-      {p.activity.map((a) => (
+      {activity.map((a) => (
         <div key={a.id} className="act-row">
           <span className="act-dot" />
           <div>
@@ -970,6 +1035,13 @@ function ActivityTab({ p }: { p: Project }) {
           </div>
         </div>
       ))}
+      <LoadMoreButton
+        hasMore={hasMore}
+        loading={loadingMore}
+        loaded={activity.length}
+        total={total}
+        onClick={() => load(page + 1, true)}
+      />
     </div>
   )
 }

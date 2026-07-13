@@ -127,7 +127,17 @@ export interface ProjectSummary {
   labelColor?: string | null
   taskCount: number
   doneCount: number
+  totalPoints?: number
   position?: number | null
+}
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasMore: boolean
 }
 
 export interface Notification {
@@ -164,4 +174,14 @@ export interface CalEvent {
   deadline?: boolean
   pid: string
   pname?: string
+}
+
+export interface ApiCalEvent {
+  id: string
+  date: string
+  title: string
+  done?: boolean
+  deadline?: boolean
+  projectId: string
+  projectName?: string
 }

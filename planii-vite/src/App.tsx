@@ -15,7 +15,7 @@ import { CommandPalette, CMD_LABEL } from './components/CommandPalette'
 import { QuickTask } from './components/QuickTask'
 import { Admin } from './components/Admin'
 import { applyTheme, getTheme, type Theme } from '@/lib/theme'
-import { useAllProjects } from '@/lib/useProjects'
+import { useProjectSummaries } from '@/lib/useProjects'
 import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
 
 function ThemeControl() {
@@ -287,7 +287,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
   const [quick, setQuick] = useState(false)
   const [refresh, setRefresh] = useState(0)
   const [homeView, setHomeView] = useState<'list' | 'board' | 'agenda'>('list')
-  const { projects } = useAllProjects()
+  const { projects } = useProjectSummaries()
   const newProject = () => { setTab('projets'); setNewSignal((s) => s + 1) }
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import type { Project, Task } from './types'
+import type { Project, ProjectSummary, Task } from './types'
 
 /**
  * Barème :
@@ -34,8 +34,10 @@ export function memberPoints(p: Project, memberId: string): number {
 }
 
 /** Total des points d'un projet (équipe / groupe). */
-export function projectPoints(p: Project): number {
-  return p.tasks.reduce((s, t) => s + taskPoints(t), 0)
+export function projectPoints(p: Project | ProjectSummary): number {
+  if ('totalPoints' in p && p.totalPoints != null) return p.totalPoints
+  if ('tasks' in p && p.tasks) return p.tasks.reduce((s, t) => s + taskPoints(t), 0)
+  return 0
 }
 
 /** Bonus attribué à la meilleure équipe / au meilleur groupe du classement. */

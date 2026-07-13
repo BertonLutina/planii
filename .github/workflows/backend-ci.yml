@@ -1,0 +1,50 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - 'planii-backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    paths:
+      - 'planii-backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: planii-backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: planii
+          POSTGRES_PASSWORD: planii
+          POSTGRES_DB: planii_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U planii -d planii_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret
+      DATABASE_URL: postgres://planii:planii@localhost:5432/planii_test
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: planii-backend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm run migrate
+      - run: npm test
