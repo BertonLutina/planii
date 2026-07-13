@@ -13,10 +13,16 @@ const security_1 = require("./middleware/security");
 const routes_1 = require("./routes");
 function createApp() {
     const app = (0, express_1.default)();
-    if (env_1.env.corsOrigins === '*')
-        app.use((0, cors_1.default)());
-    else
-        app.use((0, cors_1.default)({ origin: env_1.env.corsOrigins }));
+    const corsOptions = env_1.env.corsOrigins === '*'
+        ? { origin: true, credentials: true }
+        : {
+            origin: env_1.env.corsOrigins,
+            credentials: true,
+            methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization'],
+        };
+    app.use((0, cors_1.default)(corsOptions));
+    app.options('*', (0, cors_1.default)(corsOptions));
     app.use(express_1.default.json());
     app.use((0, pino_http_1.default)({ logger: logger_1.logger }));
     app.use('/api', security_1.apiRateLimit);

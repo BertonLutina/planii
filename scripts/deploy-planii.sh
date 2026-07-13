@@ -33,8 +33,18 @@ docker compose build --pull
 docker compose up -d
 
 log "Vérification…"
-sleep 3
-curl -fsS http://localhost:4000/api/health
+sleep 5
+if ! curl -fsS http://localhost:4000/api/health; then
+  log "ERREUR : le backend ne répond pas sur le port 4000"
+  docker logs planii-api --tail 80 || true
+  exit 1
+fi
 echo ""
 docker ps --filter name=planii-
+if ! docker ps --filter name=planii-api --filter status=running -q | grep -q .; then
+  log "ERREUR : le conteneur planii-api n'est pas démarré"
+  docker logs planii-api --tail 80 || true
+  exit 1
+fi
 log "Terminé ✓"
+log "Test public : curl https://api.planii.app/api/health"

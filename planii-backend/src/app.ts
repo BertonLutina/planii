@@ -9,8 +9,16 @@ import { apiRoutes } from './routes'
 export function createApp() {
   const app = express()
 
-  if (env.corsOrigins === '*') app.use(cors())
-  else app.use(cors({ origin: env.corsOrigins as string[] }))
+  const corsOptions = env.corsOrigins === '*'
+    ? { origin: true, credentials: true }
+    : {
+      origin: env.corsOrigins as string[],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    }
+  app.use(cors(corsOptions))
+  app.options('*', cors(corsOptions))
   app.use(express.json())
   app.use(pinoHttp({ logger }))
   app.use('/api', apiRateLimit)
