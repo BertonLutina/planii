@@ -1,0 +1,27 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'planii-backend/**'
+      - 'planii-vite/**'
+      - 'scripts/deploy-planii.sh'
+      - '.github/workflows/deploy.yml'
+
+concurrency:
+  group: deploy-planii-vps
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run deploy script on VPS
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: bash /root/deploy-planii.sh

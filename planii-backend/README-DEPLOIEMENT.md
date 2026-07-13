@@ -50,6 +50,27 @@ node -v   # v20.x
 
 ## 3. Envoyer et installer le backend
 
+### Option A — Docker + Traefik (recommandé sur ton VPS)
+
+Le `docker-compose.yml` expose l’API sur `https://api.planii.app` via Traefik.
+
+```bash
+# Depuis ton Mac, envoie le dossier backend
+scp -r ./planii-backend root@31.97.53.228:/opt/planii-backend
+
+# Sur le VPS
+cd /opt/planii-backend
+cp .env.example .env && nano .env   # DATABASE_URL, JWT_SECRET, SMTP_PASS…
+docker compose build --no-cache
+docker compose up -d
+docker logs planii-api --tail 50
+curl http://localhost:4000/api/health   # {"ok":true,"db":"postgres"}
+```
+
+Les migrations SQL (`migrations/`) s’appliquent **automatiquement** au démarrage du conteneur.
+
+### Option B — Node.js + PM2 (sans Docker)
+
 Depuis ton ordinateur (dossier `planii-backend`) :
 
 ```bash
@@ -147,4 +168,78 @@ pm2 restart planii   # après mise à jour
 
 ## Étape suivante
 
-Une fois l'API en ligne (`https://api.planii.app`), je branche l'application front Planii dessus (connexion, projets, invitations en temps réel).
+Une fois l'API en ligne (`https://api.planii.app`), le front Planii s'y connecte automatiquement.
+
+---
+
+## Déploiement via GitHub (recommandé)
+
+### Script serveur : `/root/deploy-planii.sh`
+
+Sur le VPS, le déploiement se fait avec :
+
+```bash
+bash /root/deploy-planii.sh
+```
+
+Le script versionné se trouve dans le dépôt : `scripts/deploy-planii.sh`.
+Installez-le une fois sur le serveur :
+
+```bash
+cp /opt/planii/scripts/deploy-planii.sh /root/deploy-planii.sh
+chmod +x /root/deploy-planii.sh
+```
+
+Ou faites pointer votre script existant vers le dépôt :
+
+```bash
+cat > /root/deploy-planii.sh <<'EOF'
+#!/usr/bin/env bash
+exec bash /opt/planii/scripts/deploy-planii.sh
+EOF
+chmod +x /root/deploy-planii.sh
+```
+
+### Déploiement manuel
+
+```bash
+git push origin main          # depuis votre Mac
+ssh root@31.97.53.228
+bash /root/deploy-planii.sh
+```
+
+### Déploiement automatique (GitHub Actions)
+
+Le workflow `.github/workflows/deploy.yml` exécute `bash /root/deploy-planii.sh` sur le VPS
+à chaque push sur `main`.
+
+#### Secrets GitHub (Settings → Secrets → Actions)
+
+| Secret | Valeur |
+|--------|--------|
+| `VPS_HOST` | `31.97.53.228` |
+| `VPS_USER` | `root` |
+| `VPS_SSH_KEY` | clé privée SSH |
+
+```bash
+ssh-keygen -t ed25519 -C "github-deploy-planii" -f ~/.ssh/planii_deploy -N ""
+ssh-copy-id -i ~/.ssh/planii_deploy.pub root@31.97.53.228
+# Contenu de ~/.ssh/planii_deploy → secret VPS_SSH_KEY
+```
+
+#### Première installation sur le VPS
+
+```bash
+ssh root@31.97.53.228
+cd /opt
+git clone https://github.com/BertonLutina/planii.git planii
+cd planii/planii-backend && cp .env.example .env && nano .env
+cp ../scripts/deploy-planii.sh /root/deploy-planii.sh && chmod +x /root/deploy-planii.sh
+bash /root/deploy-planii.sh
+```
+
+Vérification :
+
+```bash
+curl https://api.planii.app/api/health
+```
