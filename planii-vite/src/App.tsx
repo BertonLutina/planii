@@ -14,6 +14,7 @@ import { NotifBell } from './components/Notifications'
 import { CommandPalette, CMD_LABEL } from './components/CommandPalette'
 import { QuickTask } from './components/QuickTask'
 import { Admin } from './components/Admin'
+import { StyleGuide } from './components/StyleGuide'
 import { applyTheme, getTheme, type Theme } from '@/lib/theme'
 import { useProjectSummaries } from '@/lib/useProjects'
 import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
@@ -394,14 +395,24 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
   )
 }
 
+const isStyleGuideRoute = () => {
+  const path = window.location.pathname.replace(/\/+$/, '')
+  const hash = window.location.hash.replace(/^#\/?/, '')
+  return path === '/style-guide' || path.endsWith('/style-guide') || hash === 'style-guide'
+}
+
 export default function App() {
+  const styleGuide = isStyleGuideRoute()
   const [me, setMe] = useState<User | null | undefined>(undefined)
   useEffect(() => {
+    if (styleGuide) return
     if (!getTok()) { setMe(null); return }
     api<{ user: User }>('GET', '/me').then((r) => { setMe(r.user); connectRealtime() }).catch(() => { setTok(null); setMe(null) })
     return () => disconnectRealtime()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const onLogout = () => { disconnectRealtime(); setTok(null); setMe(null) }
+  if (styleGuide) return <StyleGuide />
   return (
     <>
       <Toaster />
