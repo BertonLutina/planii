@@ -52,8 +52,18 @@ if ! docker exec planii-web wget -qO- http://localhost:80/ | grep -q "<html"; th
   exit 1
 fi
 
+log "Vérification publique (Traefik peut mettre quelques secondes à basculer)…"
+code=000
+for i in $(seq 1 15); do
+  code=$(curl -s -o /dev/null -w '%{http_code}' https://planii.app || echo 000)
+  [ "$code" = "200" ] && break
+  sleep 2
+done
+
 docker ps --filter name=planii-
-log "DONE"
-log "Tests publics :"
-log "  curl -I https://planii.app"
-log "  curl https://api.planii.app/api/health"
+if [ "$code" = "200" ]; then
+  log "DONE. planii.app -> 200 ✓"
+else
+  log "planii.app -> ${code} après 30 s. Le conteneur tourne (checks internes OK) ;"
+  log "si ça persiste : docker logs planii-web --tail 50  et  docker logs traefik --tail 50"
+fi
