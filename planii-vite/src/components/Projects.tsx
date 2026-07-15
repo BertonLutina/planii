@@ -141,7 +141,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
           const h = health(p.taskCount, p.doneCount, p.status)
           const typeShort = ({ solo: '1-à-1', team: 'Équipe', group: 'Groupe' } as Record<string, string>)[p.type] || p.type
           const memberCount = Number.isFinite(Number(p.memberCount)) ? Number(p.memberCount) : 1
-          const memberText = `👥 ${memberCount} membre${memberCount > 1 ? 's' : ''}`
+          const memberText = `${memberCount} membre${memberCount > 1 ? 's' : ''}`
           const label = legendLabels.find((l) => l.id === p.labelId || l.label === p.labelName) || legendLabels[0]
           const labelName = p.labelName || label?.label || 'Travail'
           const labelColor = p.labelColor || label?.color || '#f59e0b'

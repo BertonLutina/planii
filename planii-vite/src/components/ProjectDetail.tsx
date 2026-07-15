@@ -91,7 +91,7 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
           <div className="row">
             <div>
               <p className="title-lg">{p.name}</p>
-              <p className="sub"><span className="role-tag">{TYPE_LABEL[p.type]}</span> · ⭐ {projectPoints(p)} pts{p.deadline ? ` · livraison ${formatDue(p.deadline)}` : ''}</p>
+              <p className="sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span className="role-tag">{TYPE_LABEL[p.type]}</span> · <Ic name="star" s={12} c="var(--gold)" /> {projectPoints(p)} pts{p.deadline ? ` · livraison ${formatDue(p.deadline)}` : ''}</p>
             </div>
             <span className={'pill ' + (p.status === 'done' ? 'ok' : 'acc')}>{p.status === 'done' ? 'Terminé' : `${h.done}/${h.total}`}</span>
           </div>
@@ -281,7 +281,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
         onDragStart={!isSub && !closed ? () => setDragId(t.id) : undefined}
         onDragEnd={!isSub && !closed ? () => setDragId(null) : undefined}>
         <div className="tt">
-          <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} title={closed ? 'Projet clôturé' : mine ? '' : 'Seul le responsable peut cocher'} aria-label="Cocher">{t.done ? '✓' : (mine && !closed ? '' : '🔒')}</button>
+          <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} title={closed ? 'Projet clôturé' : mine ? '' : 'Seul le responsable peut cocher'} aria-label="Cocher">{t.done ? <Ic name="check" s={13} c="#fff" strokeWidth={2.6} /> : (mine && !closed ? '' : <Ic name="lock" s={11} />)}</button>
           <div className="tname">
             <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
@@ -528,7 +528,7 @@ function TeamBoard({ p, me, reload }: { p: Project; me: User; reload: () => void
   const unassigned = p.tasks.filter((t) => !t.assigneeId && !t.done)
   return (
     <div>
-      <div className="banner">Chaque tâche cochée fait monter le score (en avance 20 · le jour même 15 · en retard 5). Total équipe : ⭐ {projectPoints(p)} pts</div>
+      <div className="banner">Chaque tâche cochée fait monter le score (en avance 20 · le jour même 15 · en retard 5). Total équipe : {projectPoints(p)} pts</div>
       <div className="board">
         {ranked.map(({ m, pts }, i) => {
           const l = levelOf(pts)
@@ -546,7 +546,7 @@ function TeamBoard({ p, me, reload }: { p: Project; me: User; reload: () => void
                   const mine = t.assigneeId === me.id
                   return (
                     <div key={t.id} className={'board-task' + (t.done ? ' done' : '')}>
-                      <button className={'check' + (t.done ? ' done' : '') + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} aria-label="Cocher">{t.done ? '✓' : (mine && !closed ? '' : '🔒')}</button>
+                      <button className={'check' + (t.done ? ' done' : '') + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} aria-label="Cocher">{t.done ? <Ic name="check" s={13} c="#fff" strokeWidth={2.6} /> : (mine && !closed ? '' : <Ic name="lock" s={11} />)}</button>
                       <span className="bt-title">{t.title}{t.done ? ` · +${taskPoints(t)}` : ''}</span>
                     </div>
                   )

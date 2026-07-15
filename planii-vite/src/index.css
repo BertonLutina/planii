@@ -465,13 +465,16 @@ input, select, textarea { font-size: 16px; }
 
 /* ===== Planii preview parity pass ===== */
 :root{
-  --sidebar:#f3f1ea;
+  --sidebar:#efece3;
   --shadow:0 1px 3px rgba(0,0,0,.05);
   --radius:14px;
 }
 :root[data-theme="dark"]{
-  --sidebar:#181712;
+  --sidebar:#15111f;
   --shadow:0 1px 3px rgba(0,0,0,.22);
+}
+@media(prefers-color-scheme:dark){
+  :root[data-theme="auto"]{ --sidebar:#15111f; --shadow:0 1px 3px rgba(0,0,0,.22); }
 }
 body{background:var(--bg);font-weight:400}
 .desktop-title{display:none}
@@ -1322,12 +1325,23 @@ body{-webkit-text-size-adjust:100%;touch-action:manipulation}
   font-weight:900;
   font-size:12px;
 }
-.today-section.danger{border-top:4px solid var(--danger)}
-.today-section.accent{border-top:4px solid var(--accent)}
-.today-section.warn{border-top:4px solid var(--warn)}
-.today-section.blue{border-top:4px solid var(--blue)}
-.today-section.ok{border-top:4px solid var(--ok)}
-.today-section.discussions{border-top:4px solid var(--line-strong)}
+/* Tuiles teintées (direction « bolder ») — fond translucide + bordure colorée + badge teinté */
+.today-section.danger{background:color-mix(in srgb,var(--danger) 8%,var(--surface));border-color:color-mix(in srgb,var(--danger) 34%,var(--line))}
+.today-section.danger .today-section-head b{color:var(--danger)}
+.today-section.danger .today-section-head span{background:color-mix(in srgb,var(--danger) 16%,var(--surface));color:var(--danger)}
+.today-section.accent{background:color-mix(in srgb,var(--accent) 8%,var(--surface));border-color:color-mix(in srgb,var(--accent) 34%,var(--line))}
+.today-section.accent .today-section-head b{color:var(--accent)}
+.today-section.accent .today-section-head span{background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--accent)}
+.today-section.warn{background:color-mix(in srgb,var(--warn) 8%,var(--surface));border-color:color-mix(in srgb,var(--warn) 34%,var(--line))}
+.today-section.warn .today-section-head b{color:var(--warn)}
+.today-section.warn .today-section-head span{background:color-mix(in srgb,var(--warn) 16%,var(--surface));color:var(--warn)}
+.today-section.blue{background:color-mix(in srgb,var(--blue) 8%,var(--surface));border-color:color-mix(in srgb,var(--blue) 34%,var(--line))}
+.today-section.blue .today-section-head b{color:var(--blue)}
+.today-section.blue .today-section-head span{background:color-mix(in srgb,var(--blue) 16%,var(--surface));color:var(--blue)}
+.today-section.ok{background:color-mix(in srgb,var(--ok) 8%,var(--surface));border-color:color-mix(in srgb,var(--ok) 34%,var(--line))}
+.today-section.ok .today-section-head b{color:var(--ok)}
+.today-section.ok .today-section-head span{background:color-mix(in srgb,var(--ok) 16%,var(--surface));color:var(--ok)}
+.today-section.discussions{background:color-mix(in srgb,var(--accent-2) 7%,var(--surface));border-color:color-mix(in srgb,var(--accent-2) 26%,var(--line))}
 .today-empty{
   padding:18px 8px;
   color:var(--hint);

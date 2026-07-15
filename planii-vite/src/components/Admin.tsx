@@ -6,6 +6,7 @@ import { formatDue } from '@/lib/dates'
 import { MicInput, MicTextarea } from './Mic'
 import type { User, PaginatedResponse } from '@/lib/types'
 import { LoadMoreButton } from '@/lib/usePagination'
+import { Ic } from './Icon'
 
 type Section = 'dash' | 'users' | 'tasks' | 'projects' | 'admins' | 'audit' | 'mail'
 
@@ -51,21 +52,24 @@ function VBars({ data }: { data: { label: string; value: number; color?: string 
 }
 
 const AUDIT_LABEL: Record<string, string> = {
-  delete_user: '🗑 Utilisateur supprimé', delete_project: '🗑 Projet supprimé',
-  grant_admin: '⭐ Admin ajouté', revoke_admin: '➖ Admin retiré', task_priority: '⚑ Priorité modifiée',
+  delete_user: 'Utilisateur supprimé', delete_project: 'Projet supprimé',
+  grant_admin: 'Admin ajouté', revoke_admin: 'Admin retiré', task_priority: 'Priorité modifiée',
+}
+const AUDIT_ICON: Record<string, string> = {
+  delete_user: 'trash', delete_project: 'trash', grant_admin: 'shield', revoke_admin: 'user', task_priority: 'flag',
 }
 
 export function Admin({ me }: { me: User }) {
   const [sec, setSec] = useState<Section>('dash')
   const isSuper = !!me.superAdmin
-  const segs: [Section, string][] = [
-    ['dash', '📊 Tableau de bord'], ['users', '👤 Utilisateurs'], ['tasks', '✓ Tâches'], ['projects', '📁 Projets'],
-    ...(isSuper ? [['admins', '⭐ Admins'], ['mail', '📥 Boîte mail'], ['audit', '📜 Audit']] as [Section, string][] : []),
+  const segs: [Section, string, string][] = [
+    ['dash', 'chart-bar', 'Tableau de bord'], ['users', 'user', 'Utilisateurs'], ['tasks', 'check', 'Tâches'], ['projects', 'folder', 'Projets'],
+    ...(isSuper ? [['admins', 'shield', 'Admins'], ['mail', 'inbox', 'Boîte mail'], ['audit', 'list', 'Audit']] as [Section, string, string][] : []),
   ]
   return (
     <div className="admin-page">
       <div className="viewseg admin-seg">
-        {segs.map(([k, l]) => <button key={k} className={sec === k ? 'on' : ''} onClick={() => setSec(k)}>{l}</button>)}
+        {segs.map(([k, ico, l]) => <button key={k} className={sec === k ? 'on' : ''} onClick={() => setSec(k)}><Ic name={ico} s={15} /> {l}</button>)}
       </div>
       {sec === 'dash' && <Dashboard />}
       {sec === 'users' && <Users me={me} isSuper={isSuper} adminsOnly={false} />}
@@ -84,16 +88,16 @@ function Dashboard() {
   const [s, setS] = useState<AStats | null>(null)
   useEffect(() => { api<{ stats: AStats }>('GET', '/admin/stats').then((r) => setS(r.stats)).catch((e: any) => toastErr(e.message)) }, [])
   if (!s) return <div className="empty">Chargement…</div>
-  const cards: [string, string | number, string][] = [
-    ['Utilisateurs', s.users, '👤'], ['Actifs (7 j)', s.activeUsers7, '🟢'], ['Projets', `${s.projectsActive}/${s.projects}`, '📁'],
-    ['Tâches', s.tasks, '✓'], ['Terminées', `${s.tasksDone} · ${s.completion}%`, '🎯'], ['En retard', s.tasksOverdue, '⏰'],
+  const cards: [string, string | number, string, string][] = [
+    ['Utilisateurs', s.users, 'user', 'var(--accent)'], ['Actifs (7 j)', s.activeUsers7, 'activity', 'var(--ok)'], ['Projets', `${s.projectsActive}/${s.projects}`, 'folder', 'var(--blue)'],
+    ['Tâches', s.tasks, 'check', 'var(--accent)'], ['Terminées', `${s.tasksDone} · ${s.completion}%`, 'target', 'var(--ok)'], ['En retard', s.tasksOverdue, 'clock', 'var(--danger)'],
   ]
   const donePeak = Math.max(1, ...s.doneByDay.map((d) => d.c))
   return (
     <div className="admin-dash">
       <div className="stat-grid">
-        {cards.map(([label, val, ico]) => (
-          <div key={label} className="stat-card"><div className="stat-ico">{ico}</div><div className="stat-val">{val}</div><div className="stat-lbl">{label}</div></div>
+        {cards.map(([label, val, ico, color]) => (
+          <div key={label} className="stat-card"><div className="stat-ico" style={{ color }}><Ic name={ico} s={20} c={color} /></div><div className="stat-val">{val}</div><div className="stat-lbl">{label}</div></div>
         ))}
       </div>
 
@@ -195,8 +199,8 @@ function Users({ me, isSuper, adminsOnly }: { me: User; isSuper: boolean; admins
             </div>
             <div className="sub">{u.email}</div>
             <div className="ac-meta">
-              <span>🏆 {u.points} pts</span><span>📁 {u.projectCount}</span>
-              <span>✓ {u.tasksDone}</span><span>⏳ {u.tasksOpen}</span><span>vu·e {fmtAgo(u.lastLogin)}</span><span>inscrit·e {fmtDate(u.createdAt)}</span>
+              <span><Ic name="trophy" s={13} c="var(--gold)" /> {u.points} pts</span><span><Ic name="folder" s={13} /> {u.projectCount}</span>
+              <span><Ic name="check" s={13} c="var(--ok)" /> {u.tasksDone}</span><span><Ic name="clock" s={13} /> {u.tasksOpen}</span><span>vu·e {fmtAgo(u.lastLogin)}</span><span>inscrit·e {fmtDate(u.createdAt)}</span>
             </div>
           </div>
           <div className="ac-actions">
@@ -247,7 +251,7 @@ function Tasks() {
   const list = tasks.filter((t) => (t.title + ' ' + t.projectName + ' ' + (t.assigneeName || '')).toLowerCase().includes(q.trim().toLowerCase()))
   return (
     <>
-      <div className="privacy-badge"><span>🔒</span> Données client anonymisées</div>
+      <div className="privacy-badge"><Ic name="lock" s={13} /> Données client anonymisées</div>
       <div className="field"><input placeholder="Rechercher une tâche…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       <div className="grp-h">{list.length}{total > list.length ? ` / ${total}` : ''} TÂCHE·S</div>
       {list.map((t) => {
@@ -260,9 +264,9 @@ function Tasks() {
                 <span style={t.done ? { textDecoration: 'line-through', color: 'var(--hint)' } : undefined}>{t.title}</span>
               </div>
               <div className="ac-meta">
-                <span>📁 {t.projectName}</span>
-                <span>{t.assigneeName ? '👤 ' + t.assigneeName : '— non assignée'}</span>
-                {t.due && <span>📅 {formatDue(t.due)}</span>}
+                <span><Ic name="folder" s={13} /> {t.projectName}</span>
+                <span>{t.assigneeName ? <><Ic name="user" s={13} /> {t.assigneeName}</> : '— non assignée'}</span>
+                {t.due && <span><Ic name="calendar" s={13} /> {formatDue(t.due)}</span>}
               </div>
             </div>
             <div className="prio-pick sm">
@@ -307,14 +311,14 @@ function Projects() {
   const list = projects.filter((p) => (p.name + ' ' + p.ownerName).toLowerCase().includes(q.trim().toLowerCase()))
   return (
     <>
-      <div className="privacy-badge"><span>🔒</span> Données client anonymisées</div>
+      <div className="privacy-badge"><Ic name="lock" s={13} /> Données client anonymisées</div>
       <div className="field"><input placeholder="Rechercher un projet…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       <div className="grp-h">{list.length}{total > list.length ? ` / ${total}` : ''} PROJET·S</div>
       {list.map((p) => (
         <div key={p.id} className="admin-card">
           <div className="ac-main">
             <div className="ac-title">{p.name}{p.status === 'done' && <span className="pill" style={{ marginLeft: 6 }}>clôturé</span>}</div>
-            <div className="ac-meta"><span>👑 {p.ownerName}</span><span>👥 {p.memberCount}</span><span>✓ {p.doneCount}/{p.taskCount}</span></div>
+            <div className="ac-meta"><span><Ic name="user" s={13} c="var(--gold)" /> {p.ownerName}</span><span><Ic name="users" s={13} /> {p.memberCount}</span><span><Ic name="check" s={13} c="var(--ok)" /> {p.doneCount}/{p.taskCount}</span></div>
           </div>
           {confirmId === p.id
             ? <div className="ac-confirm"><button className="btn danger sm" onClick={() => del(p)}>Confirmer</button><button className="btn sm" onClick={() => setConfirmId(null)}>Annuler</button></div>
@@ -338,7 +342,7 @@ function Compose({ onClose, onSent }: { onClose: () => void; onSent: () => void 
     catch (e: any) { toastErr(e.message); setBusy(false) }
   }
   return (
-    <Modal title="✏️ Nouveau message" onClose={onClose}>
+    <Modal title="Nouveau message" onClose={onClose}>
       <div className="field"><label>À</label><MicInput value={f.to} onChange={(v) => setF({ ...f, to: v })} placeholder="destinataire@exemple.com" type="email" /></div>
       <div className="field"><label>Objet</label><MicInput value={f.subject} onChange={(v) => setF({ ...f, subject: v })} placeholder="Objet du message" /></div>
       <div className="field"><label>Message</label><MicTextarea value={f.body} onChange={(v) => setF({ ...f, body: v })} placeholder="Votre message…" rows={7} /></div>
@@ -376,7 +380,7 @@ function Mailbox() {
 
   if (err) return (
     <div className="card" style={{ marginTop: 12 }}>
-      <p className="sub" style={{ margin: 0 }}>📭 {err}</p>
+      <p className="sub" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}><Ic name="inbox" s={15} /> {err}</p>
       <p className="sub" style={{ marginTop: 8 }}>Ajoute <code>SMTP_PASS</code> dans le <code>.env</code> du serveur pour activer la boîte mail.</p>
     </div>
   )
@@ -402,8 +406,8 @@ function Mailbox() {
   return (
     <div>
       <div className="sheet-actions" style={{ marginBottom: 10 }}>
-        <button className="btn sm" onClick={load}>↻ Actualiser</button>
-        <button className="btn sm primary" onClick={() => setCompose(true)}>✏️ Écrire</button>
+        <button className="btn sm" onClick={load}><Ic name="refresh" s={14} /> Actualiser</button>
+        <button className="btn sm primary" onClick={() => setCompose(true)}><Ic name="edit" s={14} /> Écrire</button>
       </div>
       <div className="grp-h">{list.length} MESSAGE·S — INFO@PLANII.APP</div>
       {list.length === 0 && <div className="empty">Boîte vide.</div>}
@@ -448,9 +452,9 @@ function Audit() {
       {rows.map((r) => (
         <div key={r.id} className="admin-card">
           <div className="ac-main">
-            <div className="ac-title">{AUDIT_LABEL[r.action] || r.action}</div>
+            <div className="ac-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Ic name={AUDIT_ICON[r.action] || 'activity'} s={14} c="var(--accent)" /> {AUDIT_LABEL[r.action] || r.action}</div>
             <div className="sub">{r.detail}</div>
-            <div className="ac-meta"><span>👤 {r.actor}</span><span>{fmtDateTime(r.at)}</span></div>
+            <div className="ac-meta"><span><Ic name="user" s={13} /> {r.actor}</span><span>{fmtDateTime(r.at)}</span></div>
           </div>
         </div>
       ))}

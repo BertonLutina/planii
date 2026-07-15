@@ -3,10 +3,14 @@ import { api } from '@/lib/api'
 import { Modal, toastErr } from '@/lib/ui'
 import { useRealtime } from '@/lib/realtime'
 import type { Notification } from '@/lib/types'
+import { Ic } from './Icon'
 
 const ICON: Record<string, string> = {
-  project_deleted: '🗑',
-  project_updated: '✏️',
+  project_deleted: 'trash',
+  project_updated: 'edit',
+  task_created: 'plus',
+  invite_created: 'user-plus',
+  project_joined: 'users',
 }
 
 export function NotifBell() {
@@ -41,20 +45,20 @@ export function NotifBell() {
   return (
     <>
       <button className="notif-btn" onClick={openPanel} aria-label="Notifications" title="Notifications">
-        🔔{unread > 0 && <span className="notif-badge">{unread > 9 ? '9+' : unread}</span>}
+        <Ic name="bell" s={19} />{unread > 0 && <span className="notif-badge">{unread > 9 ? '9+' : unread}</span>}
       </button>
       {open && (
         <Modal title="Notifications" onClose={() => setOpen(false)}>
           {items.length === 0 && <div className="empty" style={{ padding: '18px 0' }}>Aucune notification.</div>}
           {items.map((n) => (
             <div key={n.id} className={'notif-row' + (n.read ? '' : ' unread')}>
-              <span className="notif-ico">{ICON[n.type] || '🔔'}</span>
+              <span className="notif-ico"><Ic name={ICON[n.type] || 'bell'} s={16} c="var(--accent)" /></span>
               <div className="notif-body">
                 <div className="notif-title">{n.title}</div>
                 <div className="sub">{n.detail}</div>
                 <div className="sub" style={{ fontSize: '11.5px' }}>{new Date(n.at).toLocaleString('fr-FR')}</div>
               </div>
-              <button className="notif-x" onClick={() => clearOne(n.id)} aria-label="Effacer">✕</button>
+              <button className="notif-x" onClick={() => clearOne(n.id)} aria-label="Effacer"><Ic name="x" s={14} /></button>
             </div>
           ))}
         </Modal>
