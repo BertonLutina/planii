@@ -6,6 +6,18 @@ import { MicInput } from './Mic'
 import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
 import type { InviteInfo, ProjectLabel, ProjectSummary, PaginatedResponse } from '@/lib/types'
 import { LoadMoreButton } from '@/lib/usePagination'
+import { Ic } from './Icon'
+
+const TYPE_SHORT: Record<string, string> = { solo: '1-à-1', team: 'Équipe', group: 'Groupe' }
+const TYPE_ICON: Record<string, string> = { solo: 'user', team: 'users', group: 'users' }
+/** Initiales : 2 premières lettres significatives du nom. */
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '•'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[1][0]).toUpperCase()
+}
+type ProjView = 'cards' | 'table'
 
 const DEFAULT_PROJECT_LABELS: ProjectLabel[] = [
   { id: 'default-work', label: 'Travail', color: '#f59e0b', position: 0, fixed: true },
@@ -21,6 +33,10 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
   const [tab, setTab] = useState<'active' | 'done'>('active')
   const [pSort, setPSort] = useState<ProjSort>('title')
   const [pDir, setPDir] = useState<Dir>('asc')
+  const [view, setView] = useState<ProjView>(() => {
+    try { return (localStorage.getItem('planii.projView') as ProjView) || 'cards' } catch { return 'cards' }
+  })
+  const setViewP = (v: ProjView) => { setView(v); try { localStorage.setItem('planii.projView', v) } catch { /* ignore */ } }
   const [dragId, setDragId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
@@ -78,7 +94,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
   const activeCount = counts.active
   const doneCount = counts.done
   const list = projects.slice().sort(projectComparator(pSort, pDir))
-  const canDrag = pSort === 'manual' && tab === 'active'
+  const canDrag = pSort === 'manual' && tab === 'active' && view === 'cards'
   const legendLabels = (() => {
     const byKey = new Map<string, ProjectLabel>()
     labels.forEach((l) => {
@@ -122,6 +138,10 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
       </div>
       <div className="project-controls">
         <div className="list-tools">
+          <div className="viewseg proj-viewseg">
+            <button className={view === 'cards' ? 'on' : ''} onClick={() => setViewP('cards')} title="Vue cartes"><Ic name="board" s={15} /> Cartes</button>
+            <button className={view === 'table' ? 'on' : ''} onClick={() => setViewP('table')} title="Vue tableau"><Ic name="list" s={15} /> Tableau</button>
+          </div>
           <label className="lt-lbl">Trier</label>
           <select value={pSort} onChange={(e) => setPSort(e.target.value as ProjSort)} aria-label="Trier les projets par">
             <option value="title">Titre</option>
@@ -136,35 +156,90 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
         </div>
       </div>
       {canDrag && <div className="sub" style={{ margin: '0 2px 8px' }}>Glissez les projets pour changer l’ordre.</div>}
-      <div className="proj-grid">
-        {list.map((p) => {
+      {(() => {
+        const rows = list.map((p) => {
           const h = health(p.taskCount, p.doneCount, p.status)
-          const typeShort = ({ solo: '1-à-1', team: 'Équipe', group: 'Groupe' } as Record<string, string>)[p.type] || p.type
+          const typeShort = TYPE_SHORT[p.type] || p.type
           const memberCount = Number.isFinite(Number(p.memberCount)) ? Number(p.memberCount) : 1
-          const memberText = `${memberCount} membre${memberCount > 1 ? 's' : ''}`
+          const role = p.type !== 'group' ? (ROLE_LABEL[p.my_role] || p.my_role) : ''
           const label = legendLabels.find((l) => l.id === p.labelId || l.label === p.labelName) || legendLabels[0]
           const labelName = p.labelName || label?.label || 'Travail'
           const labelColor = p.labelColor || label?.color || '#f59e0b'
-          const sub = typeShort + (p.type !== 'group' ? ' · ' + (ROLE_LABEL[p.my_role] || p.my_role) : '') + ` · ${memberText} · ${h.done}/${h.total} tâches`
+          const barColor = p.status === 'done' ? 'var(--ok)' : 'var(--accent)'
+          return { p, h, typeShort, memberCount, role, labelName, labelColor, barColor }
+        })
+
+        if (view === 'table') {
           return (
-            <button key={p.id} className={'proj-card' + (canDrag ? ' draggable' : '') + (dragId === p.id ? ' dragging' : '')} onClick={() => onOpen(p.id)}
-              style={{ borderLeftColor: labelColor }}
-              draggable={canDrag}
-              onDragStart={canDrag ? () => setDragId(p.id) : undefined}
-              onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
-              onDrop={canDrag ? (e) => { e.preventDefault(); dropOn(p.id) } : undefined}>
-              {canDrag && <span className="drag-handle" aria-hidden="true">⠿</span>}
-              <div className="pc-top">
-                <div className="pc-name">{p.name}</div>
-                <span className="pc-label" style={{ background: labelColor }}>{labelName}</span>
-              </div>
-              <div className="pc-sub">{sub}</div>
-              <div className="mini-bar"><i style={{ width: h.pct + '%', background: p.status === 'done' ? 'var(--ok)' : 'var(--accent)' }} /></div>
-            </button>
+            <div className="ptable-wrap">
+              <table className="ptable">
+                <thead>
+                  <tr>
+                    <th>Projet</th><th>Type</th><th>Rôle</th><th className="ta-c">Membres</th>
+                    <th className="ta-c">Tâches</th><th>Progression</th><th>Libellé</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(({ p, h, typeShort, memberCount, role, labelName, labelColor, barColor }) => (
+                    <tr key={p.id} onClick={() => onOpen(p.id)} tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter') onOpen(p.id) }}>
+                      <td className="pt-name">
+                        <span className="pt-avatar" style={{ background: labelColor }}>{initialsOf(p.name)}</span>
+                        <span className="pt-name-txt">{p.name}</span>
+                      </td>
+                      <td><span className="pt-type"><Ic name={TYPE_ICON[p.type] || 'folder'} s={13} /> {typeShort}</span></td>
+                      <td className="pt-muted">{role || '—'}</td>
+                      <td className="ta-c">{memberCount}</td>
+                      <td className="ta-c">{h.done}/{h.total}</td>
+                      <td>
+                        <div className="pt-prog">
+                          <div className="pt-bar"><i style={{ width: h.pct + '%', background: barColor }} /></div>
+                          <span className="pt-pct">{h.pct}%</span>
+                        </div>
+                      </td>
+                      <td><span className="pt-chip" style={{ color: labelColor, background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}><i style={{ background: labelColor }} />{labelName}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {tab === 'active' && <button className="pt-newrow" onClick={() => setNewOpen(true)}><Ic name="plus" s={15} /> Nouveau projet</button>}
+            </div>
           )
-        })}
-        {tab === 'active' && <button className="proj-card new" onClick={() => setNewOpen(true)}>＋ Nouveau projet</button>}
-      </div>
+        }
+
+        return (
+          <div className="pcard-grid">
+            {rows.map(({ p, h, typeShort, memberCount, role, labelName, labelColor, barColor }) => (
+              <button key={p.id} className={'pcard' + (canDrag ? ' draggable' : '') + (dragId === p.id ? ' dragging' : '')} onClick={() => onOpen(p.id)}
+                draggable={canDrag}
+                onDragStart={canDrag ? () => setDragId(p.id) : undefined}
+                onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
+                onDrop={canDrag ? (e) => { e.preventDefault(); dropOn(p.id) } : undefined}>
+                <span className="pcard-accent" style={{ background: labelColor }} />
+                <div className="pcard-head">
+                  <span className="pcard-avatar" style={{ background: labelColor }}>{initialsOf(p.name)}</span>
+                  <div className="pcard-titles">
+                    <b className="pcard-name">{p.name}</b>
+                    <span className="pcard-type"><Ic name={TYPE_ICON[p.type] || 'folder'} s={12} /> {typeShort}{role ? ' · ' + role : ''}</span>
+                  </div>
+                  <span className="pcard-chip" style={{ color: labelColor, background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}>{labelName}</span>
+                </div>
+                <div className="pcard-stats">
+                  <span className="pcard-stat"><Ic name="users" s={14} /> {memberCount}</span>
+                  <span className="pcard-stat"><Ic name="tasks" s={14} /> {h.done}/{h.total} tâches</span>
+                  {p.status === 'done' && <span className="pcard-stat pcard-done"><Ic name="circle-check" s={14} c="var(--ok)" /> Terminé</span>}
+                </div>
+                <div className="pcard-prog">
+                  <div className="pcard-bar"><i style={{ width: h.pct + '%', background: barColor }} /></div>
+                  <span className="pcard-pct" style={{ color: barColor }}>{h.pct}%</span>
+                </div>
+                {canDrag && <span className="drag-handle pcard-drag" aria-hidden="true"><Ic name="grip" s={14} /></span>}
+              </button>
+            ))}
+            {tab === 'active' && <button className="pcard pcard-new" onClick={() => setNewOpen(true)}><Ic name="plus" s={18} /> Nouveau projet</button>}
+          </div>
+        )
+      })()}
       <LoadMoreButton
         hasMore={hasMore && pSort !== 'manual'}
         loading={loadingMore}
