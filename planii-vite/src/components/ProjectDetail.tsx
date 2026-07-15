@@ -9,6 +9,7 @@ import type { Member, Poll, Appointment, Project, ProjectLabel, ProjectRole, Tas
 import { LoadMoreButton } from '@/lib/usePagination'
 import { Meeting } from './Meeting'
 import { Mic, MicInput, MicTextarea } from './Mic'
+import { Ic } from './Icon'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
 import { useRealtime } from '@/lib/realtime'
 import { taskComparator, type TaskSort, type Dir } from '@/lib/sort'
@@ -96,11 +97,11 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
           </div>
           <div className="mini-bar"><i style={{ width: h.pct + '%', background: p.status === 'done' ? 'var(--ok)' : 'var(--accent)' }} /></div>
           <div className="sheet-actions" style={{ marginTop: 12, flexWrap: 'wrap' }}>
-            {!closed && <button className="btn sm primary" onClick={() => setMeet(true)}>🎥 Meeting</button>}
-            {manage && !closed && <button className="btn sm ghost" onClick={() => setConfirmClose(true)}>✓ Clôturer</button>}
+            {!closed && <button className="btn sm primary" onClick={() => setMeet(true)}><Ic name="video" s={15} />Meeting</button>}
+            {manage && !closed && <button className="btn sm ghost" onClick={() => setConfirmClose(true)}><Ic name="check" s={15} />Clôturer</button>}
             {isOwner && closed && p.canReopen && <button className="btn sm primary" onClick={reopenProject}>↻ Réouvrir</button>}
-            {isOwner && !closed && <button className="btn sm ghost" onClick={() => setEditing(true)}>✏️ Modifier</button>}
-            {isOwner && <button className="btn sm danger" onClick={() => setConfirmDel(true)}>🗑 Supprimer</button>}
+            {isOwner && !closed && <button className="btn sm ghost" onClick={() => setEditing(true)}><Ic name="edit" s={15} />Modifier</button>}
+            {isOwner && <button className="btn sm danger" onClick={() => setConfirmDel(true)}><Ic name="trash" s={15} />Supprimer</button>}
           </div>
         </div>
 
@@ -289,7 +290,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
             </span>
             {t.description && <div className="sub" style={{ marginTop: 2 }}>{t.description}</div>}
             <div className="meta">
-              <span className={'tag ' + (unassigned ? 'due' : 'client')}>{unassigned ? '👐 à prendre' : '👤 ' + memberName(t.assigneeId)}</span>
+              <span className={'tag ' + (unassigned ? 'due' : 'client')}>{unassigned ? <><Ic name="hand" s={12} /> à prendre</> : <><Ic name="user" s={12} /> {memberName(t.assigneeId)}</>}</span>
               {t.due && <span className={'tag ' + (over ? 'late' : 'due')}>📅 {formatDue(t.due)}</span>}
               {hasHours && <span className="tag hours">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? ` / ~${t.estHours}h` : ''}</span>}
               {t.transferable && <span className="tag acc">⇄ transférable</span>}
@@ -310,13 +311,13 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
         {canRelance && <div className="relance"><span>En retard — relancer {memberName(t.assigneeId)} ?</span><button onClick={() => relance(t)}>Relancer ✉</button></div>}
         {menuId === t.id && (
           <Modal title={t.title} onClose={() => setMenuId(null)}>
-            {(canEditMeta || canLogHours) && <button className="mact" onClick={() => { setMenuId(null); setEditId(t.id) }}><span className="mi">✏️</span>Modifier la tâche</button>}
-            {!isSub && !closed && <button className="mact" onClick={() => { setMenuId(null); setSubTitle(''); setAddSubFor(t.id) }}><span className="mi">➕</span>Ajouter une sous-tâche</button>}
+            {(canEditMeta || canLogHours) && <button className="mact" onClick={() => { setMenuId(null); setEditId(t.id) }}><span className="mi"><Ic name="edit" s={17} /></span>Modifier la tâche</button>}
+            {!isSub && !closed && <button className="mact" onClick={() => { setMenuId(null); setSubTitle(''); setAddSubFor(t.id) }}><span className="mi"><Ic name="plus" s={17} /></span>Ajouter une sous-tâche</button>}
             {canPrio && <button className="mact" onClick={() => { setMenuId(null); setPrioId(t.id) }}><span className="mi">🚩</span>Changer la priorité</button>}
             {canTransfer && <button className="mact" onClick={() => { setMenuId(null); setTransferId(t.id) }}><span className="mi">⇄</span>Transférer la tâche</button>}
             {unassigned && !closed && <button className="mact" onClick={() => { setMenuId(null); claim(t) }}><span className="mi">👐</span>Je m’en occupe</button>}
-            {canRelance && <button className="mact" onClick={() => { setMenuId(null); relance(t) }}><span className="mi">✉️</span>Relancer</button>}
-            {canDel && <button className="mact danger" onClick={() => { setMenuId(null); setDeleteId(t.id) }}><span className="mi">🗑</span>Supprimer{subs.length > 0 ? ' (et ses sous-tâches)' : ''}</button>}
+            {canRelance && <button className="mact" onClick={() => { setMenuId(null); relance(t) }}><span className="mi"><Ic name="mail" s={17} /></span>Relancer</button>}
+            {canDel && <button className="mact danger" onClick={() => { setMenuId(null); setDeleteId(t.id) }}><span className="mi"><Ic name="trash" s={17} /></span>Supprimer{subs.length > 0 ? ' (et ses sous-tâches)' : ''}</button>}
           </Modal>
         )}
         {transferId === t.id && <TransferTaskModal p={p} t={t} me={me} onClose={() => setTransferId(null)} onTransfer={(userId) => transferTask(t, userId)} />}
@@ -380,7 +381,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
     const keys = [...map.keys()].sort((a, b) => (a === '' ? 1 : b === '' ? -1 : (member(a)?.name || '').localeCompare(member(b)?.name || '', 'fr', { sensitivity: 'base' })))
     return keys.map((k) => (
       <div key={k || 'none'}>
-        <div className="grp-h">{k ? '👤 ' + (member(k)?.name || '—') : '👐 À prendre'} · {map.get(k)!.length}</div>
+        <div className="grp-h" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Ic name={k ? 'user' : 'hand'} s={13} />{k ? (member(k)?.name || '—') : 'À prendre'} · {map.get(k)!.length}</div>
         {map.get(k)!.map(renderRoot)}
       </div>
     ))
@@ -446,7 +447,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
       {p.status !== 'done' && (
         <div className="sheet-actions" style={{ marginBottom: 12 }}>
           <button className="btn" style={{ flex: 1 }} onClick={() => setAdding((v) => !v)}>＋ Nouvelle tâche</button>
-          <button className="btn primary" onClick={() => setVoice(true)} title="Créer une tâche à la voix">🎤 Dicter une tâche</button>
+          <button className="btn primary" onClick={() => setVoice(true)} title="Créer une tâche à la voix"><Ic name="mic" s={16} />Dicter une tâche</button>
         </div>
       )}
       {voice && <VoiceTaskWizard p={p} me={me} onClose={() => setVoice(false)} onCreated={() => { setVoice(false); reload() }} />}
@@ -479,7 +480,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
           <div className="status-filter-title">Filtrer</div>
           <button className={filterUser === 'all' ? 'on' : ''} onClick={() => setFilterUser('all')}>👥 Tout le monde</button>
           {p.members.map((m) => <button key={m.id} className={filterUser === m.id ? 'on' : ''} onClick={() => setFilterUser(m.id)}><Avatar name={m.name} size={26} />{m.name.split(' ')[0]}</button>)}
-          <button className={filterUser === 'none' ? 'on' : ''} onClick={() => setFilterUser('none')}>👐 À prendre</button>
+          <button className={filterUser === 'none' ? 'on' : ''} onClick={() => setFilterUser('none')}><Ic name="hand" s={13} /> À prendre</button>
           <div className="status-filter-sep" />
           <button className={statusFilter === 'all' ? 'on' : ''} onClick={() => setStatusFilter('all')}>Tous les statuts</button>
           {statuses.map((s) => <button key={s.key} className={statusFilter === s.key ? 'on' : ''} onClick={() => setStatusFilter(s.key)}><i style={{ background: s.color }} />{s.label}</button>)}
@@ -556,7 +557,7 @@ function TeamBoard({ p, me, reload }: { p: Project; me: User; reload: () => void
         })}
         {unassigned.length > 0 && (
           <div className="board-col">
-            <div className="board-head"><div className="board-who"><span className="avatar">👐</span><div><div className="nm">À prendre</div><div className="sc">non assignées</div></div></div></div>
+            <div className="board-head"><div className="board-who"><span className="avatar"><Ic name="hand" s={16} c="#fff" /></span><div><div className="nm">À prendre</div><div className="sc">non assignées</div></div></div></div>
             <div className="board-tasks">
               {unassigned.map((t) => <div key={t.id} className="board-task"><span className="bt-title">{t.title}</span></div>)}
             </div>
@@ -743,8 +744,8 @@ function AppointmentsTab({ p, me, reload }: { p: Project; me: User; reload: () =
             </div>
             {canEdit(a) && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button className="btn sm ghost" onClick={() => setEditing(a)}>✏️ Modifier</button>
-                <button className="btn sm danger" onClick={() => setDeleting(a)}>🗑 Supprimer</button>
+                <button className="btn sm ghost" onClick={() => setEditing(a)}><Ic name="edit" s={15} />Modifier</button>
+                <button className="btn sm danger" onClick={() => setDeleting(a)}><Ic name="trash" s={15} />Supprimer</button>
               </div>
             )}
           </div>

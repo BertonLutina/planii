@@ -1581,3 +1581,8 @@ textarea:focus-visible,[tabindex]:focus-visible,[role="button"]:focus-visible,[c
 .btn,.side-nav button,.tabs button,.viewseg button,.proj-card,.home-task,.card.click,.chip.as-btn,.mail-row,.more-btn,.mic-btn,.notif-btn{
   transition:background var(--dur-fast) var(--ease-out),border-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out);
 }
+
+/* icônes lucide alignées avec leurs libellés dans les contrôles segmentés */
+.viewseg button,.appbar-views button,.tabs button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.tag{display:inline-flex;align-items:center;gap:4px}
+.mact .mi{display:inline-flex;align-items:center;justify-content:center}

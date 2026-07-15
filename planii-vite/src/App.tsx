@@ -4,6 +4,7 @@ import { Toaster, Avatar, health, toast, toastErr } from '@/lib/ui'
 import type { ProjectLabel, User } from '@/lib/types'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
 import { MicInput } from './components/Mic'
+import { Ic } from './components/Icon'
 import { Auth } from './components/Auth'
 import { ProjectsList, JoinModal } from './components/Projects'
 import { ProjectDetail } from './components/ProjectDetail'
@@ -21,14 +22,14 @@ import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
 
 function ThemeControl() {
   const [t, setT] = useState<Theme>(getTheme())
-  const opts: [Theme, string, string][] = [['light', '☀️', 'Clair'], ['dark', '🌙', 'Sombre'], ['auto', '🖥️', 'Auto']]
+  const opts: [Theme, string, string][] = [['light', 'sun', 'Clair'], ['dark', 'moon', 'Sombre'], ['auto', 'monitor', 'Auto']]
   return (
     <>
       <div className="section-h">Apparence</div>
       <div className="theme-seg">
         {opts.map(([v, icon, label]) => (
           <button key={v} className={t === v ? 'on' : ''} onClick={() => { setT(v); applyTheme(v) }}>
-            <span className="ti">{icon}</span>{label}
+            <span className="ti"><Ic name={icon} s={18} /></span>{label}
           </button>
         ))}
       </div>
@@ -311,7 +312,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
   const TITLES: Record<TabKey, string> = { accueil: 'Accueil — mes tâches', projets: 'Projets', calendrier: 'Agenda', classement: 'Classement', profil: 'Profil', admin: 'Espace admin' }
   const MOBILE_TITLES: Record<TabKey, string> = { accueil: 'Accueil', projets: 'Projets', calendrier: 'Agenda', classement: 'Classement', profil: 'Profil', admin: 'Admin' }
   const title = TITLES[tab]
-  const HV: [typeof homeView, string][] = [['list', '☰ Liste'], ['board', '▦ Tableau'], ['agenda', '📅 Agenda']]
+  const HV: [typeof homeView, string, string][] = [['list', 'list', 'Liste'], ['board', 'board', 'Tableau'], ['agenda', 'calendar-days', 'Agenda']]
 
   return (
     <div className="shell">
@@ -350,7 +351,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
           <div className="appbar-right">
             {tab === 'accueil' && (
               <div className="appbar-views">
-                {HV.map(([v, l]) => <button key={v} className={homeView === v ? 'on' : ''} onClick={() => setHomeView(v)}>{l}</button>)}
+                {HV.map(([v, icon, l]) => <button key={v} className={homeView === v ? 'on' : ''} onClick={() => setHomeView(v)}><Ic name={icon} s={15} />{l}</button>)}
               </div>
             )}
             {(tab === 'accueil' || tab === 'projets') && (

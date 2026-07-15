@@ -6,6 +6,7 @@ import { useMyTasks } from '@/lib/useProjects'
 import { useRealtime } from '@/lib/realtime'
 import { taskPoints, levelOf, pointsFor } from '@/lib/points'
 import { prio, prioMeta } from '@/lib/priority'
+import { Ic } from './Icon'
 import { CalendarView } from './Calendar'
 import { TaskDrawer } from './TaskDrawer'
 import type { Project, Task, TodayPayload, TodayTask, User } from '@/lib/types'
@@ -73,9 +74,9 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
       <TodayDashboard today={today} onOpenTask={openTodayTask} onOpenProject={onOpen} />
       <div className="home-toolbar only-mobile-flex">
         <div className="viewseg">
-          <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>☰ Liste</button>
-          <button className={view === 'board' ? 'on' : ''} onClick={() => setView('board')}>▦ Tableau</button>
-          <button className={view === 'agenda' ? 'on' : ''} onClick={() => setView('agenda')}>📅 Agenda</button>
+          <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}><Ic name="list" s={15} />Liste</button>
+          <button className={view === 'board' ? 'on' : ''} onClick={() => setView('board')}><Ic name="board" s={15} />Tableau</button>
+          <button className={view === 'agenda' ? 'on' : ''} onClick={() => setView('agenda')}><Ic name="calendar-days" s={15} />Agenda</button>
         </div>
       </div>
 
@@ -89,7 +90,7 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
           <span><i className="p-dot p5" />P5</span>
           <span><i className="p-dot p6" />P6</span>
         </div>
-        {todo.length === 0 && <div className="empty"><div className="big">🎉</div>Rien à faire — tout est à jour, bravo !</div>}
+        {todo.length === 0 && <div className="empty"><div className="big"><Ic name="circle-check" s={30} /></div>Rien à faire — tout est à jour, bravo !</div>}
         {todo.map(({ t, p }) => {
           const over = isOverdue(t)
           const pm = prioMeta(t.priority)
@@ -107,7 +108,7 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
               </div>
               <div className="ht-meta" onClick={() => setDrawerId(t.id)}>
                 <span className="chip-proj">{p.name}</span>
-                {t.due && <span className={'hm' + (over ? ' red' : '')}>📅 {formatDue(t.due)}</span>}
+                {t.due && <span className={'hm' + (over ? ' red' : '')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Ic name="calendar" s={12} />{formatDue(t.due)}</span>}
                 {hasHours && <span className="hm">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? `/~${t.estHours}h` : ''}</span>}
               </div>
             </div>
@@ -118,7 +119,7 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
             <div className="grp-h">TERMINÉES · {done.length}</div>
             {done.map(({ t, p }) => (
               <div key={t.id} className="home-task done">
-                <button className="check-big done" onClick={() => toggle(t)} aria-label="Rouvrir">✓</button>
+                <button className="check-big done" onClick={() => toggle(t)} aria-label="Rouvrir"><Ic name="check" s={14} c="#fff" /></button>
                 <div className="ht-body" onClick={() => setDrawerId(t.id)}>
                   <div className="ht-title">{t.title}</div>
                 </div>
@@ -141,7 +142,7 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
                     const pm = prioMeta(t.priority)
                     return (
                       <div key={t.id} className={'board-task' + (t.done ? ' done' : '')} style={{ cursor: 'pointer', alignItems: 'flex-start' }} onClick={() => onOpen(p.id)}>
-                        <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls)} onClick={(e) => { e.stopPropagation(); toggle(t) }} aria-label="Cocher">{t.done ? '✓' : ''}</button>
+                        <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls)} onClick={(e) => { e.stopPropagation(); toggle(t) }} aria-label="Cocher">{t.done ? <Ic name="check" s={13} c="#fff" /> : null}</button>
                         <span className="bt-title" style={{ whiteSpace: 'normal' }}>
                           {pm.n < 6 && <span className={'pflag ' + pm.flagCls} style={{ marginRight: 5 }}>{pm.tag}</span>}
                           {t.title}{t.due ? ` · ${formatDue(t.due)}` : ''}
