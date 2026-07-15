@@ -9,6 +9,11 @@ import { apiRoutes } from './routes'
 export function createApp() {
   const app = express()
 
+  // Derrière Traefik : faire confiance au 1er proxy pour lire l'IP client réelle
+  // (X-Forwarded-For). Sans ça, express-rate-limit voit tous les visiteurs comme
+  // une seule IP (celle du proxy) et le quota est partagé par tout le monde.
+  app.set('trust proxy', 1)
+
   const corsOptions = env.corsOrigins === '*'
     ? { origin: true, credentials: true }
     : {

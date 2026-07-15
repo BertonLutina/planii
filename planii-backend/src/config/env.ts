@@ -33,7 +33,7 @@ const envSchema = z.object({
   IMAP_HOST: z.string().default('imap.hostinger.com'),
   IMAP_PORT: z.coerce.number().int().positive().default(993),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
-  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
 })
 
