@@ -3,18 +3,19 @@
 @tailwind utilities;
 
 :root{
-  --bg:#f5f3ef; --surface:#ffffff; --surface-2:#f0eee7;
-  --line:#e7e3da; --line-strong:#d9d4ca;
-  --text:#1f1b2e; --muted:#6b6779; --hint:#9a95a8;
+  /* Light — neutres froids type ChatGPT/Codex : sidebar + body même gris clair, cartes blanches */
+  --bg:#f7f7f8; --surface:#ffffff; --surface-2:#f0f0f2;
+  --line:#e5e5e7; --line-strong:#d6d6da;
+  --text:#0d0d0d; --muted:#6e6e80; --hint:#9a9aa6;
   --accent:#6d5cff; --accent-bg:#efeaff; --accent-2:#8b7bff;
   --danger:#c8362f; --danger-bg:#fdeceb;
   --warn:#a5680a; --warn-bg:#fdf2df;
   --ok:#0f8f6a; --ok-bg:#e2f6ef;
   --gold:#c98a12;
   --blue:#1f6fc9; --blue-bg:#e7f0fc;
-  --radius:14px; --shadow:0 1px 3px rgba(30,20,60,.06),0 8px 24px rgba(30,20,60,.06);
+  --radius:14px; --shadow:0 1px 3px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.05);
   --grad-accent:linear-gradient(135deg,#8b7bff 0%,#6d5cff 100%);
-  --soft:#f0eee7; --accent-soft:#efeaff; --elevated:#ffffff;
+  --soft:#f0f0f2; --accent-soft:#efeaff; --elevated:#ffffff;
   --surface-glow:rgba(255,255,255,.32); --on-accent:#fff; --accent-border:rgba(109,92,255,.30);
   --safe-b:env(safe-area-inset-bottom,0px);
 }
@@ -465,7 +466,7 @@ input, select, textarea { font-size: 16px; }
 
 /* ===== Planii preview parity pass ===== */
 :root{
-  --sidebar:#efece3;
+  --sidebar:#f7f7f8;
   --shadow:0 1px 3px rgba(0,0,0,.05);
   --radius:14px;
 }
