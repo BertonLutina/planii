@@ -466,7 +466,7 @@ input, select, textarea { font-size: 16px; }
 
 /* ===== Planii preview parity pass ===== */
 :root{
-  --sidebar:#f7f7f8;
+  --sidebar:#ececee;
   --shadow:0 1px 3px rgba(0,0,0,.05);
   --radius:14px;
 }
