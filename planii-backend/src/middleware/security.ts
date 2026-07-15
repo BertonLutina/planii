@@ -9,6 +9,10 @@ export const apiRateLimit: RequestHandler = rateLimit({
   max: env.RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
+  // On ne limite que les écritures (POST/PUT/PATCH/DELETE). Les lectures (GET) que
+  // fait un utilisateur en naviguant ne comptent pas : ainsi l'app ne se fige jamais
+  // en usage normal, tout en bloquant les abus d'écriture. L'auth a sa propre limite.
+  skip: (req) => req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS',
   message: { error: 'Trop de requêtes, réessayez plus tard.' },
 })
 
