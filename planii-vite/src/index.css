@@ -1602,6 +1602,16 @@ textarea:focus-visible,[tabindex]:focus-visible,[role="button"]:focus-visible,[c
 .tag{display:inline-flex;align-items:center;gap:4px}
 .mact .mi{display:inline-flex;align-items:center;justify-content:center}
 
+/* ===== Profil — bloc infos en lecture seule + bouton Modifier ===== */
+.info-card{position:relative}
+.info-edit{position:absolute;top:12px;right:12px;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);border-radius:9px;padding:6px 11px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all var(--dur-fast,120ms)}
+.info-edit:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-bg)}
+.info-rows{display:flex;flex-direction:column;gap:2px}
+.info-row{display:flex;align-items:baseline;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.info-row:last-child{border-bottom:none}
+.info-k{flex:none;width:88px;font-size:12.5px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.03em}
+.info-v{flex:1;min-width:0;font-size:14.5px;font-weight:600;color:var(--text);word-break:break-word}
+
 /* ===== Guide / aide contextuelle ===== */
 .help-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:inline-grid;place-items:center;cursor:pointer;transition:all var(--dur-fast,120ms)}
 .help-btn:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-bg)}

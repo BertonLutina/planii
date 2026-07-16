@@ -202,12 +202,11 @@ function ProjectLabelEditor() {
   )
 }
 
-function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void }) {
+function EditInfoModal({ me, onClose, onUpdate }: { me: User; onClose: () => void; onUpdate: (u: User) => void }) {
   const [first, setFirst] = useState(me.firstName || '')
   const [last, setLast] = useState(me.lastName || '')
   const [job, setJob] = useState(me.job || '')
   const [saving, setSaving] = useState(false)
-  const dirty = first !== (me.firstName || '') || last !== (me.lastName || '') || job !== (me.job || '')
 
   async function save() {
     if (!first.trim() && !last.trim()) { toastErr('Indique au moins un prénom ou un nom'); return }
@@ -216,8 +215,28 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
       const r = await api<{ user: User }>('PATCH', '/me', { firstName: first.trim(), lastName: last.trim(), job: job.trim() })
       onUpdate(r.user)
       toast('Profil mis à jour ✓')
+      onClose()
     } catch (e: any) { toastErr(e.message) } finally { setSaving(false) }
   }
+
+  return (
+    <Modal title="Modifier mes informations" onClose={onClose}>
+      <div className="field"><label>Prénom</label>
+        <MicInput value={first} onChange={setFirst} placeholder="Ton prénom" maxLength={60} autoFocus /></div>
+      <div className="field"><label>Nom</label>
+        <MicInput value={last} onChange={setLast} placeholder="Ton nom" maxLength={60} /></div>
+      <div className="field"><label>Métier</label>
+        <MicInput value={job} onChange={setJob} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
+      <div className="sheet-actions">
+        <button className="btn primary" disabled={saving} onClick={save}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        <button className="btn ghost" onClick={onClose}>Annuler</button>
+      </div>
+    </Modal>
+  )
+}
+
+function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void }) {
+  const [editInfo, setEditInfo] = useState(false)
 
   return (
     <div className="settings-page profile-page">
@@ -231,17 +250,18 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
       <div className="profile-grid">
         <div className="profile-col">
           <div className="section-h">Mes informations</div>
-          <div className="card">
-            <div className="field"><label>Prénom</label>
-              <MicInput value={first} onChange={setFirst} placeholder="Ton prénom" maxLength={60} /></div>
-            <div className="field"><label>Nom</label>
-              <MicInput value={last} onChange={setLast} placeholder="Ton nom" maxLength={60} /></div>
-            <div className="field"><label>Métier</label>
-              <MicInput value={job} onChange={setJob} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
-            <button className="btn primary block" style={{ marginTop: 6 }} disabled={!dirty || saving} onClick={save}>
-              {saving ? 'Enregistrement…' : 'Enregistrer'}
+          <div className="card info-card">
+            <button className="info-edit" onClick={() => setEditInfo(true)} aria-label="Modifier mes informations">
+              <Ic name="edit" s={15} /> Modifier
             </button>
+            <div className="info-rows">
+              <div className="info-row"><span className="info-k">Prénom</span><span className="info-v">{me.firstName || '—'}</span></div>
+              <div className="info-row"><span className="info-k">Nom</span><span className="info-v">{me.lastName || '—'}</span></div>
+              <div className="info-row"><span className="info-k">Métier</span><span className="info-v">{me.job || '—'}</span></div>
+              <div className="info-row"><span className="info-k">E-mail</span><span className="info-v">{me.email}</span></div>
+            </div>
           </div>
+          {editInfo && <EditInfoModal me={me} onClose={() => setEditInfo(false)} onUpdate={onUpdate} />}
 
           <ListEditor me={me} onUpdate={onUpdate}
             title="Mes rôles" field="roleLibrary" get={roleLibraryOf}
@@ -261,7 +281,7 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
 
           <div className="profile-actions">
             {me.admin && (
-              <button className="btn primary block" style={{ marginTop: 4 }} onClick={onAdmin}>🛡️ Espace admin</button>
+              <button className="btn primary block" style={{ marginTop: 4 }} onClick={onAdmin}><Ic name="shield" s={16} /> Espace admin</button>
             )}
             <ThemeControl />
             <button className="btn danger block" style={{ marginTop: 16 }} onClick={onLogout}>Se déconnecter</button>
