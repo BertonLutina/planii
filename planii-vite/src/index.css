@@ -876,7 +876,9 @@ body{background:var(--bg);font-weight:400}
 /* page réglages / profil */
 .settings-page{max-width:620px;margin:0 auto}
 .profile-page{width:100%}
-.profile-hero{margin-bottom:18px}
+.profile-hero{margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.profile-logout{flex:none;color:var(--danger);border-color:color-mix(in srgb,var(--danger) 30%,var(--line))}
+.profile-logout:hover{background:var(--danger-bg);border-color:var(--danger);color:var(--danger)}
 .profile-grid{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
 .profile-col{min-width:0}
 .profile-actions{display:flex;flex-direction:column;gap:12px}

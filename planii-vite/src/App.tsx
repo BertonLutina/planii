@@ -55,15 +55,16 @@ function ThemeToggleButton() {
   )
 }
 
-function ListEditor({ me, onUpdate, title, desc, field, get, placeholder, maxLen, emptyNote }: {
+type ListEditorProps = {
   me: User; onUpdate: (u: User) => void; title: string; desc: string
   field: 'taskTypes' | 'roleLibrary'; get: (u: User) => string[]
   placeholder: string; maxLen: number; emptyNote: string
-}) {
+}
+
+function ListEditModal({ me, onUpdate, title, field, get, placeholder, maxLen, emptyNote, onClose }: ListEditorProps & { onClose: () => void }) {
   const [list, setList] = useState<string[]>(get(me))
   const [nv, setNv] = useState('')
   const [saving, setSaving] = useState(false)
-  const dirty = JSON.stringify(list) !== JSON.stringify(get(me))
 
   function add() {
     const v = nv.trim()
@@ -78,32 +79,48 @@ function ListEditor({ me, onUpdate, title, desc, field, get, placeholder, maxLen
     setSaving(true)
     try {
       const r = await api<{ user: User }>('PATCH', '/me', { [field]: list })
-      onUpdate(r.user); setList(get(r.user)); toast('Enregistré ✓')
+      onUpdate(r.user); toast('Enregistré ✓'); onClose()
     } catch (e: any) { toastErr(e.message) } finally { setSaving(false) }
   }
 
   return (
-    <>
-      <div className="section-h">{title}</div>
-      <div className="card">
-        <p className="sub" style={{ marginTop: 0 }}>{desc}</p>
-        <div className="chips">
-          {list.map((t) => (
-            <span key={t} className={'chip ' + typeTone(t)}>
-              {t}
-              <button className="chip-x" onClick={() => remove(t)} aria-label={'Retirer ' + t}>×</button>
-            </span>
-          ))}
-          {list.length === 0 && <span className="sub">{emptyNote}</span>}
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          <MicInput style={{ flex: 1 }} value={nv} maxLength={maxLen} placeholder={placeholder} onChange={setNv} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
-          <button className="btn sm" onClick={add}>Ajouter</button>
-        </div>
-        <button className="btn primary block" style={{ marginTop: 10 }} disabled={!dirty || saving} onClick={save}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </button>
+    <Modal title={title} onClose={onClose}>
+      <div className="chips">
+        {list.map((t) => (
+          <span key={t} className={'chip ' + typeTone(t)}>
+            {t}
+            <button className="chip-x" onClick={() => remove(t)} aria-label={'Retirer ' + t}>×</button>
+          </span>
+        ))}
+        {list.length === 0 && <span className="sub">{emptyNote}</span>}
       </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+        <MicInput style={{ flex: 1 }} value={nv} maxLength={maxLen} placeholder={placeholder} onChange={setNv} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
+        <button className="btn sm" onClick={add}>Ajouter</button>
+      </div>
+      <div className="sheet-actions">
+        <button className="btn primary" disabled={saving} onClick={save}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        <button className="btn ghost" onClick={onClose}>Annuler</button>
+      </div>
+    </Modal>
+  )
+}
+
+function ListEditor(props: ListEditorProps) {
+  const [editing, setEditing] = useState(false)
+  const saved = props.get(props.me)
+  return (
+    <>
+      <div className="section-h">{props.title}</div>
+      <div className="card info-card">
+        <button className="info-edit" onClick={() => setEditing(true)} aria-label={'Modifier ' + props.title}><Ic name="edit" s={15} /> Modifier</button>
+        <p className="sub" style={{ marginTop: 0, paddingRight: 96 }}>{props.desc}</p>
+        <div className="chips">
+          {saved.map((t) => <span key={t} className={'chip ' + typeTone(t)}>{t}</span>)}
+          {saved.length === 0 && <span className="sub">{props.emptyNote}</span>}
+        </div>
+      </div>
+      {editing && <ListEditModal {...props} onClose={() => setEditing(false)} />}
     </>
   )
 }
@@ -165,39 +182,57 @@ function ProjectLabelEditor() {
     } catch (e: any) { toastErr(e.message) }
   }
 
+  const [editing, setEditing] = useState(false)
   return (
     <>
       <div className="section-h">Mes libellés de projets</div>
-      <div className="card">
-        <p className="sub" style={{ marginTop: 0 }}>Ces libellés colorent tes projets et apparaissent dans la légende.</p>
+      <div className="card info-card">
+        <button className="info-edit" onClick={() => setEditing(true)} aria-label="Modifier mes libellés"><Ic name="edit" s={15} /> Modifier</button>
+        <p className="sub" style={{ marginTop: 0, paddingRight: 96 }}>Ces libellés colorent tes projets et apparaissent dans la légende.</p>
         <div className="label-chip-list">
           {labels.map((l) => (
             <span key={l.id} className="label-chip" style={{ borderColor: l.color, color: l.color }}>
               <i style={{ background: l.color }} />{l.label}
-              {!l.fixed && <button className="chip-x" onClick={() => remove(l.id)} aria-label={'Retirer ' + l.label}>×</button>}
             </span>
           ))}
-        </div>
-        <div className="label-add-row">
-          <MicInput value={name} maxLength={28} placeholder="Nouveau libellé…" onChange={setName} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
-          <div className="label-color-pick" aria-label="Couleur du libellé">
-            {palette.map((c) => {
-              const custom = !LABEL_COLORS.some((d) => d.toLowerCase() === c.toLowerCase())
-              return (
-                <span key={c} className="label-color-wrap">
-                  <button className={color === c ? 'on' : ''} style={{ background: c }} onClick={() => setColor(c)} aria-label={'Couleur ' + c} />
-                  {custom && <button className="label-color-x" onClick={() => removePaletteColor(c)} aria-label={'Supprimer la couleur ' + c}>×</button>}
-                </span>
-              )
-            })}
-            <label className="label-color-custom" title="Choisir une couleur">
-              <input type="color" value={color} onChange={(e) => addPaletteColor(e.target.value)} />
-              <span>＋</span>
-            </label>
-          </div>
-          <button className="btn sm" disabled={busy} onClick={add}>Ajouter</button>
+          {labels.length === 0 && <span className="sub">Aucun libellé pour l’instant.</span>}
         </div>
       </div>
+      {editing && (
+        <Modal title="Modifier mes libellés" onClose={() => setEditing(false)}>
+          <p className="sub" style={{ marginTop: 0 }}>Ces libellés colorent tes projets et apparaissent dans la légende.</p>
+          <div className="label-chip-list">
+            {labels.map((l) => (
+              <span key={l.id} className="label-chip" style={{ borderColor: l.color, color: l.color }}>
+                <i style={{ background: l.color }} />{l.label}
+                {!l.fixed && <button className="chip-x" onClick={() => remove(l.id)} aria-label={'Retirer ' + l.label}>×</button>}
+              </span>
+            ))}
+          </div>
+          <div className="label-add-row">
+            <MicInput value={name} maxLength={28} placeholder="Nouveau libellé…" onChange={setName} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
+            <div className="label-color-pick" aria-label="Couleur du libellé">
+              {palette.map((c) => {
+                const custom = !LABEL_COLORS.some((d) => d.toLowerCase() === c.toLowerCase())
+                return (
+                  <span key={c} className="label-color-wrap">
+                    <button className={color === c ? 'on' : ''} style={{ background: c }} onClick={() => setColor(c)} aria-label={'Couleur ' + c} />
+                    {custom && <button className="label-color-x" onClick={() => removePaletteColor(c)} aria-label={'Supprimer la couleur ' + c}>×</button>}
+                  </span>
+                )
+              })}
+              <label className="label-color-custom" title="Choisir une couleur">
+                <input type="color" value={color} onChange={(e) => addPaletteColor(e.target.value)} />
+                <span>＋</span>
+              </label>
+            </div>
+            <button className="btn sm" disabled={busy} onClick={add}>Ajouter</button>
+          </div>
+          <div className="sheet-actions">
+            <button className="btn primary" onClick={() => setEditing(false)}>Terminé</button>
+          </div>
+        </Modal>
+      )}
     </>
   )
 }
@@ -245,6 +280,7 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
           <Avatar name={me.name} size={48} />
           <div><p className="title-lg" style={{ fontSize: 16 }}>{me.name}</p><p className="sub">{me.email}{me.job ? ' · ' + me.job : ''}</p></div>
         </div>
+        <button className="btn ghost sm profile-logout" onClick={onLogout}><Ic name="logout" s={15} /> Se déconnecter</button>
       </div>
 
       <div className="profile-grid">
@@ -284,7 +320,6 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
               <button className="btn primary block" style={{ marginTop: 4 }} onClick={onAdmin}><Ic name="shield" s={16} /> Espace admin</button>
             )}
             <ThemeControl />
-            <button className="btn danger block" style={{ marginTop: 16 }} onClick={onLogout}>Se déconnecter</button>
           </div>
         </div>
       </div>
