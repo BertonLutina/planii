@@ -36,13 +36,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.meRoutes = meRoutes;
 const express_1 = require("express");
 const MeController = __importStar(require("../controllers/Me.controller"));
+const validate_1 = require("../middleware/validate");
+const schemas_1 = require("../schemas");
 function meRoutes() {
     const r = (0, express_1.Router)();
     r.get('/me', ...MeController.getMe);
-    r.patch('/me', ...MeController.patchMe);
+    r.patch('/me', (0, validate_1.validate)(schemas_1.meUpdateSchema), ...MeController.patchMe);
     r.get('/project-labels', ...MeController.getProjectLabels);
-    r.post('/project-labels', ...MeController.createProjectLabel);
-    r.patch('/project-label-colors', ...MeController.patchProjectLabelColors);
+    r.post('/project-labels', (0, validate_1.validate)(schemas_1.projectLabelSchema), ...MeController.createProjectLabel);
+    r.patch('/project-label-colors', (0, validate_1.validate)(schemas_1.labelColorsSchema), ...MeController.patchProjectLabelColors);
     r.delete('/project-label-colors/:color', ...MeController.deleteProjectLabelColor);
     r.delete('/project-labels/:id', ...MeController.deleteProjectLabel);
     return r;

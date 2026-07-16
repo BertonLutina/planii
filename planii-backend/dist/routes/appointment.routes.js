@@ -36,11 +36,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.appointmentRoutes = appointmentRoutes;
 const express_1 = require("express");
 const AppointmentController = __importStar(require("../controllers/Appointment.controller"));
+const validate_1 = require("../middleware/validate");
+const schemas_1 = require("../schemas");
 function appointmentRoutes() {
     const r = (0, express_1.Router)();
     r.get('/projects/:id/appointments', ...AppointmentController.list);
-    r.post('/projects/:id/appointments', ...AppointmentController.create);
-    r.patch('/appointments/:id', ...AppointmentController.update);
+    r.post('/projects/:id/appointments', (0, validate_1.validate)(schemas_1.appointmentCreateSchema), ...AppointmentController.create);
+    r.patch('/appointments/:id', (0, validate_1.validate)(schemas_1.appointmentUpdateSchema), ...AppointmentController.update);
     r.delete('/appointments/:id', ...AppointmentController.remove);
     return r;
 }

@@ -36,10 +36,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.pollsRoutes = pollsRoutes;
 const express_1 = require("express");
 const PollController = __importStar(require("../controllers/Poll.controller"));
+const validate_1 = require("../middleware/validate");
+const schemas_1 = require("../schemas");
 function pollsRoutes() {
     const r = (0, express_1.Router)();
-    r.post('/projects/:id/polls', ...PollController.create);
-    r.post('/polls/:id/vote', ...PollController.vote);
+    r.post('/projects/:id/polls', (0, validate_1.validate)(schemas_1.pollCreateSchema), ...PollController.create);
+    r.post('/polls/:id/vote', (0, validate_1.validate)(schemas_1.pollVoteSchema), ...PollController.vote);
     r.get('/projects/:id/activity', ...PollController.activity);
     return r;
 }

@@ -36,9 +36,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.invitesRoutes = invitesRoutes;
 const express_1 = require("express");
 const InviteController = __importStar(require("../controllers/Invite.controller"));
+const validate_1 = require("../middleware/validate");
+const schemas_1 = require("../schemas");
 function invitesRoutes() {
     const r = (0, express_1.Router)();
-    r.post('/projects/:id/invites', ...InviteController.create);
+    r.post('/projects/:id/invites', (0, validate_1.validate)(schemas_1.inviteCreateSchema), ...InviteController.create);
     r.get('/invites/:token', InviteController.get);
     r.post('/invites/:token/accept', ...InviteController.accept);
     return r;

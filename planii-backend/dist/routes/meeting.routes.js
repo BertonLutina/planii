@@ -36,13 +36,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.meetingRoutes = meetingRoutes;
 const express_1 = require("express");
 const MeetingController = __importStar(require("../controllers/Meeting.controller"));
+const validate_1 = require("../middleware/validate");
+const schemas_1 = require("../schemas");
 function meetingRoutes() {
     const r = (0, express_1.Router)();
     r.get('/projects/:id/meeting/messages', ...MeetingController.listMessages);
-    r.post('/projects/:id/meeting/messages', ...MeetingController.postMessage);
+    r.post('/projects/:id/meeting/messages', (0, validate_1.validate)(schemas_1.meetingMessageSchema), ...MeetingController.postMessage);
     r.get('/projects/:id/meeting/task-delegates', ...MeetingController.listTaskDelegates);
-    r.put('/projects/:id/meeting/task-delegates', ...MeetingController.setTaskDelegates);
-    r.post('/projects/:id/meeting/tasks', ...MeetingController.createTask);
+    r.put('/projects/:id/meeting/task-delegates', (0, validate_1.validate)(schemas_1.meetingDelegatesSchema), ...MeetingController.setTaskDelegates);
+    r.post('/projects/:id/meeting/tasks', (0, validate_1.validate)(schemas_1.meetingTaskSchema), ...MeetingController.createTask);
     return r;
 }
 //# sourceMappingURL=meeting.routes.js.map

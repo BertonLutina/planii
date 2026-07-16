@@ -37,10 +37,12 @@ exports.authRoutes = authRoutes;
 const express_1 = require("express");
 const AuthController = __importStar(require("../controllers/Auth.controller"));
 const security_1 = require("../middleware/security");
+const validate_1 = require("../middleware/validate");
+const schemas_1 = require("../schemas");
 function authRoutes() {
     const r = (0, express_1.Router)();
-    r.post('/register', security_1.authRateLimit, AuthController.register);
-    r.post('/login', security_1.authRateLimit, AuthController.login);
+    r.post('/register', security_1.authRateLimit, (0, validate_1.validate)(schemas_1.registerSchema), AuthController.register);
+    r.post('/login', security_1.authRateLimit, (0, validate_1.validate)(schemas_1.loginSchema), AuthController.login);
     return r;
 }
 //# sourceMappingURL=auth.routes.js.map
