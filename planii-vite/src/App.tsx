@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, getTok, setTok } from '@/lib/api'
-import { Toaster, Avatar, health, toast, toastErr } from '@/lib/ui'
+import { Toaster, Avatar, health, toast, toastErr, Modal } from '@/lib/ui'
 import type { ProjectLabel, User } from '@/lib/types'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
 import { MicInput } from './components/Mic'
@@ -14,6 +14,7 @@ import { Leaderboard } from './components/Leaderboard'
 import { NotifBell } from './components/Notifications'
 import { CommandPalette, CMD_LABEL } from './components/CommandPalette'
 import { QuickTask } from './components/QuickTask'
+import { QuickAppointment } from './components/QuickAppointment'
 import { Admin } from './components/Admin'
 import { StyleGuide } from './components/StyleGuide'
 import { Privacy } from './components/Privacy'
@@ -288,6 +289,8 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
   const [newSignal, setNewSignal] = useState(0)
   const [cmd, setCmd] = useState(false)
   const [quick, setQuick] = useState(false)
+  const [quickAppt, setQuickAppt] = useState(false)
+  const [agendaPick, setAgendaPick] = useState(false)
   const [refresh, setRefresh] = useState(0)
   const [homeView, setHomeView] = useState<'list' | 'board' | 'agenda'>('list')
   const { projects } = useProjectSummaries()
@@ -379,12 +382,29 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><span className="bic">{I[k]}</span>{l}</button>
         ))}
       </nav>
-      <button className="fab" aria-label="Nouvelle tâche" onClick={() => setQuick(true)}>
+      <button
+        className="fab"
+        aria-label={tab === 'calendrier' ? 'Créer un rendez-vous ou une tâche' : 'Nouveau projet'}
+        title={tab === 'calendrier' ? 'Créer un rendez-vous ou une tâche' : 'Nouveau projet'}
+        onClick={() => { if (tab === 'calendrier') setAgendaPick(true); else newProject() }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
       </button>
 
       <CommandPalette open={cmd} onClose={() => setCmd(false)} setTab={setTab} openProject={setOpenId} newProject={newProject} />
       {quick && <QuickTask me={me} onClose={() => setQuick(false)} onCreated={() => { setQuick(false); setRefresh((k) => k + 1) }} />}
+      {quickAppt && <QuickAppointment onClose={() => setQuickAppt(false)} onCreated={() => { setQuickAppt(false); setRefresh((k) => k + 1) }} />}
+      {agendaPick && (
+        <Modal title="Créer dans l’agenda" onClose={() => setAgendaPick(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button className="btn block" style={{ justifyContent: 'flex-start', gap: 10, padding: '14px 16px' }} onClick={() => { setAgendaPick(false); setQuickAppt(true) }}>
+              <Ic name="calendar" s={18} c="var(--accent)" /> Rendez-vous
+            </button>
+            <button className="btn block" style={{ justifyContent: 'flex-start', gap: 10, padding: '14px 16px' }} onClick={() => { setAgendaPick(false); setQuick(true) }}>
+              <Ic name="check" s={18} c="var(--ok)" /> Tâche
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {joinOpen && (
         <JoinModal
