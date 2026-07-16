@@ -27,7 +27,7 @@ const envSchema = zod_1.z.object({
     APP_URL: zod_1.z.string().url().optional(),
     APP_WEB_URL: zod_1.z.string().url().optional(),
     INVITE_DAYS: zod_1.z.coerce.number().int().positive().default(14),
-    CORS_ORIGINS: zod_1.z.string().default('*'),
+    CORS_ORIGINS: zod_1.z.string().default('https://planii.app,https://www.planii.app'),
     SUPER_ADMIN_EMAILS: zod_1.z.string().default('berton.lutina@hotmail.com'),
     SMTP_HOST: zod_1.z.string().default('smtp.hostinger.com'),
     SMTP_PORT: zod_1.z.coerce.number().int().positive().default(465),
@@ -38,7 +38,7 @@ const envSchema = zod_1.z.object({
     IMAP_HOST: zod_1.z.string().default('imap.hostinger.com'),
     IMAP_PORT: zod_1.z.coerce.number().int().positive().default(993),
     RATE_LIMIT_WINDOW_MS: zod_1.z.coerce.number().int().positive().default(900_000),
-    RATE_LIMIT_MAX: zod_1.z.coerce.number().int().positive().default(100),
+    RATE_LIMIT_MAX: zod_1.z.coerce.number().int().positive().default(300),
     AUTH_RATE_LIMIT_MAX: zod_1.z.coerce.number().int().positive().default(20),
 });
 const parsed = envSchema.safeParse({
@@ -54,8 +54,12 @@ const port = raw.PORT;
 const appUrl = (raw.APP_URL || `http://localhost:${port}`).replace(/\/$/, '');
 const webUrl = (raw.APP_WEB_URL || appUrl).replace(/\/$/, '');
 const smtpSecure = raw.SMTP_SECURE ? raw.SMTP_SECURE === 'true' : raw.SMTP_PORT === 465;
+const PROD_ORIGINS = ['https://planii.app', 'https://www.planii.app'];
+// Sécurité : le wildcard '*' n'est jamais autorisé en production. En dev il reste
+// permissif ; en prod il retombe sur les domaines Planii connus. Une valeur explicite
+// (liste séparée par des virgules) est toujours respectée.
 const corsOrigins = raw.CORS_ORIGINS === '*'
-    ? '*'
+    ? (raw.NODE_ENV === 'production' ? PROD_ORIGINS : '*')
     : raw.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
 exports.env = {
     ...raw,

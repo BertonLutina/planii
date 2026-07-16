@@ -52,14 +52,15 @@ async function register(body) {
     if (await UserModel.findByEmail(email))
         (0, http_error_1.fail)(409, 'Cet email est déjà inscrit');
     const job = (body.job || '').trim().slice(0, 60) || null;
-    const u = { id: (0, utils_1.uid)(), name, email, pass_hash: bcryptjs_1.default.hashSync(password, 10), job };
+    const pass_hash = await bcryptjs_1.default.hash(password, 12);
+    const u = { id: (0, utils_1.uid)(), name, email, pass_hash, job };
     await UserModel.createUser({ id: u.id, name: u.name, email: u.email, pass_hash: u.pass_hash, job });
     return { token: UserView.signToken(u), user: u };
 }
 async function login(body) {
     const email = (body.email || '').trim().toLowerCase();
     const u = await UserModel.findByEmail(email);
-    if (!u || !bcryptjs_1.default.compareSync(body.password || '', u.pass_hash))
+    if (!u || !(await bcryptjs_1.default.compare(body.password || '', u.pass_hash)))
         (0, http_error_1.fail)(401, 'Identifiants incorrects');
     await UserModel.touchLastLogin(u.id);
     return { token: UserView.signToken(u), user: u };
