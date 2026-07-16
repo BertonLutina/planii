@@ -16,6 +16,7 @@ import { CommandPalette, CMD_LABEL } from './components/CommandPalette'
 import { QuickTask } from './components/QuickTask'
 import { Admin } from './components/Admin'
 import { StyleGuide } from './components/StyleGuide'
+import { Privacy } from './components/Privacy'
 import { applyTheme, getTheme, type Theme } from '@/lib/theme'
 import { useProjectSummaries } from '@/lib/useProjects'
 import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
@@ -402,11 +403,19 @@ const isStyleGuideRoute = () => {
   return path === '/style-guide' || path.endsWith('/style-guide') || hash === 'style-guide'
 }
 
+const isPrivacyRoute = () => {
+  const path = window.location.pathname.replace(/\/+$/, '')
+  const hash = window.location.hash.replace(/^#\/?/, '')
+  const names = ['/confidentialite', '/confidentialité', '/privacy', '/privacy-policy']
+  return names.some((n) => path === n || path.endsWith(n)) || hash === 'confidentialite' || hash === 'privacy'
+}
+
 export default function App() {
   const styleGuide = isStyleGuideRoute()
+  const privacy = isPrivacyRoute()
   const [me, setMe] = useState<User | null | undefined>(undefined)
   useEffect(() => {
-    if (styleGuide) return
+    if (styleGuide || privacy) return
     if (!getTok()) { setMe(null); return }
     api<{ user: User }>('GET', '/me').then((r) => { setMe(r.user); connectRealtime() }).catch(() => { setTok(null); setMe(null) })
     return () => disconnectRealtime()
@@ -414,6 +423,7 @@ export default function App() {
   }, [])
   const onLogout = () => { disconnectRealtime(); setTok(null); setMe(null) }
   if (styleGuide) return <StyleGuide />
+  if (privacy) return <Privacy />
   return (
     <>
       <Toaster />
