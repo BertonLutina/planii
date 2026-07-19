@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Modal } from '@/lib/ui'
+import { useI18n, t as tt } from '@/lib/i18n'
 import { Ic } from './Icon'
 
 /* ---- Contenu du guide, par page ---- */
@@ -9,100 +10,38 @@ type PageGuide = { title: string; intro: string; points: string[]; tour: TourSte
 const NAV_SEL = ['.bottomnav', '.side-nav']
 const FAB_SEL = ['.fab', '.newbtn']
 
-export const GUIDES: Record<string, PageGuide> = {
-  accueil: {
-    title: 'Accueil — ton tableau du jour',
-    intro: 'L’accueil rassemble tout ce qui demande ton attention aujourd’hui, tous projets confondus.',
-    points: [
-      'Les tuiles du haut regroupent tes tâches : en retard, à faire aujourd’hui, priorités fortes, à valider…',
-      'En haut à droite, change l’affichage : Liste, Tableau (kanban) ou Agenda.',
-      'La liste « À faire » en dessous te montre tes prochaines tâches, triées par priorité puis par date.',
-      'Le bouton + (mobile) crée un nouveau projet depuis n’importe quelle page.',
-    ],
-    tour: [
-      { sel: ['.today-board', '.wrap'], title: 'Ton tableau du jour', text: 'Chaque tuile colorée regroupe une catégorie : en retard, à faire, priorités… Un coup d’œil suffit.' },
-      { sel: ['.appbar-views'], title: 'Changer d’affichage', text: 'Bascule entre Liste, Tableau et Agenda selon ta préférence.' },
-      { sel: NAV_SEL, title: 'Naviguer', text: 'Passe d’une section à l’autre : Accueil, Projets, Agenda, Classement, Profil.' },
-      { sel: FAB_SEL, title: 'Créer', text: 'Le bouton + crée un projet. Sur l’agenda, il propose un rendez-vous ou une tâche.' },
-    ],
-  },
-  projets: {
-    title: 'Projets — tes espaces de travail',
-    intro: 'Un projet regroupe des tâches, des membres, des rôles et une messagerie. Trois types : 1-à-1, équipe, groupe.',
-    points: [
-      'Bascule entre la vue Cartes (visuelle) et la vue Tableau (comparative) en haut à gauche.',
-      'Trie tes projets par titre ou manuellement (glisser-déposer en vue Cartes).',
-      'Clique sur un projet pour l’ouvrir : tâches, rôles, réunion, rendez-vous, sondages.',
-      '« Rejoindre un projet » te permet d’entrer via un lien d’invitation.',
-    ],
-    tour: [
-      { sel: ['.proj-viewseg'], title: 'Cartes ou Tableau', text: 'Vue Cartes pour un aperçu visuel, vue Tableau pour comparer beaucoup de projets d’un coup d’œil.' },
-      { sel: ['.list-tools'], title: 'Trier', text: 'Trie par titre, ou passe en mode manuel pour ranger tes projets par glisser-déposer.' },
-      { sel: ['.pcard', '.ptable', '.wrap'], title: 'Ouvrir un projet', text: 'Clique sur un projet pour accéder à ses tâches, ses membres et ses outils.' },
-      { sel: FAB_SEL, title: 'Nouveau projet', text: 'Crée un projet et choisis son type : 1-à-1, équipe ou groupe.' },
-    ],
-  },
-  calendrier: {
-    title: 'Agenda — tes échéances et rendez-vous',
-    intro: 'L’agenda réunit les dates de tes tâches et tes rendez-vous, tous projets confondus.',
-    points: [
-      'Visualise tes échéances par mois, semaine ou année.',
-      'Le bouton + (mobile) ouvre un choix : créer un rendez-vous ou une tâche.',
-      'Un rendez-vous est rattaché à un projet et notifie les participants par e-mail.',
-    ],
-    tour: [
-      { sel: ['.wrap'], title: 'Ta vue d’ensemble', text: 'Toutes tes échéances et tes rendez-vous réunis au même endroit.' },
-      { sel: FAB_SEL, title: 'Créer', text: 'Sur l’agenda, le + propose de créer un rendez-vous ou une tâche.' },
-    ],
-  },
-  classement: {
-    title: 'Classement — la motivation d’équipe',
-    intro: 'Chaque tâche cochée rapporte des points. Le classement récompense les équipes les plus régulières.',
-    points: [
-      'Barème : en avance 20 pts · le jour même 15 pts · en retard 5 pts.',
-      'La meilleure équipe reçoit un bonus.',
-      'Coche tes tâches pour faire grimper ton projet dans le classement.',
-    ],
-    tour: [
-      { sel: ['.wrap'], title: 'Le classement', text: 'Les projets sont classés par points. Coche tes tâches pour grimper.' },
-      { sel: NAV_SEL, title: 'Reviens quand tu veux', text: 'Le classement se met à jour en temps réel à chaque tâche terminée.' },
-    ],
-  },
-  profil: {
-    title: 'Profil — tes préférences',
-    intro: 'Gère ton identité, ton métier, tes types de tâches et ta bibliothèque de rôles réutilisables.',
-    points: [
-      'Modifie ton nom, ton e-mail et ton métier.',
-      'Personnalise tes types de tâches (par défaut : Tâche, Bug) et ta bibliothèque de rôles.',
-      'Change le thème : clair, sombre ou automatique.',
-    ],
-    tour: [
-      { sel: ['.wrap'], title: 'Tes informations', text: 'Mets à jour ton profil, tes types de tâches et tes rôles réutilisables.' },
-    ],
-  },
-  admin: {
-    title: 'Espace admin',
-    intro: 'Tableau de bord d’administration : statistiques, utilisateurs, projets, et boîte mail (super-admin).',
-    points: [
-      'Le tableau de bord montre les chiffres clés et des graphiques.',
-      'Gère les utilisateurs et les projets, consulte le journal d’audit.',
-      'La boîte mail (super-admin) permet de lire et répondre aux e-mails du support.',
-    ],
-    tour: [
-      { sel: ['.admin-seg', '.wrap'], title: 'Les sections', text: 'Navigue entre Tableau de bord, Utilisateurs, Tâches, Projets et la boîte mail.' },
-    ],
-  },
+/** Définition structurelle du guide : sélecteurs + nombre de points.
+ *  Tous les textes viennent de lib/i18n (clés g.<page>.*), donc traduits dans les 9 langues. */
+const GUIDE_DEF: Record<string, { pts: number; tour: string[][] }> = {
+  accueil: { pts: 4, tour: [['.today-board', '.wrap'], ['.appbar-views'], NAV_SEL, FAB_SEL] },
+  projets: { pts: 4, tour: [['.proj-viewseg'], ['.list-tools'], ['.pcard', '.ptable', '.wrap'], FAB_SEL] },
+  calendrier: { pts: 3, tour: [['.wrap'], FAB_SEL] },
+  classement: { pts: 3, tour: [['.wrap'], NAV_SEL] },
+  profil: { pts: 3, tour: [['.wrap']] },
+  admin: { pts: 3, tour: [['.admin-seg', '.wrap']] },
+}
+
+function guideOf(tab: string): PageGuide | null {
+  const def = GUIDE_DEF[tab]
+  if (!def) return null
+  return {
+    title: tt(`g.${tab}.title`),
+    intro: tt(`g.${tab}.intro`),
+    points: Array.from({ length: def.pts }, (_, i) => tt(`g.${tab}.p${i + 1}`)),
+    tour: def.tour.map((sel, i) => ({ sel, title: tt(`g.${tab}.s${i + 1}t`), text: tt(`g.${tab}.s${i + 1}x`) })),
+  }
 }
 
 /* ---- Bouton d’aide + panneau (par page) ---- */
 export function HelpButton({ tab }: { tab: string }) {
+  const { t: tr } = useI18n()
   const [open, setOpen] = useState(false)
   const [tour, setTour] = useState(false)
-  const g = GUIDES[tab]
+  const g = guideOf(tab)
   if (!g) return null
   return (
     <>
-      <button className="help-btn" aria-label="Aide sur cette page" title="Aide sur cette page" onClick={() => setOpen(true)}>
+      <button className="help-btn" aria-label={tr('common.help')} title={tr('common.help')} onClick={() => setOpen(true)}>
         <Ic name="help" s={19} />
       </button>
       {open && (
@@ -113,7 +52,7 @@ export function HelpButton({ tab }: { tab: string }) {
           </ul>
           {g.tour.length > 0 && (
             <button className="btn primary block" style={{ marginTop: 6 }} onClick={() => { setOpen(false); setTour(true) }}>
-              <Ic name="sparkles" s={16} /> Lancer la visite guidée
+              <Ic name="sparkles" s={16} /> {tr('guide.launch')}
             </button>
           )}
         </Modal>
@@ -187,16 +126,16 @@ function Tour({ steps, onClose }: { steps: TourStep[]; onClose: () => void }) {
         }} />
       )}
       <div className="tour-tip" style={{ top: tipTop, left: tipLeft, width: tipW }}>
-        <div className="tour-step-n">Étape {i + 1} / {steps.length}</div>
+        <div className="tour-step-n">{tt('vw.step')} {i + 1} / {steps.length}</div>
         <div className="tour-tip-title">{step.title}</div>
         <p className="tour-tip-text">{step.text}</p>
         <div className="tour-actions">
-          <button className="btn ghost sm" onClick={onClose}>Quitter</button>
+          <button className="btn ghost sm" onClick={onClose}>{tt('guide.quit')}</button>
           <div style={{ display: 'flex', gap: 8 }}>
-            {i > 0 && <button className="btn sm" onClick={() => setI(i - 1)}><Ic name="chevron-left" s={15} /> Précédent</button>}
+            {i > 0 && <button className="btn sm" onClick={() => setI(i - 1)}><Ic name="chevron-left" s={15} /> {tt('guide.prev')}</button>}
             {last
-              ? <button className="btn primary sm" onClick={onClose}>Terminer</button>
-              : <button className="btn primary sm" onClick={() => setI(i + 1)}>Suivant <Ic name="chevron-right" s={15} /></button>}
+              ? <button className="btn primary sm" onClick={onClose}>{tt('guide.finish')}</button>
+              : <button className="btn primary sm" onClick={() => setI(i + 1)}>{tt('guide.next')} <Ic name="chevron-right" s={15} /></button>}
           </div>
         </div>
       </div>
