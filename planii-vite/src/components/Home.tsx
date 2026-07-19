@@ -10,6 +10,7 @@ import { Ic } from './Icon'
 import { CalendarView } from './Calendar'
 import { TaskDrawer } from './TaskDrawer'
 import type { Project, Task, TodayPayload, TodayTask, User } from '@/lib/types'
+import { useI18n, t as tt } from '@/lib/i18n'
 
 export function LevelCard({ points, name }: { points: number; name?: string }) {
   const l = levelOf(points)
@@ -55,7 +56,7 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
       await api('PATCH', '/tasks/' + t.id, { done: !t.done })
       if (!t.done) {
         const gained = pointsFor(t.due, isoLocal(new Date()))
-        const when = !t.due ? '' : gained >= 20 ? ' — en avance !' : gained <= 5 ? ' — en retard' : ' — dans les temps'
+        const when = !t.due ? '' : gained >= 20 ? tt('home.early') : gained <= 5 ? tt('home.late') : tt('home.onTime')
         toast(`Bravo ! +${gained} pts 🎉${when}`)
       }
       reload()
@@ -66,6 +67,7 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
     .map((p) => ({ p, tasks: mine.filter((x) => x.p.id === p.id).map((x) => x.t).sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || prio(a.priority) - prio(b.priority)) }))
     .filter((c) => c.tasks.length > 0)
 
+  const { t: tr } = useI18n()
   const openTodayTask = (t: TodayTask) => onOpen(t.projectId)
 
   return (
@@ -74,15 +76,15 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
       <TodayDashboard today={today} onOpenTask={openTodayTask} onOpenProject={onOpen} />
       <div className="home-toolbar only-mobile-flex">
         <div className="viewseg">
-          <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}><Ic name="list" s={15} />Liste</button>
-          <button className={view === 'board' ? 'on' : ''} onClick={() => setView('board')}><Ic name="board" s={15} />Tableau</button>
-          <button className={view === 'agenda' ? 'on' : ''} onClick={() => setView('agenda')}><Ic name="calendar-days" s={15} />Agenda</button>
+          <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}><Ic name="list" s={15} />{tr('view.list')}</button>
+          <button className={view === 'board' ? 'on' : ''} onClick={() => setView('board')}><Ic name="board" s={15} />{tr('view.board')}</button>
+          <button className={view === 'agenda' ? 'on' : ''} onClick={() => setView('agenda')}><Ic name="calendar-days" s={15} />{tr('view.agenda')}</button>
         </div>
       </div>
 
       {view === 'list' && <>
-        <div className="grp-h">À FAIRE · {todo.length}</div>
-        <div className="priority-legend"><b>Priorité :</b>
+        <div className="grp-h">{tr('home.todo')} · {todo.length}</div>
+        <div className="priority-legend"><b>{tr('home.priority')}</b>
           <span><i className="p-dot p1" />P1</span>
           <span><i className="p-dot p2" />P2</span>
           <span><i className="p-dot p3" />P3</span>
@@ -90,14 +92,14 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
           <span><i className="p-dot p5" />P5</span>
           <span><i className="p-dot p6" />P6</span>
         </div>
-        {todo.length === 0 && <div className="empty"><div className="big"><Ic name="circle-check" s={30} /></div>Rien à faire — tout est à jour, bravo !</div>}
+        {todo.length === 0 && <div className="empty"><div className="big"><Ic name="circle-check" s={30} /></div>{tr('home.allDone')}</div>}
         {todo.map(({ t, p }) => {
           const over = isOverdue(t)
           const pm = prioMeta(t.priority)
           const hasHours = t.spentHours != null || t.estHours != null
           return (
             <div key={t.id} className={'home-task' + (over ? ' overdue' : '')}>
-              <button className={'check-big ' + pm.ringCls} onClick={(e) => { e.stopPropagation(); toggle(t) }} aria-label="Terminer" />
+              <button className={'check-big ' + pm.ringCls} onClick={(e) => { e.stopPropagation(); toggle(t) }} aria-label={tr('home.finish')} />
               <div className="ht-body" onClick={() => setDrawerId(t.id)}>
                 <div className="ht-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
@@ -116,10 +118,10 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
         })}
         {done.length > 0 && (
           <>
-            <div className="grp-h">TERMINÉES · {done.length}</div>
+            <div className="grp-h">{tr('home.doneGrp')} · {done.length}</div>
             {done.map(({ t, p }) => (
               <div key={t.id} className="home-task done">
-                <button className="check-big done" onClick={() => toggle(t)} aria-label="Rouvrir"><Ic name="check" s={14} c="#fff" /></button>
+                <button className="check-big done" onClick={() => toggle(t)} aria-label={tr('home.reopen')}><Ic name="check" s={14} c="#fff" /></button>
                 <div className="ht-body" onClick={() => setDrawerId(t.id)}>
                   <div className="ht-title">{t.title}</div>
                 </div>
@@ -132,17 +134,17 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
 
       {view === 'board' && (
         boardCols.length === 0
-          ? <div className="empty"><div className="big">▦</div>Aucune tâche à afficher.</div>
+          ? <div className="empty"><div className="big">▦</div>{tr('home.noTasks')}</div>
           : <div className="board">
             {boardCols.map(({ p, tasks }) => (
               <div key={p.id} className="board-col">
-                <div className="board-head"><div className="board-who"><div><div className="nm">{p.name}</div><div className="sc">{tasks.filter((t) => !t.done).length} à faire</div></div></div></div>
+                <div className="board-head"><div className="board-who"><div><div className="nm">{p.name}</div><div className="sc">{tasks.filter((t) => !t.done).length} {tr('home.colTodo')}</div></div></div></div>
                 <div className="board-tasks">
                   {tasks.map((t) => {
                     const pm = prioMeta(t.priority)
                     return (
                       <div key={t.id} className={'board-task' + (t.done ? ' done' : '')} style={{ cursor: 'pointer', alignItems: 'flex-start' }} onClick={() => onOpen(p.id)}>
-                        <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls)} onClick={(e) => { e.stopPropagation(); toggle(t) }} aria-label="Cocher">{t.done ? <Ic name="check" s={13} c="#fff" /> : null}</button>
+                        <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls)} onClick={(e) => { e.stopPropagation(); toggle(t) }} aria-label={tr('home.check')}>{t.done ? <Ic name="check" s={13} c="#fff" /> : null}</button>
                         <span className="bt-title" style={{ whiteSpace: 'normal' }}>
                           {pm.n < 6 && <span className={'pflag ' + pm.flagCls} style={{ marginRight: 5 }}>{pm.tag}</span>}
                           {t.title}{t.due ? ` · ${formatDue(t.due)}` : ''}
@@ -173,21 +175,21 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
 }
 
 function TodayDashboard({ today, onOpenTask, onOpenProject }: { today: TodayPayload | null; onOpenTask: (t: TodayTask) => void; onOpenProject: (id: string) => void }) {
-  if (!today) return <div className="today-board"><div className="today-head"><div><h2>Aujourd’hui</h2><p>Chargement de tes priorités…</p></div></div></div>
+  if (!today) return <div className="today-board"><div className="today-head"><div><h2>{tt('today.title')}</h2><p>{tt('today.loading')}</p></div></div></div>
   const sections: { key: keyof TodayPayload; title: string; tone: string; empty: string }[] = [
-    { key: 'overdue', title: 'En retard', tone: 'danger', empty: 'Aucun retard.' },
-    { key: 'dueToday', title: 'À faire aujourd’hui', tone: 'accent', empty: 'Rien à rendre aujourd’hui.' },
-    { key: 'highPriority', title: 'Priorités fortes', tone: 'warn', empty: 'Aucune priorité P1/P2.' },
-    { key: 'transferred', title: 'Transférées', tone: 'blue', empty: 'Aucune tâche transférée.' },
-    { key: 'review', title: 'À valider', tone: 'ok', empty: 'Rien en revue.' },
+    { key: 'overdue', title: tt('today.overdue'), tone: 'danger', empty: tt('today.noOverdue') },
+    { key: 'dueToday', title: tt('today.dueToday'), tone: 'accent', empty: tt('today.noDueToday') },
+    { key: 'highPriority', title: tt('today.highPrio'), tone: 'warn', empty: tt('today.noHighPrio') },
+    { key: 'transferred', title: tt('today.transferred'), tone: 'blue', empty: tt('today.noTransferred') },
+    { key: 'review', title: tt('today.review'), tone: 'ok', empty: tt('today.noReview') },
   ]
   const total = sections.reduce((sum, s) => sum + (today[s.key] as TodayTask[]).length, 0)
   return (
     <section className="today-board">
       <div className="today-head">
         <div>
-          <h2>Aujourd’hui</h2>
-          <p>{total ? `${total} point${total > 1 ? 's' : ''} à surveiller maintenant.` : 'Tout est calme pour le moment.'}</p>
+          <h2>{tt('today.title')}</h2>
+          <p>{total ? tt('today.watch', { n: total }) : tt('today.calm')}</p>
         </div>
         <span className="today-pill">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
       </div>
@@ -202,11 +204,11 @@ function TodayDashboard({ today, onOpenTask, onOpenProject }: { today: TodayPayl
           )
         })}
         <div className="today-section discussions">
-          <div className="today-section-head"><b>Discussions actives</b><span>{today.activeDiscussions.length}</span></div>
-          {today.activeDiscussions.length === 0 ? <div className="today-empty">Aucun meeting récent.</div> : today.activeDiscussions.map((d) => (
+          <div className="today-section-head"><b>{tt('today.discussions')}</b><span>{today.activeDiscussions.length}</span></div>
+          {today.activeDiscussions.length === 0 ? <div className="today-empty">{tt('today.noMeeting')}</div> : today.activeDiscussions.map((d) => (
             <button key={d.projectId} className="today-discussion" onClick={() => onOpenProject(d.projectId)}>
               <span>{d.projectName}</span>
-              <small>{d.count} message{d.count > 1 ? 's' : ''}</small>
+              <small>{d.count} {tt('today.messages')}</small>
             </button>
           ))}
         </div>

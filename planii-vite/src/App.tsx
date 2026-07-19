@@ -459,13 +459,13 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
       {quick && <QuickTask me={me} onClose={() => setQuick(false)} onCreated={() => { setQuick(false); setRefresh((k) => k + 1) }} />}
       {quickAppt && <QuickAppointment onClose={() => setQuickAppt(false)} onCreated={() => { setQuickAppt(false); setRefresh((k) => k + 1) }} />}
       {agendaPick && (
-        <Modal title="Créer dans l’agenda" onClose={() => setAgendaPick(false)}>
+        <Modal title={tr('qa.pick')} onClose={() => setAgendaPick(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button className="btn block" style={{ justifyContent: 'flex-start', gap: 10, padding: '14px 16px' }} onClick={() => { setAgendaPick(false); setQuickAppt(true) }}>
-              <Ic name="calendar" s={18} c="var(--accent)" /> Rendez-vous
+              <Ic name="calendar" s={18} c="var(--accent)" /> {tr('qa.appt')}
             </button>
             <button className="btn block" style={{ justifyContent: 'flex-start', gap: 10, padding: '14px 16px' }} onClick={() => { setAgendaPick(false); setQuick(true) }}>
-              <Ic name="check" s={18} c="var(--ok)" /> Tâche
+              <Ic name="check" s={18} c="var(--ok)" /> {tr('qa.task')}
             </button>
           </div>
         </Modal>

@@ -7,8 +7,9 @@ import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
 import type { InviteInfo, ProjectLabel, ProjectSummary, PaginatedResponse } from '@/lib/types'
 import { LoadMoreButton } from '@/lib/usePagination'
 import { Ic } from './Icon'
+import { useI18n, t as tt } from '@/lib/i18n'
 
-const TYPE_SHORT: Record<string, string> = { solo: '1-à-1', team: 'Équipe', group: 'Groupe' }
+const TYPE_SHORT: Record<string, string> = new Proxy({}, { get: (_o, k) => tt('proj.type' + String(k)[0].toUpperCase() + String(k).slice(1)) }) as Record<string, string>
 const TYPE_ICON: Record<string, string> = { solo: 'user', team: 'users', group: 'users' }
 /** Initiales : 2 premières lettres significatives du nom. */
 function initialsOf(name: string): string {
@@ -26,6 +27,7 @@ const DEFAULT_PROJECT_LABELS: ProjectLabel[] = [
 const labelKey = (label: string) => label.trim().toLowerCase()
 
 export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed }: { onOpen: (id: string) => void; onJoin: () => void; openSignal?: number; onOpenSignalConsumed?: () => void }) {
+  const { t: tr } = useI18n()
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
   const [labels, setLabels] = useState<ProjectLabel[]>(DEFAULT_PROJECT_LABELS)
   const [err, setErr] = useState<string | null>(null)
@@ -131,21 +133,21 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
     <div>
       <div className="proj-head">
         <div className="tabs" style={{ margin: 0, maxWidth: 280 }}>
-          <button className={tab === 'active' ? 'on' : ''} onClick={() => setTab('active')}>Actifs ({activeCount})</button>
-          <button className={tab === 'done' ? 'on' : ''} onClick={() => setTab('done')}>Terminés ({doneCount})</button>
+          <button className={tab === 'active' ? 'on' : ''} onClick={() => setTab('active')}>{tr('projects.active')} ({activeCount})</button>
+          <button className={tab === 'done' ? 'on' : ''} onClick={() => setTab('done')}>{tr('projects.done')} ({doneCount})</button>
         </div>
-        <button className="btn-link" onClick={onJoin}>Rejoindre un projet…</button>
+        <button className="btn-link" onClick={onJoin}>{tr('projects.join')}</button>
       </div>
       <div className="project-controls">
         <div className="list-tools">
           <div className="viewseg proj-viewseg">
-            <button className={view === 'cards' ? 'on' : ''} onClick={() => setViewP('cards')} title="Vue cartes"><Ic name="board" s={15} /> Cartes</button>
-            <button className={view === 'table' ? 'on' : ''} onClick={() => setViewP('table')} title="Vue tableau"><Ic name="list" s={15} /> Tableau</button>
+            <button className={view === 'cards' ? 'on' : ''} onClick={() => setViewP('cards')} title={tr('view.cards')}><Ic name="board" s={15} /> {tr('view.cards')}</button>
+            <button className={view === 'table' ? 'on' : ''} onClick={() => setViewP('table')} title={tr('view.table')}><Ic name="list" s={15} /> {tr('view.table')}</button>
           </div>
-          <label className="lt-lbl">Trier</label>
+          <label className="lt-lbl">{tr('projects.sort')}</label>
           <select value={pSort} onChange={(e) => setPSort(e.target.value as ProjSort)} aria-label="Trier les projets par">
-            <option value="title">Titre</option>
-            <option value="manual">Manuel</option>
+            <option value="title">{tr('projects.sortTitle')}</option>
+            <option value="manual">{tr('projects.sortManual')}</option>
           </select>
           <button className="btn sm" onClick={() => setPDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{pDir === 'asc' ? '↑ A→Z' : '↓ Z→A'}</button>
         </div>
@@ -155,7 +157,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
           ))}
         </div>
       </div>
-      {canDrag && <div className="sub" style={{ margin: '0 2px 8px' }}>Glissez les projets pour changer l’ordre.</div>}
+      {canDrag && <div className="sub" style={{ margin: '0 2px 8px' }}>{tr('proj.dragHint')}</div>}
       {(() => {
         const rows = list.map((p) => {
           const h = health(p.taskCount, p.doneCount, p.status)
@@ -175,8 +177,8 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
               <table className="ptable">
                 <thead>
                   <tr>
-                    <th>Projet</th><th>Type</th><th>Rôle</th><th className="ta-c">Membres</th>
-                    <th className="ta-c">Tâches</th><th>Progression</th><th>Libellé</th>
+                    <th>{tr('proj.thProject')}</th><th>{tr('proj.thType')}</th><th>{tr('proj.thRole')}</th><th className="ta-c">{tr('proj.thMembers')}</th>
+                    <th className="ta-c">{tr('proj.thTasks')}</th><th>{tr('proj.thProgress')}</th><th>{tr('proj.thLabel')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,7 +204,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                   ))}
                 </tbody>
               </table>
-              {tab === 'active' && <button className="pt-newrow" onClick={() => setNewOpen(true)}><Ic name="plus" s={15} /> Nouveau projet</button>}
+              {tab === 'active' && <button className="pt-newrow" onClick={() => setNewOpen(true)}><Ic name="plus" s={15} /> {tr('projects.newProject')}</button>}
             </div>
           )
         }
@@ -226,8 +228,8 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                 </div>
                 <div className="pcard-stats">
                   <span className="pcard-stat"><Ic name="users" s={14} /> {memberCount}</span>
-                  <span className="pcard-stat"><Ic name="tasks" s={14} /> {h.done}/{h.total} tâches</span>
-                  {p.status === 'done' && <span className="pcard-stat pcard-done"><Ic name="circle-check" s={14} c="var(--ok)" /> Terminé</span>}
+                  <span className="pcard-stat"><Ic name="tasks" s={14} /> {h.done}/{h.total} {tr('projects.tasks')}</span>
+                  {p.status === 'done' && <span className="pcard-stat pcard-done"><Ic name="circle-check" s={14} c="var(--ok)" /> {tr('projects.done')}</span>}
                 </div>
                 <div className="pcard-prog">
                   <div className="pcard-bar"><i style={{ width: h.pct + '%', background: barColor }} /></div>
@@ -236,7 +238,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                 {canDrag && <span className="drag-handle pcard-drag" aria-hidden="true"><Ic name="grip" s={14} /></span>}
               </button>
             ))}
-            {tab === 'active' && <button className="pcard pcard-new" onClick={() => setNewOpen(true)}><Ic name="plus" s={18} /> Nouveau projet</button>}
+            {tab === 'active' && <button className="pcard pcard-new" onClick={() => setNewOpen(true)}><Ic name="plus" s={18} /> {tr('projects.newProject')}</button>}
           </div>
         )
       })()}
@@ -247,13 +249,14 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
         total={total}
         onClick={() => load(page + 1, true)}
       />
-      {list.length === 0 && tab === 'done' && <div className="empty"><div className="big">◎</div>Aucun projet terminé.</div>}
+      {list.length === 0 && tab === 'done' && <div className="empty"><div className="big">◎</div>{tr('proj.noneDone')}</div>}
       {newOpen && <NewProject labels={labels} onClose={() => setNewOpen(false)} onCreated={(pid) => { setNewOpen(false); onOpen(pid) }} />}
     </div>
   )
 }
 
 function NewProject({ labels, onClose, onCreated }: { labels: ProjectLabel[]; onClose: () => void; onCreated: (id: string) => void }) {
+  const { t: tr } = useI18n()
   const defaultLabel = labels.find((l) => l.label.toLowerCase() === 'travail') || labels[0]
   const [f, setF] = useState({ name: '', type: 'solo', deadline: '', labelId: defaultLabel?.id || '' })
   const [busy, setBusy] = useState(false)
@@ -263,35 +266,36 @@ function NewProject({ labels, onClose, onCreated }: { labels: ProjectLabel[]; on
     setBusy(true)
     try {
       const r = await api<{ project: { id: string } }>('POST', '/projects', { name: f.name.trim(), type: f.type, deadline: f.deadline || null, labelId: f.labelId || null })
-      toast('Projet créé ✓'); onCreated(r.project.id)
+      toast(tr('proj.created')); onCreated(r.project.id)
     } catch (e: any) { toastErr(e.message); setBusy(false) }
   }
   return (
-    <Modal title="Nouveau projet" onClose={onClose}>
-      <div className="field"><label>Nom du projet</label>
+    <Modal title={tr('projects.newProject')} onClose={onClose}>
+      <div className="field"><label>{tr('proj.name')}</label>
         <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Site web — Café du Coin" /></div>
-      <div className="field"><label>Type de projet</label>
+      <div className="field"><label>{tr('proj.type')}</label>
         <div className="seg" style={{ flexDirection: 'column', gap: 8 }}>
-          {([['solo', '1-à-1 — un client'], ['team', 'Équipe — client + plusieurs prestataires (vous = leader)'], ['group', 'Groupe — communauté, famille, amis']] as [string, string][]).map(([k, l]) => (
+          {([['solo', tr('proj.optSolo')], ['team', tr('proj.optTeam')], ['group', tr('proj.optGroup')]] as [string, string][]).map(([k, l]) => (
             <button key={k} className={f.type === k ? 'on' : ''} style={{ textAlign: 'left' }} onClick={() => setF({ ...f, type: k })}>{l}</button>
           ))}
         </div></div>
-      <div className="field"><label>Liste de libellés</label>
+      <div className="field"><label>{tr('proj.labelList')}</label>
         <select value={f.labelId} onChange={(e) => setF({ ...f, labelId: e.target.value })}>
           {labels.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
         </select>
       </div>
-      <div className="field"><label>Date de livraison (optionnel)</label>
+      <div className="field"><label>{tr('proj.deadline')}</label>
         <input type="date" value={f.deadline} onChange={(e) => setF({ ...f, deadline: e.target.value })} /></div>
       <div className="sheet-actions">
-        <button className="btn primary" disabled={busy} onClick={create}>Créer</button>
-        <button className="btn ghost" onClick={onClose}>Annuler</button>
+        <button className="btn primary" disabled={busy} onClick={create}>{tr('action.create')}</button>
+        <button className="btn ghost" onClick={onClose}>{tr('action.cancel')}</button>
       </div>
     </Modal>
   )
 }
 
 export function JoinModal({ token, onClose, onJoined }: { token: string; onClose: () => void; onJoined: (id: string) => void }) {
+  const { t: tr } = useI18n()
   const [tok, setTok] = useState(token || '')
   const [info, setInfo] = useState<InviteInfo | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -304,20 +308,20 @@ export function JoinModal({ token, onClose, onJoined }: { token: string; onClose
   }
   useEffect(() => { if (token) preview() }, [])
   async function accept() {
-    try { const r = await api<{ project: { id: string } }>('POST', '/invites/' + encodeURIComponent(info!.token!) + '/accept', {}); toast('Projet rejoint ✓'); onJoined(r.project.id) }
+    try { const r = await api<{ project: { id: string } }>('POST', '/invites/' + encodeURIComponent(info!.token!) + '/accept', {}); toast(tr('proj.joined')); onJoined(r.project.id) }
     catch (e: any) { toastErr(e.message) }
   }
   return (
-    <Modal title="Rejoindre un projet" onClose={onClose}>
-      <div className="field"><label>Lien ou code d’invitation</label>
+    <Modal title={tr('proj.joinTitle')} onClose={onClose}>
+      <div className="field"><label>{tr('proj.inviteLink')}</label>
         <input value={tok} onChange={(e) => setTok(e.target.value)} placeholder="https://planii.app/invite/…" /></div>
-      {!info && <button className="btn primary block" onClick={preview}>Vérifier</button>}
+      {!info && <button className="btn primary block" onClick={preview}>{tr('proj.check')}</button>}
       {err && <p style={{ color: 'var(--danger)', fontSize: '13.5px' }}>{err}</p>}
       {info && (
         <div className="card" style={{ marginTop: 12 }}>
           <p className="title-lg" style={{ fontSize: 15 }}>{info.project.name}</p>
-          <p className="sub">Vous rejoindrez en tant que <b>{ROLE_LABEL[info.role] || info.role}</b>{info.invitedBy ? ` · invité par ${info.invitedBy}` : ''}</p>
-          <button className="btn primary block" style={{ marginTop: 10 }} onClick={accept}>Rejoindre le projet</button>
+          <p className="sub">{tr('proj.joinAs')} <b>{ROLE_LABEL[info.role] || info.role}</b>{info.invitedBy ? ` · ${tr('proj.invitedBy')} ${info.invitedBy}` : ''}</p>
+          <button className="btn primary block" style={{ marginTop: 10 }} onClick={accept}>{tr('proj.joinBtn')}</button>
         </div>
       )}
     </Modal>

@@ -4,6 +4,7 @@ import { Modal, toastErr } from '@/lib/ui'
 import { useRealtime } from '@/lib/realtime'
 import type { Notification } from '@/lib/types'
 import { Ic } from './Icon'
+import { useI18n } from '@/lib/i18n'
 
 const ICON: Record<string, string> = {
   project_deleted: 'trash',
@@ -14,6 +15,7 @@ const ICON: Record<string, string> = {
 }
 
 export function NotifBell() {
+  const { t: tr } = useI18n()
   const [items, setItems] = useState<Notification[]>([])
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState(false)
@@ -44,12 +46,12 @@ export function NotifBell() {
 
   return (
     <>
-      <button className="notif-btn" onClick={openPanel} aria-label="Notifications" title="Notifications">
+      <button className="notif-btn" onClick={openPanel} aria-label={tr('notif.title')} title={tr('notif.title')}>
         <Ic name="bell" s={19} />{unread > 0 && <span className="notif-badge">{unread > 9 ? '9+' : unread}</span>}
       </button>
       {open && (
-        <Modal title="Notifications" onClose={() => setOpen(false)}>
-          {items.length === 0 && <div className="empty" style={{ padding: '18px 0' }}>Aucune notification.</div>}
+        <Modal title={tr('notif.title')} onClose={() => setOpen(false)}>
+          {items.length === 0 && <div className="empty" style={{ padding: '18px 0' }}>{tr('notif.empty')}</div>}
           {items.map((n) => (
             <div key={n.id} className={'notif-row' + (n.read ? '' : ' unread')}>
               <span className="notif-ico"><Ic name={ICON[n.type] || 'bell'} s={16} c="var(--accent)" /></span>
@@ -58,7 +60,7 @@ export function NotifBell() {
                 <div className="sub">{n.detail}</div>
                 <div className="sub" style={{ fontSize: '11.5px' }}>{new Date(n.at).toLocaleString('fr-FR')}</div>
               </div>
-              <button className="notif-x" onClick={() => clearOne(n.id)} aria-label="Effacer"><Ic name="x" s={14} /></button>
+              <button className="notif-x" onClick={() => clearOne(n.id)} aria-label={tr('notif.clear')}><Ic name="x" s={14} /></button>
             </div>
           ))}
         </Modal>

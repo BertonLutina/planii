@@ -2,11 +2,13 @@ import { useProjectSummaries } from '@/lib/useProjects'
 import { projectPoints, levelOf, TEAM_BONUS } from '@/lib/points'
 import { TYPE_LABEL } from '@/lib/dates'
 import { Ic } from './Icon'
+import { useI18n } from '@/lib/i18n'
 
 export function Leaderboard({ onOpen }: { onOpen: (id: string) => void }) {
+  const { t: tr } = useI18n()
   const { projects } = useProjectSummaries()
   if (!projects) return <div className="empty">Chargement…</div>
-  if (projects.length === 0) return <div className="empty"><div className="big"><Ic name="trophy" s={30} c="var(--gold)" /></div>Aucune équipe pour l’instant. Créez ou rejoignez un projet !</div>
+  if (projects.length === 0) return <div className="empty"><div className="big"><Ic name="trophy" s={30} c="var(--gold)" /></div>{tr('lb.empty')}</div>
 
   const ranked = projects.map((p) => ({ p, base: projectPoints(p) })).sort((a, b) => b.base - a.base)
   // La meilleure équipe reçoit un vrai bonus (seulement s'il y a une compétition et des points).
@@ -14,7 +16,7 @@ export function Leaderboard({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <div>
-      <div className="banner"><Ic name="trophy" s={15} c="var(--gold)" /> La meilleure équipe / le meilleur groupe reçoit un supplément de <b>+{TEAM_BONUS} pts</b>. Barème : en avance 20 · le jour même 15 · en retard 5. Cochez vos tâches pour grimper !</div>
+      <div className="banner"><Ic name="trophy" s={15} c="var(--gold)" /> {tr('lb.banner')} <b>+{TEAM_BONUS} pts</b>. {tr('lb.scale')}</div>
       {ranked.map((r, i) => {
         const bonus = i === 0 && bonusWon ? TEAM_BONUS : 0
         const total = r.base + bonus
@@ -25,8 +27,8 @@ export function Leaderboard({ onOpen }: { onOpen: (id: string) => void }) {
             <div className="info">
               <div className="nm">{r.p.name}</div>
               <div className="sc">
-                {TYPE_LABEL[r.p.type]} · Niveau {l.level} {l.medal}
-                {bonus > 0 && <span className="bonus-tag"><Ic name="sparkles" s={12} c="var(--gold)" /> +{bonus} bonus</span>}
+                {TYPE_LABEL[r.p.type]} · {tr('lb.level')} {l.level} {l.medal}
+                {bonus > 0 && <span className="bonus-tag"><Ic name="sparkles" s={12} c="var(--gold)" /> +{bonus} {tr('lb.bonus')}</span>}
               </div>
             </div>
             <div className="rank-pts">{total}<span>pts</span></div>
