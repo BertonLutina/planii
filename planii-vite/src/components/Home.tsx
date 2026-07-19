@@ -30,6 +30,7 @@ export function LevelCard({ points, name }: { points: number; name?: string }) {
 }
 
 export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOpen: (id: string) => void; refreshKey?: number; view: 'list' | 'board' | 'agenda'; setView: (v: 'list' | 'board' | 'agenda') => void }) {
+  const { t: tr } = useI18n()
   const { projects, reload } = useMyTasks()
   const [drawerId, setDrawerId] = useState<string | null>(null)
   const [today, setToday] = useState<TodayPayload | null>(null)
@@ -67,7 +68,6 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
     .map((p) => ({ p, tasks: mine.filter((x) => x.p.id === p.id).map((x) => x.t).sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || prio(a.priority) - prio(b.priority)) }))
     .filter((c) => c.tasks.length > 0)
 
-  const { t: tr } = useI18n()
   const openTodayTask = (t: TodayTask) => onOpen(t.projectId)
 
   return (

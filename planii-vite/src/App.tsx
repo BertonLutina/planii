@@ -373,9 +373,9 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
     return () => window.removeEventListener('keydown', h)
   }, [])
 
-  if (openId) return <ProjectDetail id={openId} me={me} onBack={() => setOpenId(null)} />
-
   const { t: tr } = useI18n()
+
+  if (openId) return <ProjectDetail id={openId} me={me} onBack={() => setOpenId(null)} />
   const TITLES: Record<TabKey, string> = { accueil: tr('title.home'), projets: tr('title.projects'), calendrier: tr('title.agenda'), classement: tr('title.leaderboard'), profil: tr('title.profile'), admin: tr('title.admin') }
   const MOBILE_TITLES: Record<TabKey, string> = { accueil: tr('nav.home'), projets: tr('nav.projects'), calendrier: tr('nav.agenda'), classement: tr('nav.leaderboard'), profil: tr('nav.profile'), admin: tr('nav.admin') }
   const NAVL: Record<TabKey, string> = MOBILE_TITLES
