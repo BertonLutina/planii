@@ -16,6 +16,7 @@ import { CommandPalette, CMD_LABEL } from './components/CommandPalette'
 import { QuickTask } from './components/QuickTask'
 import { QuickAppointment } from './components/QuickAppointment'
 import { HelpButton } from './components/Guide'
+import { useI18n, LangPicker } from '@/lib/i18n'
 import { Admin } from './components/Admin'
 import { StyleGuide } from './components/StyleGuide'
 import { Privacy } from './components/Privacy'
@@ -24,11 +25,12 @@ import { useProjectSummaries } from '@/lib/useProjects'
 import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
 
 function ThemeControl() {
+  const { t: tr } = useI18n()
   const [t, setT] = useState<Theme>(getTheme())
-  const opts: [Theme, string, string][] = [['light', 'sun', 'Clair'], ['dark', 'moon', 'Sombre'], ['auto', 'monitor', 'Auto']]
+  const opts: [Theme, string, string][] = [['light', 'sun', tr('theme.light')], ['dark', 'moon', tr('theme.dark')], ['auto', 'monitor', tr('theme.auto')]]
   return (
     <>
-      <div className="section-h">Apparence</div>
+      <div className="section-h">{tr('theme.title')}</div>
       <div className="theme-seg">
         {opts.map(([v, icon, label]) => (
           <button key={v} className={t === v ? 'on' : ''} onClick={() => { setT(v); applyTheme(v) }}>
@@ -238,6 +240,7 @@ function ProjectLabelEditor() {
 }
 
 function EditInfoModal({ me, onClose, onUpdate }: { me: User; onClose: () => void; onUpdate: (u: User) => void }) {
+  const { t: tr } = useI18n()
   const [first, setFirst] = useState(me.firstName || '')
   const [last, setLast] = useState(me.lastName || '')
   const [job, setJob] = useState(me.job || '')
@@ -255,22 +258,23 @@ function EditInfoModal({ me, onClose, onUpdate }: { me: User; onClose: () => voi
   }
 
   return (
-    <Modal title="Modifier mes informations" onClose={onClose}>
-      <div className="field"><label>Prénom</label>
+    <Modal title={tr('profile.editInfo')} onClose={onClose}>
+      <div className="field"><label>{tr('profile.firstName')}</label>
         <MicInput value={first} onChange={setFirst} placeholder="Ton prénom" maxLength={60} autoFocus /></div>
-      <div className="field"><label>Nom</label>
+      <div className="field"><label>{tr('profile.lastName')}</label>
         <MicInput value={last} onChange={setLast} placeholder="Ton nom" maxLength={60} /></div>
-      <div className="field"><label>Métier</label>
+      <div className="field"><label>{tr('profile.job')}</label>
         <MicInput value={job} onChange={setJob} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
       <div className="sheet-actions">
-        <button className="btn primary" disabled={saving} onClick={save}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
-        <button className="btn ghost" onClick={onClose}>Annuler</button>
+        <button className="btn primary" disabled={saving} onClick={save}>{saving ? tr('action.saving') : tr('action.save')}</button>
+        <button className="btn ghost" onClick={onClose}>{tr('action.cancel')}</button>
       </div>
     </Modal>
   )
 }
 
 function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void }) {
+  const { t: tr } = useI18n()
   const [editInfo, setEditInfo] = useState(false)
 
   return (
@@ -280,27 +284,27 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
           <Avatar name={me.name} size={48} />
           <div><p className="title-lg" style={{ fontSize: 16 }}>{me.name}</p><p className="sub">{me.email}{me.job ? ' · ' + me.job : ''}</p></div>
         </div>
-        <button className="btn ghost sm profile-logout" onClick={onLogout}><Ic name="logout" s={15} /> Se déconnecter</button>
+        <button className="btn ghost sm profile-logout" onClick={onLogout}><Ic name="logout" s={15} /> {tr('profile.logout')}</button>
       </div>
 
       <div className="profile-grid">
         <div className="profile-col">
-          <div className="section-h">Mes informations</div>
+          <div className="section-h">{tr('profile.info')}</div>
           <div className="card info-card">
-            <button className="info-edit" onClick={() => setEditInfo(true)} aria-label="Modifier mes informations">
-              <Ic name="edit" s={15} /> Modifier
+            <button className="info-edit" onClick={() => setEditInfo(true)} aria-label={tr('profile.editInfo')}>
+              <Ic name="edit" s={15} /> {tr('action.edit')}
             </button>
             <div className="info-rows">
-              <div className="info-row"><span className="info-k">Prénom</span><span className="info-v">{me.firstName || '—'}</span></div>
-              <div className="info-row"><span className="info-k">Nom</span><span className="info-v">{me.lastName || '—'}</span></div>
-              <div className="info-row"><span className="info-k">Métier</span><span className="info-v">{me.job || '—'}</span></div>
-              <div className="info-row"><span className="info-k">E-mail</span><span className="info-v">{me.email}</span></div>
+              <div className="info-row"><span className="info-k">{tr('profile.firstName')}</span><span className="info-v">{me.firstName || '—'}</span></div>
+              <div className="info-row"><span className="info-k">{tr('profile.lastName')}</span><span className="info-v">{me.lastName || '—'}</span></div>
+              <div className="info-row"><span className="info-k">{tr('profile.job')}</span><span className="info-v">{me.job || '—'}</span></div>
+              <div className="info-row"><span className="info-k">{tr('profile.email')}</span><span className="info-v">{me.email}</span></div>
             </div>
           </div>
           {editInfo && <EditInfoModal me={me} onClose={() => setEditInfo(false)} onUpdate={onUpdate} />}
 
           <ListEditor me={me} onUpdate={onUpdate}
-            title="Mes rôles" field="roleLibrary" get={roleLibraryOf}
+            title={tr('profile.roles')} field="roleLibrary" get={roleLibraryOf}
             desc="Bibliothèque de rôles réutilisables dans tes projets (ex. Chef de projet, Développeur, Consultant)."
             placeholder="Nouveau rôle…" maxLen={40}
             emptyNote="Aucun rôle — ajoutes-en pour les réutiliser dans tes projets." />
@@ -310,16 +314,18 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
           <ProjectLabelEditor />
 
           <ListEditor me={me} onUpdate={onUpdate}
-            title="Mes types de tâches" field="taskTypes" get={taskTypesOf}
+            title={tr('profile.taskTypes')} field="taskTypes" get={taskTypesOf}
             desc="Ces types s’appliquent à toutes tes tâches (ex. Tâche, Bug, Amélioration…)."
             placeholder="Nouveau type…" maxLen={30}
             emptyNote="Aucun type — les défauts (Tâche, Bug) seront utilisés." />
 
           <div className="profile-actions">
             {me.admin && (
-              <button className="btn primary block" style={{ marginTop: 4 }} onClick={onAdmin}><Ic name="shield" s={16} /> Espace admin</button>
+              <button className="btn primary block" style={{ marginTop: 4 }} onClick={onAdmin}><Ic name="shield" s={16} /> {tr('profile.adminSpace')}</button>
             )}
             <ThemeControl />
+            <div className="section-h" style={{ marginTop: 18 }}>{tr('lang.title')}</div>
+            <LangPicker />
           </div>
         </div>
       </div>
@@ -369,10 +375,12 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
 
   if (openId) return <ProjectDetail id={openId} me={me} onBack={() => setOpenId(null)} />
 
-  const TITLES: Record<TabKey, string> = { accueil: 'Accueil — mes tâches', projets: 'Projets', calendrier: 'Agenda', classement: 'Classement', profil: 'Profil', admin: 'Espace admin' }
-  const MOBILE_TITLES: Record<TabKey, string> = { accueil: 'Accueil', projets: 'Projets', calendrier: 'Agenda', classement: 'Classement', profil: 'Profil', admin: 'Admin' }
+  const { t: tr } = useI18n()
+  const TITLES: Record<TabKey, string> = { accueil: tr('title.home'), projets: tr('title.projects'), calendrier: tr('title.agenda'), classement: tr('title.leaderboard'), profil: tr('title.profile'), admin: tr('title.admin') }
+  const MOBILE_TITLES: Record<TabKey, string> = { accueil: tr('nav.home'), projets: tr('nav.projects'), calendrier: tr('nav.agenda'), classement: tr('nav.leaderboard'), profil: tr('nav.profile'), admin: tr('nav.admin') }
+  const NAVL: Record<TabKey, string> = MOBILE_TITLES
   const title = TITLES[tab]
-  const HV: [typeof homeView, string, string][] = [['list', 'list', 'Liste'], ['board', 'board', 'Tableau'], ['agenda', 'calendar-days', 'Agenda']]
+  const HV: [typeof homeView, string, string][] = [['list', 'list', tr('view.list')], ['board', 'board', tr('view.board')], ['agenda', 'calendar-days', tr('view.agenda')]]
 
   return (
     <div className="shell">
@@ -380,17 +388,17 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
         <div className="side-brand"><span className="logo"><b /></span><span>Planii</span></div>
         <button className="side-search" onClick={() => setCmd(true)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
-          <span>Rechercher</span><span className="kbd">{CMD_LABEL}</span>
+          <span>{tr('action.search')}</span><span className="kbd">{CMD_LABEL}</span>
         </button>
         <nav className="side-nav">
           {me.admin && (
-            <button className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>{ADMIN_ICON}<span>Admin</span></button>
+            <button className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>{ADMIN_ICON}<span>{NAVL.admin}</span></button>
           )}
-          {NAV.map(([k, l]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{I[k]}<span>{l}</span></button>
+          {NAV.map(([k]) => (
+            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{I[k]}<span>{NAVL[k]}</span></button>
           ))}
         </nav>
-        <div className="side-label">PROJETS</div>
+        <div className="side-label">{tr('nav.projects').toUpperCase()}</div>
         <div className="side-projects">
           {(projects || []).filter((p) => p.status !== 'done').slice(0, 5).map((p, index) => {
             const h = health(p.taskCount, p.doneCount, p.status)
@@ -416,7 +424,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
             )}
             {(tab === 'accueil' || tab === 'projets') && (
               <button className="newbtn" onClick={tab === 'accueil' ? () => setQuick(true) : newProject}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>Nouveau
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{tr('action.new')}
               </button>
             )}
             <HelpButton tab={tab} />
@@ -435,8 +443,8 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
       </main>
 
       <nav className="bottomnav">
-        {NAV.map(([k, l]) => (
-          <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><span className="bic">{I[k]}</span>{l}</button>
+        {NAV.map(([k]) => (
+          <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><span className="bic">{I[k]}</span>{NAVL[k]}</button>
         ))}
       </nav>
       <button
