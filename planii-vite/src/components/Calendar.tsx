@@ -6,11 +6,13 @@ import {
   isSameDay, isSameMonth, startOfWeekMon, monthGrid, formatDue, trunc,
 } from '@/lib/dates'
 import type { ApiCalEvent, CalEvent } from '@/lib/types'
+import { useI18n, getLang } from '@/lib/i18n'
 import { GitHubCalendar, type ContributionDay } from './ui/github-calendar'
 
 type View = 'mois' | 'semaine' | 'jour' | 'agenda' | 'annee'
 
 export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
+  const { t: tr } = useI18n()
   const [events, setEvents] = useState<CalEvent[] | null>(null)
   const [view, setView] = useState<View>('mois')
   const [cur, setCur] = useState<Date>(todayMid())
@@ -74,14 +76,14 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
   const step = (d: number) => setCur(view === 'mois' ? addMonths(cur, d) : view === 'jour' ? addDays(cur, d) : addDays(cur, d * 7))
   const title = view === 'mois' ? `${MONTHS_FULL[cur.getMonth()]} ${cur.getFullYear()}`
     : view === 'semaine' ? `${weekDays[0].getDate()}–${weekDays[6].getDate()} ${MONTHS_FULL[weekDays[6].getMonth()]}`
-    : view === 'jour' ? cur.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-    : view === 'annee' ? 'Heatmap — activité de l’année' : 'Agenda'
+    : view === 'jour' ? cur.toLocaleDateString(getLang(), { weekday: 'long', day: 'numeric', month: 'long' })
+    : view === 'annee' ? tr('cal.yearTitle') : tr('cal.agendaView')
 
   return (
     <div className="cal-page">
       <div className="cal-bar">
         <div className="cal-nav">
-          <button className="btn sm" onClick={() => setCur(todayMid())}>Aujourd’hui</button>
+          <button className="btn sm" onClick={() => setCur(todayMid())}>{tr('cal.today')}</button>
           <button className="btn sm" onClick={() => step(-1)}>‹</button>
           <button className="btn sm" onClick={() => step(1)}>›</button>
         </div>
@@ -89,7 +91,7 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
         <div className="tabs" style={{ margin: 0, flex: 'none' }}>
           {(['mois', 'semaine', 'jour', 'agenda', 'annee'] as View[]).map((k) => (
             <button key={k} className={view === k ? 'on' : ''} onClick={() => setView(k)} style={{ padding: '7px 11px' }}>
-              {k === 'mois' ? 'Mois' : k === 'semaine' ? 'Semaine' : k === 'jour' ? 'Jour' : k === 'agenda' ? 'Agenda' : 'Heatmap (année)'}
+              {k === 'mois' ? tr('cal.month') : k === 'semaine' ? tr('cal.week') : k === 'jour' ? tr('cal.day') : k === 'agenda' ? tr('cal.agendaView') : tr('cal.year')}
             </button>
           ))}
         </div>
@@ -123,9 +125,9 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
               <span style={{ fontWeight: 600, color: isT ? 'var(--accent)' : 'var(--text)' }}>
                 {DOW[(d.getDay() + 6) % 7]} {d.getDate()} {MONTHS[d.getMonth()]}
               </span>
-              {isT && <span className="pill acc">Aujourd’hui</span>}
+              {isT && <span className="pill acc">{tr('cal.today')}</span>}
             </div>
-            {es.length === 0 ? <span className="sub">Rien de prévu</span> : es.map((e) => <Chip key={e.id} e={e} />)}
+            {es.length === 0 ? <span className="sub">{tr('cal.nothing')}</span> : es.map((e) => <Chip key={e.id} e={e} />)}
           </div>
         )
       })}
@@ -136,11 +138,11 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
           <div className="card" style={{ padding: '16px 18px' }}>
             <div className="row" style={{ marginBottom: es.length ? 12 : 0 }}>
               <span style={{ fontWeight: 600, fontSize: 16, textTransform: 'capitalize', color: isT ? 'var(--accent)' : 'var(--text)' }}>
-                {cur.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {cur.toLocaleDateString(getLang(), { weekday: 'long', day: 'numeric', month: 'long' })}
               </span>
-              {isT && <span className="pill acc">Aujourd’hui</span>}
+              {isT && <span className="pill acc">{tr('cal.today')}</span>}
             </div>
-            {es.length === 0 ? <span className="sub">Rien de prévu ce jour.</span>
+            {es.length === 0 ? <span className="sub">{tr('cal.nothingDay')}</span>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{es.map((e) => <Chip key={e.id} e={e} />)}</div>}
           </div>
         )
@@ -162,7 +164,7 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
           </div>
           {(() => {
             const up = events.filter((e) => e.date >= addDays(today, -1)).sort((a, b) => a.date.getTime() - b.date.getTime())
-            if (!up.length) return <div className="empty">Aucune échéance à venir.</div>
+            if (!up.length) return <div className="empty">{tr('cal.noUpcoming')}</div>
             return up.map((e) => (
               <div key={e.id} className="card" style={{ padding: '12px 14px' }}>
                 <div className="row">

@@ -35,6 +35,7 @@ const fr: Dict = {
   'notif.title': 'Notifications', 'notif.empty': 'Aucune notification.', 'notif.clear': 'Effacer',
   'cmd.home': 'Aller à l’Accueil', 'cmd.projects': 'Aller aux Projets', 'cmd.agenda': 'Ouvrir l’Agenda', 'cmd.leaderboard': 'Voir le Classement', 'cmd.profile': 'Mon profil', 'cmd.newProject': 'Créer un projet', 'cmd.light': 'Thème clair', 'cmd.dark': 'Thème sombre', 'cmd.auto': 'Thème auto (système)', 'cmd.open': 'Ouvrir : ', 'cmd.placeholder': 'Rechercher une action, un projet…', 'cmd.noResult': 'Aucun résultat', 'cmd.toOpen': 'pour ouvrir', 'cmd.toClose': 'pour fermer',
   'qt.title': 'Nouvelle tâche', 'qt.label': 'Intitulé', 'qt.project': 'Projet', 'qt.pickProject': 'Choisis un projet', 'qt.needProject': 'Crée d’abord un projet pour pouvoir y ajouter des tâches.', 'qt.created': 'Tâche créée ✓', 'qt.due': 'Échéance (optionnel)', 'qt.type': 'Type', 'qt.priority': 'Priorité',
+  'cal.today': 'Aujourd’hui', 'cal.month': 'Mois', 'cal.week': 'Semaine', 'cal.day': 'Jour', 'cal.agendaView': 'Agenda', 'cal.year': 'Heatmap (année)', 'cal.yearTitle': 'Heatmap — activité de l’année', 'cal.nothing': 'Rien de prévu', 'cal.nothingDay': 'Rien de prévu ce jour.', 'cal.noUpcoming': 'Aucune échéance à venir.',
   'qa.title': 'Nouveau rendez-vous', 'qa.optTitle': 'Titre (optionnel)', 'qa.date': 'Date', 'qa.start': 'Début', 'qa.end': 'Fin', 'qa.needProject': 'Crée d’abord un projet pour pouvoir y ajouter un rendez-vous.', 'qa.needFields': 'Date et horaires requis', 'qa.created': 'Rendez-vous créé ✓', 'qa.pick': 'Créer dans l’agenda', 'qa.appt': 'Rendez-vous', 'qa.task': 'Tâche',
 }
 const en: Dict = {
@@ -55,6 +56,7 @@ const en: Dict = {
   'notif.title': 'Notifications', 'notif.empty': 'No notifications.', 'notif.clear': 'Clear',
   'cmd.home': 'Go to Home', 'cmd.projects': 'Go to Projects', 'cmd.agenda': 'Open Calendar', 'cmd.leaderboard': 'View Leaderboard', 'cmd.profile': 'My profile', 'cmd.newProject': 'Create a project', 'cmd.light': 'Light theme', 'cmd.dark': 'Dark theme', 'cmd.auto': 'Auto theme (system)', 'cmd.open': 'Open: ', 'cmd.placeholder': 'Search an action, a project…', 'cmd.noResult': 'No result', 'cmd.toOpen': 'to open', 'cmd.toClose': 'to close',
   'qt.title': 'New task', 'qt.label': 'Title', 'qt.project': 'Project', 'qt.pickProject': 'Pick a project', 'qt.needProject': 'Create a project first to add tasks to it.', 'qt.created': 'Task created ✓', 'qt.due': 'Due date (optional)', 'qt.type': 'Type', 'qt.priority': 'Priority',
+  'cal.today': 'Today', 'cal.month': 'Month', 'cal.week': 'Week', 'cal.day': 'Day', 'cal.agendaView': 'Agenda', 'cal.year': 'Heatmap (year)', 'cal.yearTitle': 'Heatmap — year activity', 'cal.nothing': 'Nothing planned', 'cal.nothingDay': 'Nothing planned this day.', 'cal.noUpcoming': 'No upcoming deadline.',
   'qa.title': 'New appointment', 'qa.optTitle': 'Title (optional)', 'qa.date': 'Date', 'qa.start': 'Start', 'qa.end': 'End', 'qa.needProject': 'Create a project first to add an appointment.', 'qa.needFields': 'Date and times required', 'qa.created': 'Appointment created ✓', 'qa.pick': 'Create in the calendar', 'qa.appt': 'Appointment', 'qa.task': 'Task',
 }
 const nl: Dict = {
@@ -75,6 +77,7 @@ const nl: Dict = {
   'notif.title': 'Meldingen', 'notif.empty': 'Geen meldingen.', 'notif.clear': 'Wissen',
   'cmd.home': 'Ga naar Start', 'cmd.projects': 'Ga naar Projecten', 'cmd.agenda': 'Open Agenda', 'cmd.leaderboard': 'Bekijk Klassement', 'cmd.profile': 'Mijn profiel', 'cmd.newProject': 'Project aanmaken', 'cmd.light': 'Licht thema', 'cmd.dark': 'Donker thema', 'cmd.auto': 'Auto thema (systeem)', 'cmd.open': 'Openen: ', 'cmd.placeholder': 'Zoek een actie, een project…', 'cmd.noResult': 'Geen resultaat', 'cmd.toOpen': 'om te openen', 'cmd.toClose': 'om te sluiten',
   'qt.title': 'Nieuwe taak', 'qt.label': 'Titel', 'qt.project': 'Project', 'qt.pickProject': 'Kies een project', 'qt.needProject': 'Maak eerst een project om er taken aan toe te voegen.', 'qt.created': 'Taak aangemaakt ✓', 'qt.due': 'Deadline (optioneel)', 'qt.type': 'Type', 'qt.priority': 'Prioriteit',
+  'cal.today': 'Vandaag', 'cal.month': 'Maand', 'cal.week': 'Week', 'cal.day': 'Dag', 'cal.agendaView': 'Agenda', 'cal.year': 'Heatmap (jaar)', 'cal.yearTitle': 'Heatmap — jaaractiviteit', 'cal.nothing': 'Niets gepland', 'cal.nothingDay': 'Niets gepland deze dag.', 'cal.noUpcoming': 'Geen komende deadline.',
   'qa.title': 'Nieuwe afspraak', 'qa.optTitle': 'Titel (optioneel)', 'qa.date': 'Datum', 'qa.start': 'Begin', 'qa.end': 'Einde', 'qa.needProject': 'Maak eerst een project om een afspraak toe te voegen.', 'qa.needFields': 'Datum en tijden vereist', 'qa.created': 'Afspraak aangemaakt ✓', 'qa.pick': 'Aanmaken in agenda', 'qa.appt': 'Afspraak', 'qa.task': 'Taak',
 }
 const es: Dict = {
@@ -95,6 +98,7 @@ const es: Dict = {
   'notif.title': 'Notificaciones', 'notif.empty': 'Ninguna notificación.', 'notif.clear': 'Borrar',
   'cmd.home': 'Ir al Inicio', 'cmd.projects': 'Ir a Proyectos', 'cmd.agenda': 'Abrir la Agenda', 'cmd.leaderboard': 'Ver la Clasificación', 'cmd.profile': 'Mi perfil', 'cmd.newProject': 'Crear un proyecto', 'cmd.light': 'Tema claro', 'cmd.dark': 'Tema oscuro', 'cmd.auto': 'Tema auto (sistema)', 'cmd.open': 'Abrir: ', 'cmd.placeholder': 'Buscar una acción, un proyecto…', 'cmd.noResult': 'Sin resultados', 'cmd.toOpen': 'para abrir', 'cmd.toClose': 'para cerrar',
   'qt.title': 'Nueva tarea', 'qt.label': 'Título', 'qt.project': 'Proyecto', 'qt.pickProject': 'Elige un proyecto', 'qt.needProject': 'Crea primero un proyecto para añadirle tareas.', 'qt.created': 'Tarea creada ✓', 'qt.due': 'Fecha límite (opcional)', 'qt.type': 'Tipo', 'qt.priority': 'Prioridad',
+  'cal.today': 'Hoy', 'cal.month': 'Mes', 'cal.week': 'Semana', 'cal.day': 'Día', 'cal.agendaView': 'Agenda', 'cal.year': 'Heatmap (año)', 'cal.yearTitle': 'Heatmap — actividad del año', 'cal.nothing': 'Nada previsto', 'cal.nothingDay': 'Nada previsto este día.', 'cal.noUpcoming': 'Ninguna fecha límite próxima.',
   'qa.title': 'Nueva cita', 'qa.optTitle': 'Título (opcional)', 'qa.date': 'Fecha', 'qa.start': 'Inicio', 'qa.end': 'Fin', 'qa.needProject': 'Crea primero un proyecto para añadir una cita.', 'qa.needFields': 'Fecha y horarios requeridos', 'qa.created': 'Cita creada ✓', 'qa.pick': 'Crear en la agenda', 'qa.appt': 'Cita', 'qa.task': 'Tarea',
 }
 const pt: Dict = {
@@ -115,6 +119,7 @@ const pt: Dict = {
   'notif.title': 'Notificações', 'notif.empty': 'Nenhuma notificação.', 'notif.clear': 'Limpar',
   'cmd.home': 'Ir para o Início', 'cmd.projects': 'Ir para Projetos', 'cmd.agenda': 'Abrir a Agenda', 'cmd.leaderboard': 'Ver a Classificação', 'cmd.profile': 'O meu perfil', 'cmd.newProject': 'Criar um projeto', 'cmd.light': 'Tema claro', 'cmd.dark': 'Tema escuro', 'cmd.auto': 'Tema auto (sistema)', 'cmd.open': 'Abrir: ', 'cmd.placeholder': 'Pesquisar uma ação, um projeto…', 'cmd.noResult': 'Sem resultados', 'cmd.toOpen': 'para abrir', 'cmd.toClose': 'para fechar',
   'qt.title': 'Nova tarefa', 'qt.label': 'Título', 'qt.project': 'Projeto', 'qt.pickProject': 'Escolhe um projeto', 'qt.needProject': 'Cria primeiro um projeto para lhe adicionar tarefas.', 'qt.created': 'Tarefa criada ✓', 'qt.due': 'Prazo (opcional)', 'qt.type': 'Tipo', 'qt.priority': 'Prioridade',
+  'cal.today': 'Hoje', 'cal.month': 'Mês', 'cal.week': 'Semana', 'cal.day': 'Dia', 'cal.agendaView': 'Agenda', 'cal.year': 'Heatmap (ano)', 'cal.yearTitle': 'Heatmap — atividade do ano', 'cal.nothing': 'Nada previsto', 'cal.nothingDay': 'Nada previsto neste dia.', 'cal.noUpcoming': 'Nenhum prazo próximo.',
   'qa.title': 'Nova reunião', 'qa.optTitle': 'Título (opcional)', 'qa.date': 'Data', 'qa.start': 'Início', 'qa.end': 'Fim', 'qa.needProject': 'Cria primeiro um projeto para adicionar uma reunião.', 'qa.needFields': 'Data e horários necessários', 'qa.created': 'Reunião criada ✓', 'qa.pick': 'Criar na agenda', 'qa.appt': 'Reunião', 'qa.task': 'Tarefa',
 }
 
