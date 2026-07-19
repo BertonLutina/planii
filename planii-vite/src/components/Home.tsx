@@ -38,7 +38,7 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
   useEffect(() => { if (refreshKey) reload() }, [refreshKey, reload])
   useEffect(() => { loadToday() }, [])
   useRealtime((m) => { if (m.type === 'project' || m.type === 'notif') { reload(); loadToday() } })
-  if (!projects) return <div className="empty">Chargement…</div>
+  if (!projects) return <div className="empty">{tt('common.loading')}</div>
 
   let drawer: { t: Task; p: Project } | null = null
   if (drawerId) for (const p of projects) { const t = p.tasks.find((x) => x.id === drawerId); if (t) { drawer = { t, p }; break } }

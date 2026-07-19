@@ -2,12 +2,12 @@ import { useProjectSummaries } from '@/lib/useProjects'
 import { projectPoints, levelOf, TEAM_BONUS } from '@/lib/points'
 import { TYPE_LABEL } from '@/lib/dates'
 import { Ic } from './Icon'
-import { useI18n } from '@/lib/i18n'
+import { useI18n, t as tt } from '@/lib/i18n'
 
 export function Leaderboard({ onOpen }: { onOpen: (id: string) => void }) {
   const { t: tr } = useI18n()
   const { projects } = useProjectSummaries()
-  if (!projects) return <div className="empty">Chargement…</div>
+  if (!projects) return <div className="empty">{tt('common.loading')}</div>
   if (projects.length === 0) return <div className="empty"><div className="big"><Ic name="trophy" s={30} c="var(--gold)" /></div>{tr('lb.empty')}</div>
 
   const ranked = projects.map((p) => ({ p, base: projectPoints(p) })).sort((a, b) => b.base - a.base)

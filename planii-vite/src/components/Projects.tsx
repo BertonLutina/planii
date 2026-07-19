@@ -92,7 +92,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
   }, [openSignal, onOpenSignalConsumed])
 
   if (err) return <div className="empty">Impossible de charger : {err}</div>
-  if (!projects) return <div className="empty">Chargement…</div>
+  if (!projects) return <div className="empty">{tt('common.loading')}</div>
   const activeCount = counts.active
   const doneCount = counts.done
   const list = projects.slice().sort(projectComparator(pSort, pDir))

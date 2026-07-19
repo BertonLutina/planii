@@ -6,7 +6,7 @@ import {
   isSameDay, isSameMonth, startOfWeekMon, monthGrid, formatDue, trunc,
 } from '@/lib/dates'
 import type { ApiCalEvent, CalEvent } from '@/lib/types'
-import { useI18n, getLang } from '@/lib/i18n'
+import { useI18n, t as tt, getLang } from '@/lib/i18n'
 import { GitHubCalendar, type ContributionDay } from './ui/github-calendar'
 
 type View = 'mois' | 'semaine' | 'jour' | 'agenda' | 'annee'
@@ -52,7 +52,7 @@ export function CalendarView({ onOpen }: { onOpen: (id: string) => void }) {
     return Object.entries(counts).map(([date, count]) => ({ date, count }))
   }, [events])
 
-  if (!events) return <div className="empty">Chargement du calendrier…</div>
+  if (!events) return <div className="empty">{tt('common.loading')}</div>
 
   const evOfDay = (d: Date) => events.filter((e) => isSameDay(e.date, d)).sort((a, b) => a.title.localeCompare(b.title))
   const today = todayMid()

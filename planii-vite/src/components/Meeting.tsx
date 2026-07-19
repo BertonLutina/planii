@@ -5,6 +5,7 @@ import { canManage } from '@/lib/dates'
 import { PRIORITIES } from '@/lib/priority'
 import { useRealtime } from '@/lib/realtime'
 import type { Project, User } from '@/lib/types'
+import { useI18n, trTerm } from '@/lib/i18n'
 
 declare global { interface Window { JitsiMeetExternalAPI?: any } }
 
@@ -22,6 +23,7 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
   const apiRef = useRef<any>(null)
   const [messages, setMessages] = useState<MeetingMessage[]>([])
   const [text, setText] = useState('')
+  const { t: tr } = useI18n()
   const [tab, setTab] = useState<'chat' | 'tasks'>('chat')
   const [draft, setDraft] = useState({ title: '', assigneeId: '', statusKey: 'todo', priority: 3, messageId: '', transferable: false })
   const [busy, setBusy] = useState(false)
@@ -99,7 +101,7 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
     try {
       const r = await api<{ userIds: string[] }>('PUT', '/projects/' + p.id + '/meeting/task-delegates', { userIds: next })
       setDelegates(r.userIds)
-      toast('Accès tâches mis à jour ✓')
+      toast(tr('meet.accessUpdated'))
     } catch (e: any) {
       toastErr(e.message)
       loadDelegates()
@@ -108,7 +110,7 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
 
   async function createTask() {
     if (!canCreateTasks) return toastErr('Le chef du projet doit vous autoriser à créer des tâches depuis ce meeting')
-    if (!draft.title.trim()) return toastErr('Titre requis')
+    if (!draft.title.trim()) return toastErr(tr('meet.titleReq'))
     setBusy(true)
     try {
       await api('POST', '/projects/' + p.id + '/meeting/tasks', {
@@ -119,7 +121,7 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
         messageId: draft.messageId || null,
         transferable: draft.transferable,
       })
-      toast('Tâche créée depuis le meeting ✓')
+      toast(tr('meet.taskCreated'))
       setDraft({ title: '', assigneeId: '', statusKey: 'todo', priority: 3, messageId: '', transferable: false })
       setTab('chat')
       loadMessages()
@@ -131,18 +133,18 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
     <div className="meet meet-plus">
       <div className="meet-bar">
         <div className="meet-title">
-          <span className="mt">Meeting — {p.name}</span>
-          <span className="meet-sub">{p.members.length} invité{p.members.length > 1 ? 's' : ''} du projet</span>
+          <span className="mt">{tr('meet.title')} — {p.name}</span>
+          <span className="meet-sub">{p.members.length} {tr('meet.guests')}</span>
         </div>
-        <button className="btn sm" onClick={onClose}>Quitter le meeting</button>
+        <button className="btn sm" onClick={onClose}>{tr('meet.quit')}</button>
       </div>
       <div className="meet-layout">
         <div className="meet-main">
           <div id="jitsi-container" ref={ref} className="jitsi-frame" />
           <div className="meet-invites">
             <div>
-              <b>Invités automatiquement</b>
-              <p>Tous les membres du projet peuvent rejoindre le meeting et discuter ici.</p>
+              <b>{tr('meet.autoInvited')}</b>
+              <p>{tr('meet.autoDesc')}</p>
             </div>
             <div className="meet-invite-list">
               {p.members.map((m) => <span key={m.id} className="meet-person"><Avatar name={m.name} />{m.name}</span>)}
@@ -151,35 +153,35 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
         </div>
         <aside className="meet-chat-panel">
           <div className="meet-panel-head">
-            <b>Discussion du meeting</b>
-            <button onClick={onClose} aria-label="Fermer">×</button>
+            <b>{tr('meet.discussion')}</b>
+            <button onClick={onClose} aria-label={tr('action.close')}>×</button>
           </div>
           <div className="meet-tabs">
-            <button className={tab === 'chat' ? 'on' : ''} onClick={() => setTab('chat')}>Chat</button>
-            <button className={tab === 'tasks' ? 'on' : ''} onClick={() => setTab('tasks')}>Tâches</button>
+            <button className={tab === 'chat' ? 'on' : ''} onClick={() => setTab('chat')}>{tr('meet.chat')}</button>
+            <button className={tab === 'tasks' ? 'on' : ''} onClick={() => setTab('tasks')}>{tr('meet.tasks')}</button>
           </div>
           {tab === 'chat' ? (
             <>
               <div className="meet-messages" ref={listRef}>
-                {messages.length === 0 && <div className="empty" style={{ padding: 18 }}>Aucun message pour l’instant.</div>}
+                {messages.length === 0 && <div className="empty" style={{ padding: 18 }}>{tr('meet.noMsg')}</div>}
                 {messages.map((msg) => (
                   <div key={msg.id} className="meet-msg">
                     <Avatar name={msg.userName} size={30} />
                     <div className="meet-msg-body">
-                      <div className="meet-msg-meta"><b>{msg.userName}</b><span>{new Date(msg.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></div>
+                      <div className="meet-msg-meta"><b>{msg.userName}</b><span>{new Date(msg.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span></div>
                       <div className="meet-bubble">{msg.body}</div>
                       {msg.createdTaskId ? (
-                        <div className="meet-task-made">✓ Tâche créée</div>
+                        <div className="meet-task-made">{tr('meet.taskMade')}</div>
                       ) : canCreateTasks && (
-                        <button className="meet-create-link" onClick={() => startTaskFromMessage(msg)}>＋ Créer tâche</button>
+                        <button className="meet-create-link" onClick={() => startTaskFromMessage(msg)}>{tr('meet.makeTask')}</button>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
               <div className="meet-input">
-                <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Écrire un message…" onKeyDown={(e) => { if (e.key === 'Enter') send() }} />
-                <button className="btn primary sm" onClick={send}>Envoyer</button>
+                <input value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('meet.write')} onKeyDown={(e) => { if (e.key === 'Enter') send() }} />
+                <button className="btn primary sm" onClick={send}>{tr('meet.send')}</button>
               </div>
             </>
           ) : (
@@ -187,8 +189,8 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
               {manage && (
                 <div className="meet-delegates">
                   <div>
-                    <b>Personnes autorisées</b>
-                    <p>Ces membres peuvent créer et assigner des tâches depuis ce meeting.</p>
+                    <b>{tr('meet.allowed')}</b>
+                    <p>{tr('meet.allowedDesc')}</p>
                   </div>
                   <div className="meet-delegate-list">
                     {p.members.map((m) => (
@@ -201,21 +203,21 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
                   </div>
                 </div>
               )}
-              {!canCreateTasks && <div className="banner" style={{ margin: 0 }}>Le chef du projet doit vous autoriser à créer des tâches depuis ce meeting.</div>}
-              <div className="field"><label>Titre</label><input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Ex. Vérifier les photos" /></div>
-              <div className="field"><label>Responsable</label>
+              {!canCreateTasks && <div className="banner" style={{ margin: 0 }}>{tr('meet.needAuth')}</div>}
+              <div className="field"><label>{tr('meet.titleField')}</label><input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Ex. Vérifier les photos" /></div>
+              <div className="field"><label>{tr('td.assignee')}</label>
                 <select value={draft.assigneeId} onChange={(e) => setDraft({ ...draft, assigneeId: e.target.value })}>
-                  <option value="">— À prendre</option>
+                  <option value="">{tr('meet.toTake')}</option>
                   {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select></div>
-              <div className="field"><label>Statut</label>
+              <div className="field"><label>{tr('meet.status')}</label>
                 <select value={draft.statusKey} onChange={(e) => setDraft({ ...draft, statusKey: e.target.value })}>
-                  {(p.statuses || []).map((s) => <option key={s.key} value={s.key} disabled={s.key === 'transferred' && !draft.transferable}>{s.label}</option>)}
+                  {(p.statuses || []).map((s) => <option key={s.key} value={s.key} disabled={s.key === 'transferred' && !draft.transferable}>{trTerm(s.label)}</option>)}
                 </select></div>
-              <div className="field"><label>Priorité</label>
+              <div className="field"><label>{tr('td.priority')}</label>
                 <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={draft.priority === n ? 'on o' + n : ''} onClick={() => setDraft({ ...draft, priority: n })}>P{n}</button>)}</div></div>
-              <label className="checkline"><input type="checkbox" checked={draft.transferable} onChange={(e) => setDraft({ ...draft, transferable: e.target.checked, statusKey: e.target.checked ? draft.statusKey : (draft.statusKey === 'transferred' ? 'todo' : draft.statusKey) })} /> Tâche transférable</label>
-              <button className="btn primary block" disabled={!canCreateTasks || busy} onClick={createTask}>Ajouter</button>
+              <label className="checkline"><input type="checkbox" checked={draft.transferable} onChange={(e) => setDraft({ ...draft, transferable: e.target.checked, statusKey: e.target.checked ? draft.statusKey : (draft.statusKey === 'transferred' ? 'todo' : draft.statusKey) })} /> {tr('meet.transferable')}</label>
+              <button className="btn primary block" disabled={!canCreateTasks || busy} onClick={createTask}>{tr('action.add')}</button>
             </div>
           )}
         </aside>
