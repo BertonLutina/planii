@@ -10,6 +10,9 @@ const LABELS: Record<Lang, string[]> = {
   nl: ['', 'meest urgent', 'zeer hoog', 'hoog', 'gemiddeld', 'laag', 'laagste'],
   es: ['', 'la más urgente', 'muy alta', 'alta', 'media', 'baja', 'la más baja'],
   pt: ['', 'a mais urgente', 'muito alta', 'alta', 'média', 'baixa', 'a mais baixa'],
+  it: ['', 'la più urgente', 'molto alta', 'alta', 'media', 'bassa', 'la più bassa'],
+  el: ['', 'η πιο επείγουσα', 'πολύ υψηλή', 'υψηλή', 'μεσαία', 'χαμηλή', 'η χαμηλότερη'],
+  ru: ['', 'самый срочный', 'очень высокий', 'высокий', 'средний', 'низкий', 'самый низкий'],
 }
 
 /** Normalise une priorité (1–6, défaut 6). */

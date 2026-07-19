@@ -3,7 +3,7 @@ import { api, setTok } from '@/lib/api'
 import { toastErr } from '@/lib/ui'
 import { MicInput } from './Mic'
 import type { User } from '@/lib/types'
-import { useI18n, LangPicker } from '@/lib/i18n'
+import { useI18n, LangFlags } from '@/lib/i18n'
 
 export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
   const { t: tr } = useI18n()
@@ -24,10 +24,10 @@ export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
 
   return (
     <div className="auth">
-      <div className="auth-lang"><LangPicker compact /></div>
       <div className="logo-big"><b /></div>
       <h1>Planii</h1>
-      <p className="tag">Projets partagés : clients, prestataires et groupes — tâches, invitations, sondages, activité.</p>
+      <p className="tag">{tr('auth.tagline')}</p>
+      <LangFlags />
       {mode === 'signup' && (
         <>
           <div className="field"><label>{tr('auth.name')}</label>
