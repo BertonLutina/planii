@@ -13,6 +13,7 @@ const LABELS: Record<Lang, string[]> = {
   it: ['', 'la più urgente', 'molto alta', 'alta', 'media', 'bassa', 'la più bassa'],
   el: ['', 'η πιο επείγουσα', 'πολύ υψηλή', 'υψηλή', 'μεσαία', 'χαμηλή', 'η χαμηλότερη'],
   ru: ['', 'самый срочный', 'очень высокий', 'высокий', 'средний', 'низкий', 'самый низкий'],
+  sw: ['', 'ya haraka zaidi', 'juu sana', 'juu', 'wastani', 'chini', 'ya chini zaidi'],
 }
 
 /** Normalise une priorité (1–6, défaut 6). */

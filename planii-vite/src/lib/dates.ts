@@ -12,6 +12,7 @@ const M_SHORT: Record<Lang, string[]> = {
   it: ['gen.','feb.','mar.','apr.','mag.','giu.','lug.','ago.','set.','ott.','nov.','dic.'],
   el: ['Ιαν','Φεβ','Μάρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοέ','Δεκ'],
   ru: ['янв.','февр.','март','апр.','май','июнь','июль','авг.','сент.','окт.','нояб.','дек.'],
+  sw: ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ago','Sep','Okt','Nov','Des'],
 }
 const M_FULL: Record<Lang, string[]> = {
   fr: ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
@@ -22,6 +23,7 @@ const M_FULL: Record<Lang, string[]> = {
   it: ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'],
   el: ['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'],
   ru: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+  sw: ['Januari','Februari','Machi','Aprili','Mei','Juni','Julai','Agosti','Septemba','Oktoba','Novemba','Desemba'],
 }
 const D_OW: Record<Lang, string[]> = {
   fr: ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],
@@ -32,6 +34,7 @@ const D_OW: Record<Lang, string[]> = {
   it: ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'],
   el: ['Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ','Κυρ'],
   ru: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
+  sw: ['Jtatu','Jnne','Jtano','Alh','Ijumaa','Jmosi','Jpili'],
 }
 const arrProxy = (data: Record<Lang, string[]>): string[] =>
   new Proxy([] as string[], { get: (_t, p) => (data[getLang()] as any)[p] }) as string[]
@@ -77,6 +80,7 @@ const DUE: Record<Lang, { today: string; tomorrow: string; yesterday: string; la
   it: { today: 'oggi', tomorrow: 'domani', yesterday: 'ieri', late: (n) => `${n} g di ritardo`, in: (n) => `tra ${n} g` },
   el: { today: 'σήμερα', tomorrow: 'αύριο', yesterday: 'χθες', late: (n) => `${n} μ καθυστ.`, in: (n) => `σε ${n} μ` },
   ru: { today: 'сегодня', tomorrow: 'завтра', yesterday: 'вчера', late: (n) => `просрочено ${n} дн`, in: (n) => `через ${n} дн` },
+  sw: { today: 'leo', tomorrow: 'kesho', yesterday: 'jana', late: (n) => `imechelewa siku ${n}`, in: (n) => `baada ya siku ${n}` },
 }
 export function formatDue(s?: string | null): string {
   const d = parseISO(s); if (!d) return ''
@@ -99,6 +103,7 @@ const TYPES: Record<Lang, Record<string,string>> = {
   it: { solo:'1-a-1 · cliente', team:'Team · leader + fornitori', group:'Gruppo' },
   el: { solo:'1-προς-1 · πελάτης', team:'Ομάδα · αρχηγός + συνεργάτες', group:'Γκρουπ' },
   ru: { solo:'1-на-1 · клиент', team:'Команда · лидер + исполнители', group:'Группа' },
+  sw: { solo:'1-kwa-1 · mteja', team:'Timu · kiongozi + watoa huduma', group:'Kikundi' },
 }
 const ROLES: Record<Lang, Record<string,string>> = {
   fr: { owner:'Propriétaire', lead:'Leader', provider:'Prestataire', client:'Client', member:'Membre' },
@@ -109,6 +114,7 @@ const ROLES: Record<Lang, Record<string,string>> = {
   it: { owner:'Proprietario', lead:'Leader', provider:'Fornitore', client:'Cliente', member:'Membro' },
   el: { owner:'Ιδιοκτήτης', lead:'Αρχηγός', provider:'Συνεργάτης', client:'Πελάτης', member:'Μέλος' },
   ru: { owner:'Владелец', lead:'Лидер', provider:'Исполнитель', client:'Клиент', member:'Участник' },
+  sw: { owner:'Mmiliki', lead:'Kiongozi', provider:'Mtoa huduma', client:'Mteja', member:'Mwanachama' },
 }
 const objProxy = (data: Record<Lang, Record<string,string>>): Record<string,string> =>
   new Proxy({}, { get: (_t, p) => data[getLang()][String(p)] }) as Record<string,string>
@@ -118,7 +124,7 @@ export const ROLE_LABEL = objProxy(ROLES)
 export const INVITE_ROLES: Record<string,[string,string][]> = new Proxy({}, {
   get: (_t, p) => {
     const R = ROLES[getLang()]
-    const coProvider: Record<Lang, string> = { fr:'Collègue prestataire', en:'Fellow provider', nl:'Collega-dienstverlener', es:'Colega proveedor', pt:'Colega prestador', it:'Collega fornitore', el:'Συνάδελφος συνεργάτης', ru:'Коллега-исполнитель' }
+    const coProvider: Record<Lang, string> = { fr:'Collègue prestataire', en:'Fellow provider', nl:'Collega-dienstverlener', es:'Colega proveedor', pt:'Colega prestador', it:'Collega fornitore', el:'Συνάδελφος συνεργάτης', ru:'Коллега-исполнитель', sw:'Mtoa huduma mwenzako' }
     const map: Record<string,[string,string][]> = {
       solo: [['client', R.client]],
       team: [['client', R.client],['provider', coProvider[getLang()]]],

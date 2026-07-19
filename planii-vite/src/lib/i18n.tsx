@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
  *  - La langue est mémorisée (localStorage) et détectée depuis le navigateur au 1er passage.
  *  Pour couvrir un nouvel écran : ajouter les clés ici puis remplacer les textes par t('…'). */
 
-export type Lang = 'fr' | 'en' | 'nl' | 'es' | 'pt' | 'it' | 'el' | 'ru'
+export type Lang = 'fr' | 'en' | 'nl' | 'es' | 'pt' | 'it' | 'el' | 'ru' | 'sw'
 export const LANGS: { code: Lang; label: string; flag: string }[] = [
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -17,6 +17,7 @@ export const LANGS: { code: Lang; label: string; flag: string }[] = [
   { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   { code: 'el', label: 'Ελληνικά', flag: '🇬🇷' },
   { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+  { code: 'sw', label: 'Kiswahili', flag: '🇹🇿' },
 ]
 
 type Dict = Record<string, string>
@@ -232,7 +233,33 @@ const ru: Dict = {
   'qa.title':'Новая встреча','qa.optTitle':'Название (необязательно)','qa.date':'Дата','qa.start':'Начало','qa.end':'Конец','qa.needProject':'Сначала создайте проект, чтобы добавить встречу.','qa.needFields':'Нужны дата и время','qa.created':'Встреча создана ✓','qa.pick':'Создать в календаре','qa.appt':'Встреча','qa.task':'Задача',
 }
 
-const DICTS: Record<Lang, Dict> = { fr, en, nl, es, pt, it, el, ru }
+const sw: Dict = {
+  'nav.home':'Mwanzo','nav.projects':'Miradi','nav.agenda':'Kalenda','nav.leaderboard':'Orodha ya ushindi','nav.profile':'Wasifu','nav.admin':'Msimamizi',
+  'title.home':'Mwanzo — kazi zangu','title.projects':'Miradi','title.agenda':'Kalenda','title.leaderboard':'Orodha ya ushindi','title.profile':'Wasifu','title.admin':'Eneo la msimamizi',
+  'action.new':'Mpya','action.save':'Hifadhi','action.saving':'Inahifadhi…','action.cancel':'Ghairi','action.edit':'Hariri','action.add':'Ongeza','action.delete':'Futa','action.close':'Funga','action.confirm':'Thibitisha','action.done':'Imekamilika','action.create':'Unda','action.search':'Tafuta','action.expand':'Panua','action.collapse':'Punguza','action.remove':'Ondoa',
+  'view.list':'Orodha','view.board':'Ubao','view.agenda':'Kalenda','view.cards':'Kadi','view.table':'Jedwali',
+  'theme.title':'Muonekano','theme.light':'Mwanga','theme.dark':'Giza','theme.auto':'Otomatiki','lang.title':'Lugha',
+  'auth.tagline':'Miradi ya pamoja: wateja, watoa huduma na vikundi — kazi, mialiko, kura, shughuli.','auth.email':'Barua pepe','auth.password':'Nenosiri','auth.login':'Ingia','auth.signup':'Fungua akaunti yangu','auth.noAccount':'Huna akaunti bado?','auth.hasAccount':'Umesajiliwa tayari?','auth.register':'Jisajili','auth.name':'Jina kamili','auth.job':'Kazi','auth.support':'Tatizo? Wasiliana na usaidizi:','auth.privacy':'Sera ya faragha',
+  'profile.info':'Taarifa zangu','profile.firstName':'Jina la kwanza','profile.lastName':'Jina la ukoo','profile.job':'Kazi','profile.email':'Barua pepe','profile.roles':'Majukumu yangu','profile.taskTypes':'Aina zangu za kazi','profile.labels':'Lebo zangu za miradi','profile.logout':'Toka','profile.adminSpace':'Eneo la msimamizi','profile.editInfo':'Hariri taarifa zangu','profile.rolesDesc':'Maktaba ya majukumu ya kutumika tena kwenye miradi yako (mf. Kiongozi wa mradi, Msanidi, Mshauri).','profile.typesDesc':'Aina hizi zinatumika kwa kazi zako zote (mf. Kazi, Hitilafu, Uboreshaji…).','profile.labelsDesc':'Lebo hizi zinapaka rangi miradi yako na zinaonekana kwenye maelezo.','profile.rolesEmpty':'Hakuna jukumu — ongeza ili kuyatumia tena.','profile.typesEmpty':'Hakuna aina — chaguo-msingi (Kazi, Hitilafu) zitatumika.','profile.labelsEmpty':'Hakuna lebo bado.','profile.newRole':'Jukumu jipya…','profile.newType':'Aina mpya…','profile.newLabel':'Lebo mpya…','profile.phFirst':'Jina lako la kwanza','profile.phLast':'Jina lako la ukoo','profile.phJob':'Mf. Msanidi, Mshauri…',
+  'projects.active':'Inayoendelea','projects.done':'Imekamilika','projects.join':'Jiunge na mradi…','projects.sort':'Panga','projects.sortTitle':'Kichwa','projects.sortManual':'Kwa mkono','projects.newProject':'Mradi mpya','projects.members':'wanachama','projects.member':'mwanachama','projects.tasks':'kazi',
+  'common.loading':'Inapakia…','common.help':'Msaada wa ukurasa huu',
+  'home.todo':'ZA KUFANYA','home.doneGrp':'ZILIZOKAMILIKA','home.priority':'Kipaumbele:','home.allDone':'Hakuna cha kufanya — kila kitu kiko sawa, hongera!','home.noTasks':'Hakuna kazi ya kuonyesha.','home.colTodo':'za kufanya','home.finish':'Kamilisha','home.reopen':'Fungua tena','home.check':'Weka alama','home.early':' — mapema!','home.late':' — kwa kuchelewa','home.onTime':' — kwa wakati',
+  'today.title':'Leo','today.calm':'Kila kitu kiko shwari kwa sasa.','today.watch':'Pointi {n} za kuangalia sasa.','today.loading':'Inapakia vipaumbele vyako…','today.overdue':'Zilizochelewa','today.dueToday':'Za leo','today.highPrio':'Vipaumbele vikuu','today.transferred':'Zilizohamishwa','today.review':'Za kukaguliwa','today.discussions':'Majadiliano hai','today.noOverdue':'Hakuna iliyochelewa.','today.noDueToday':'Hakuna ya leo.','today.noHighPrio':'Hakuna kipaumbele P1/P2.','today.noTransferred':'Hakuna kazi iliyohamishwa.','today.noReview':'Hakuna inayokaguliwa.','today.noMeeting':'Hakuna mkutano wa hivi karibuni.','today.messages':'ujumbe',
+  'proj.dragHint':'Buruta miradi kubadilisha mpangilio.','proj.noneDone':'Hakuna mradi uliokamilika.','proj.thProject':'Mradi','proj.thType':'Aina','proj.thRole':'Jukumu','proj.thMembers':'Wanachama','proj.thTasks':'Kazi','proj.thProgress':'Maendeleo','proj.thLabel':'Lebo','proj.typeSolo':'1-kwa-1','proj.typeTeam':'Timu','proj.typeGroup':'Kikundi','proj.closed':'imefungwa','proj.name':'Jina la mradi','proj.type':'Aina ya mradi','proj.optSolo':'1-kwa-1 — mteja mmoja','proj.optTeam':'Timu — mteja + watoa huduma kadhaa (wewe = kiongozi)','proj.optGroup':'Kikundi — jamii, familia, marafiki','proj.labelList':'Orodha ya lebo','proj.deadline':'Tarehe ya kukabidhi (hiari)','proj.created':'Mradi umeundwa ✓','proj.joined':'Umejiunga na mradi ✓','proj.joinTitle':'Jiunge na mradi','proj.inviteLink':'Kiungo au msimbo wa mwaliko','proj.check':'Kagua','proj.joinAs':'Utajiunga kama','proj.invitedBy':'umealikwa na','proj.joinBtn':'Jiunge na mradi',
+  'lb.empty':'Hakuna timu bado. Unda au jiunge na mradi!','lb.banner':'Timu / kikundi bora kinapokea ziada ya','lb.scale':'Kipimo: mapema 20 · siku ile ile 15 · kuchelewa 5. Weka alama kazi zako ili kupanda!','lb.level':'Kiwango','lb.bonus':'bonasi',
+  'notif.title':'Arifa','notif.empty':'Hakuna arifa.','notif.clear':'Futa',
+  'cmd.home':'Nenda Mwanzo','cmd.projects':'Nenda kwenye Miradi','cmd.agenda':'Fungua Kalenda','cmd.leaderboard':'Ona Orodha ya ushindi','cmd.profile':'Wasifu wangu','cmd.newProject':'Unda mradi','cmd.light':'Mandhari ya mwanga','cmd.dark':'Mandhari ya giza','cmd.auto':'Mandhari otomatiki (mfumo)','cmd.open':'Fungua: ','cmd.placeholder':'Tafuta kitendo, mradi…','cmd.noResult':'Hakuna matokeo','cmd.toOpen':'kufungua','cmd.toClose':'kufunga',
+  'qt.title':'Kazi mpya','qt.label':'Kichwa','qt.project':'Mradi','qt.pickProject':'Chagua mradi','qt.needProject':'Unda mradi kwanza ili kuongeza kazi.','qt.created':'Kazi imeundwa ✓','qt.due':'Tarehe ya mwisho (hiari)','qt.type':'Aina','qt.priority':'Kipaumbele',
+  'msg.saved':'Imehifadhiwa ✓','msg.labelAdded':'Lebo imeongezwa ✓','msg.labelRemoved':'Lebo imeondolewa','msg.dup':'Ipo tayari kwenye orodha','msg.tooLong':'Orodha ndefu mno',
+  'term.work':'Kazi','term.private':'Binafsi','term.task':'Kazi','term.bug':'Hitilafu','term.improvement':'Uboreshaji','term.pm':'Kiongozi wa mradi','term.dev':'Msanidi','term.consultant':'Mshauri','term.todo':'Ya kufanya','term.doing':'Inaendelea','term.reviewSt':'Imekaguliwa','term.doneSt':'Imekamilika','term.transferredSt':'Imehamishwa',
+  'td.priority':'Kipaumbele','td.project':'Mradi','td.assignee':'Mhusika','td.due':'Tarehe ya mwisho','td.hours':'Saa','td.spent':'zilizotumika','td.est':'zilizokadiriwa','td.subs':'Kazi ndogo','td.toTake':'— ya kuchukuliwa','td.openProject':'Fungua mradi →','td.onlyOwner':'Mhusika pekee ndiye anayeweza kuweka alama kazi hii',
+  'meet.title':'Mkutano','meet.guests':'mwalikwa wa mradi','meet.quit':'Ondoka mkutanoni','meet.autoInvited':'Wamealikwa kiotomatiki','meet.autoDesc':'Wanachama wote wa mradi wanaweza kujiunga na kuzungumza hapa.','meet.discussion':'Majadiliano ya mkutano','meet.chat':'Soga','meet.tasks':'Kazi','meet.noMsg':'Hakuna ujumbe bado.','meet.taskMade':'✓ Kazi imeundwa','meet.makeTask':'＋ Unda kazi','meet.write':'Andika ujumbe…','meet.send':'Tuma','meet.allowed':'Watu walioruhusiwa','meet.allowedDesc':'Wanachama hawa wanaweza kuunda na kugawa kazi kutoka mkutano huu.','meet.needAuth':'Kiongozi wa mradi lazima akuruhusu kuunda kazi kutoka mkutano huu.','meet.titleField':'Kichwa','meet.status':'Hali','meet.transferable':'Kazi inayohamishika','meet.accessUpdated':'Ufikiaji wa kazi umesasishwa ✓','meet.titleReq':'Kichwa kinahitajika','meet.taskCreated':'Kazi imeundwa kutoka mkutanoni ✓','meet.toTake':'— Ya kuchukuliwa',
+  'vw.title':'Kazi kwa sauti','vw.step':'Hatua','vw.qTitle':'Kichwa cha kazi ni nini?','vw.qPrio':'Kipaumbele kipi? Kutoka 1, ya haraka zaidi, hadi 6, ya chini zaidi.','vw.qWho':'Nani mhusika? Sema jina, jukumu, mimi, au hakuna.','vw.review':'Hii hapa kazi. Unaweza kuiunda au kuirekebisha.','vw.listening':'Inasikiliza…','vw.press':'Bonyeza na uongee','vw.speak':'Ongea','vw.none':'Hakuna','vw.noneF':'hakuna','vw.noneM':'hakuna','vw.toTakeOpt':'— Ya kuchukuliwa (haijagawiwa)','vw.me':'(mimi)','vw.empty':'(tupu)','vw.toTake':'ya kuchukuliwa','vw.prev':'‹ Nyuma','vw.next':'Mbele ›','vw.creating':'Inaunda…','vw.createTask':'✓ Unda kazi','vw.titleReq':'Kichwa ni lazima','vw.created':'Kazi imeundwa kwa sauti ✓','vw.noVoice':'Utambuzi wa sauti haupatikani','vw.notFound':'Hakuna aliyepatikana kwa','vw.titlePh':'Kichwa cha kazi',
+  'cal.today':'Leo','cal.month':'Mwezi','cal.week':'Wiki','cal.day':'Siku','cal.agendaView':'Ajenda','cal.year':'Heatmap (mwaka)','cal.yearTitle':'Heatmap — shughuli za mwaka','cal.nothing':'Hakuna kilichopangwa','cal.nothingDay':'Hakuna kilichopangwa siku hii.','cal.noUpcoming':'Hakuna tarehe ya mwisho inayokuja.',
+  'qa.title':'Miadi mpya','qa.optTitle':'Kichwa (hiari)','qa.date':'Tarehe','qa.start':'Mwanzo','qa.end':'Mwisho','qa.needProject':'Unda mradi kwanza ili kuongeza miadi.','qa.needFields':'Tarehe na saa zinahitajika','qa.created':'Miadi imeundwa ✓','qa.pick':'Unda kwenye kalenda','qa.appt':'Miadi','qa.task':'Kazi',
+}
+
+const DICTS: Record<Lang, Dict> = { fr, en, nl, es, pt, it, el, ru, sw }
 const KEY = 'planii.lang'
 
 function detect(): Lang {
@@ -241,7 +268,7 @@ function detect(): Lang {
     if (saved && DICTS[saved]) return saved
   } catch { /* ignore */ }
   const nav = (navigator.language || 'fr').slice(0, 2).toLowerCase()
-  return (['fr', 'en', 'nl', 'es', 'pt', 'it', 'el', 'ru'].includes(nav) ? nav : 'fr') as Lang
+  return (['fr', 'en', 'nl', 'es', 'pt', 'it', 'el', 'ru', 'sw'].includes(nav) ? nav : 'fr') as Lang
 }
 
 let current: Lang = detect()
