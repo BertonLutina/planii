@@ -5,7 +5,7 @@ import { PRIORITIES } from '@/lib/priority'
 import { taskTypesOf, typeTone } from '@/lib/tasktype'
 import { MicInput } from './Mic'
 import type { ProjectSummary, User } from '@/lib/types'
-import { useI18n } from '@/lib/i18n'
+import { useI18n, trTerm } from '@/lib/i18n'
 
 /** Ajout rapide d'une tâche (avec priorité), depuis le “+” / “Nouveau”. */
 export function QuickTask({ me, onClose, onCreated }: { me: User; onClose: () => void; onCreated: () => void }) {
@@ -45,8 +45,8 @@ export function QuickTask({ me, onClose, onCreated }: { me: User; onClose: () =>
             </select></div>
           <div className="field"><label>{tr('qt.type')}</label>
             <div className="type-pick">
-              <button className={f.type === '' ? 'on' : ''} onClick={() => setF({ ...f, type: '' })}>Aucun</button>
-              {myTypes.map((t) => <button key={t} className={f.type === t ? 'on ' + typeTone(t) : ''} onClick={() => setF({ ...f, type: t })}>{t}</button>)}
+              <button className={f.type === '' ? 'on' : ''} onClick={() => setF({ ...f, type: '' })}>—</button>
+              {myTypes.map((t) => <button key={t} className={f.type === t ? 'on ' + typeTone(t) : ''} onClick={() => setF({ ...f, type: t })}>{trTerm(t)}</button>)}
             </div></div>
           <div className="field"><label>{tr('qt.priority')}</label>
             <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={f.priority === n ? 'on o' + n : ''} onClick={() => setF({ ...f, priority: n })}>P{n}</button>)}</div></div>

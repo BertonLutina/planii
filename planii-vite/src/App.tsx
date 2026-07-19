@@ -16,7 +16,7 @@ import { CommandPalette, CMD_LABEL } from './components/CommandPalette'
 import { QuickTask } from './components/QuickTask'
 import { QuickAppointment } from './components/QuickAppointment'
 import { HelpButton } from './components/Guide'
-import { useI18n, LangPicker } from '@/lib/i18n'
+import { useI18n, LangPicker, trTerm, t as tt } from '@/lib/i18n'
 import { Admin } from './components/Admin'
 import { StyleGuide } from './components/StyleGuide'
 import { Privacy } from './components/Privacy'
@@ -71,8 +71,8 @@ function ListEditModal({ me, onUpdate, title, field, get, placeholder, maxLen, e
   function add() {
     const v = nv.trim()
     if (!v) return
-    if (list.some((t) => t.toLowerCase() === v.toLowerCase())) { toastErr('Déjà dans la liste'); return }
-    if (list.length >= 40) { toastErr('Liste trop longue'); return }
+    if (list.some((t) => t.toLowerCase() === v.toLowerCase())) { toastErr(tt('msg.dup')); return }
+    if (list.length >= 40) { toastErr(tt('msg.tooLong')); return }
     setList([...list, v]); setNv('')
   }
   const remove = (t: string) => setList(list.filter((x) => x !== t))
@@ -81,7 +81,7 @@ function ListEditModal({ me, onUpdate, title, field, get, placeholder, maxLen, e
     setSaving(true)
     try {
       const r = await api<{ user: User }>('PATCH', '/me', { [field]: list })
-      onUpdate(r.user); toast('Enregistré ✓'); onClose()
+      onUpdate(r.user); toast(tt('msg.saved')); onClose()
     } catch (e: any) { toastErr(e.message) } finally { setSaving(false) }
   }
 
@@ -90,19 +90,19 @@ function ListEditModal({ me, onUpdate, title, field, get, placeholder, maxLen, e
       <div className="chips">
         {list.map((t) => (
           <span key={t} className={'chip ' + typeTone(t)}>
-            {t}
-            <button className="chip-x" onClick={() => remove(t)} aria-label={'Retirer ' + t}>×</button>
+            {trTerm(t)}
+            <button className="chip-x" onClick={() => remove(t)} aria-label={tt('action.remove') + ' ' + t}>×</button>
           </span>
         ))}
         {list.length === 0 && <span className="sub">{emptyNote}</span>}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
         <MicInput style={{ flex: 1 }} value={nv} maxLength={maxLen} placeholder={placeholder} onChange={setNv} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
-        <button className="btn sm" onClick={add}>Ajouter</button>
+        <button className="btn sm" onClick={add}>{tt('action.add')}</button>
       </div>
       <div className="sheet-actions">
-        <button className="btn primary" disabled={saving} onClick={save}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
-        <button className="btn ghost" onClick={onClose}>Annuler</button>
+        <button className="btn primary" disabled={saving} onClick={save}>{saving ? tt('action.saving') : tt('action.save')}</button>
+        <button className="btn ghost" onClick={onClose}>{tt('action.cancel')}</button>
       </div>
     </Modal>
   )
@@ -115,10 +115,10 @@ function ListEditor(props: ListEditorProps) {
     <>
       <div className="section-h">{props.title}</div>
       <div className="card info-card">
-        <button className="info-edit" onClick={() => setEditing(true)} aria-label={'Modifier ' + props.title}><Ic name="edit" s={15} /> Modifier</button>
+        <button className="info-edit" onClick={() => setEditing(true)} aria-label={tt('action.edit') + ' ' + props.title}><Ic name="edit" s={15} /> {tt('action.edit')}</button>
         <p className="sub" style={{ marginTop: 0, paddingRight: 96 }}>{props.desc}</p>
         <div className="chips">
-          {saved.map((t) => <span key={t} className={'chip ' + typeTone(t)}>{t}</span>)}
+          {saved.map((t) => <span key={t} className={'chip ' + typeTone(t)}>{trTerm(t)}</span>)}
           {saved.length === 0 && <span className="sub">{props.emptyNote}</span>}
         </div>
       </div>
@@ -172,7 +172,7 @@ function ProjectLabelEditor() {
       setName('')
       setColor(palette[(labels.length + 1) % palette.length] || LABEL_COLORS[0])
       await load()
-      toast('Libellé ajouté ✓')
+      toast(tt('msg.labelAdded'))
     } catch (e: any) { toastErr(e.message) } finally { setBusy(false) }
   }
 
@@ -180,39 +180,39 @@ function ProjectLabelEditor() {
     try {
       await api('DELETE', '/project-labels/' + id)
       await load()
-      toast('Libellé supprimé')
+      toast(tt('msg.labelRemoved'))
     } catch (e: any) { toastErr(e.message) }
   }
 
   const [editing, setEditing] = useState(false)
   return (
     <>
-      <div className="section-h">Mes libellés de projets</div>
+      <div className="section-h">{tt('profile.labels')}</div>
       <div className="card info-card">
-        <button className="info-edit" onClick={() => setEditing(true)} aria-label="Modifier mes libellés"><Ic name="edit" s={15} /> Modifier</button>
-        <p className="sub" style={{ marginTop: 0, paddingRight: 96 }}>Ces libellés colorent tes projets et apparaissent dans la légende.</p>
+        <button className="info-edit" onClick={() => setEditing(true)} aria-label={tt('action.edit')}><Ic name="edit" s={15} /> {tt('action.edit')}</button>
+        <p className="sub" style={{ marginTop: 0, paddingRight: 96 }}>{tt('profile.labelsDesc')}</p>
         <div className="label-chip-list">
           {labels.map((l) => (
             <span key={l.id} className="label-chip" style={{ borderColor: l.color, color: l.color }}>
-              <i style={{ background: l.color }} />{l.label}
+              <i style={{ background: l.color }} />{trTerm(l.label)}
             </span>
           ))}
-          {labels.length === 0 && <span className="sub">Aucun libellé pour l’instant.</span>}
+          {labels.length === 0 && <span className="sub">{tt('profile.labelsEmpty')}</span>}
         </div>
       </div>
       {editing && (
-        <Modal title="Modifier mes libellés" onClose={() => setEditing(false)}>
-          <p className="sub" style={{ marginTop: 0 }}>Ces libellés colorent tes projets et apparaissent dans la légende.</p>
+        <Modal title={tt('profile.labels')} onClose={() => setEditing(false)}>
+          <p className="sub" style={{ marginTop: 0 }}>{tt('profile.labelsDesc')}</p>
           <div className="label-chip-list">
             {labels.map((l) => (
               <span key={l.id} className="label-chip" style={{ borderColor: l.color, color: l.color }}>
-                <i style={{ background: l.color }} />{l.label}
-                {!l.fixed && <button className="chip-x" onClick={() => remove(l.id)} aria-label={'Retirer ' + l.label}>×</button>}
+                <i style={{ background: l.color }} />{trTerm(l.label)}
+                {!l.fixed && <button className="chip-x" onClick={() => remove(l.id)} aria-label={tt('action.remove') + ' ' + l.label}>×</button>}
               </span>
             ))}
           </div>
           <div className="label-add-row">
-            <MicInput value={name} maxLength={28} placeholder="Nouveau libellé…" onChange={setName} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
+            <MicInput value={name} maxLength={28} placeholder={tt('profile.newLabel')} onChange={setName} onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
             <div className="label-color-pick" aria-label="Couleur du libellé">
               {palette.map((c) => {
                 const custom = !LABEL_COLORS.some((d) => d.toLowerCase() === c.toLowerCase())
@@ -228,10 +228,10 @@ function ProjectLabelEditor() {
                 <span>＋</span>
               </label>
             </div>
-            <button className="btn sm" disabled={busy} onClick={add}>Ajouter</button>
+            <button className="btn sm" disabled={busy} onClick={add}>{tt('action.add')}</button>
           </div>
           <div className="sheet-actions">
-            <button className="btn primary" onClick={() => setEditing(false)}>Terminé</button>
+            <button className="btn primary" onClick={() => setEditing(false)}>{tt('action.done')}</button>
           </div>
         </Modal>
       )}
@@ -260,11 +260,11 @@ function EditInfoModal({ me, onClose, onUpdate }: { me: User; onClose: () => voi
   return (
     <Modal title={tr('profile.editInfo')} onClose={onClose}>
       <div className="field"><label>{tr('profile.firstName')}</label>
-        <MicInput value={first} onChange={setFirst} placeholder="Ton prénom" maxLength={60} autoFocus /></div>
+        <MicInput value={first} onChange={setFirst} placeholder={tr('profile.phFirst')} maxLength={60} autoFocus /></div>
       <div className="field"><label>{tr('profile.lastName')}</label>
-        <MicInput value={last} onChange={setLast} placeholder="Ton nom" maxLength={60} /></div>
+        <MicInput value={last} onChange={setLast} placeholder={tr('profile.phLast')} maxLength={60} /></div>
       <div className="field"><label>{tr('profile.job')}</label>
-        <MicInput value={job} onChange={setJob} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
+        <MicInput value={job} onChange={setJob} placeholder={tr('profile.phJob')} maxLength={60} /></div>
       <div className="sheet-actions">
         <button className="btn primary" disabled={saving} onClick={save}>{saving ? tr('action.saving') : tr('action.save')}</button>
         <button className="btn ghost" onClick={onClose}>{tr('action.cancel')}</button>
@@ -305,9 +305,9 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
 
           <ListEditor me={me} onUpdate={onUpdate}
             title={tr('profile.roles')} field="roleLibrary" get={roleLibraryOf}
-            desc="Bibliothèque de rôles réutilisables dans tes projets (ex. Chef de projet, Développeur, Consultant)."
-            placeholder="Nouveau rôle…" maxLen={40}
-            emptyNote="Aucun rôle — ajoutes-en pour les réutiliser dans tes projets." />
+            desc={tr('profile.rolesDesc')}
+            placeholder={tr('profile.newRole')} maxLen={40}
+            emptyNote={tr('profile.rolesEmpty')} />
         </div>
 
         <div className="profile-col">
@@ -315,9 +315,9 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
 
           <ListEditor me={me} onUpdate={onUpdate}
             title={tr('profile.taskTypes')} field="taskTypes" get={taskTypesOf}
-            desc="Ces types s’appliquent à toutes tes tâches (ex. Tâche, Bug, Amélioration…)."
-            placeholder="Nouveau type…" maxLen={30}
-            emptyNote="Aucun type — les défauts (Tâche, Bug) seront utilisés." />
+            desc={tr('profile.typesDesc')}
+            placeholder={tr('profile.newType')} maxLen={30}
+            emptyNote={tr('profile.typesEmpty')} />
 
           <div className="profile-actions">
             {me.admin && (

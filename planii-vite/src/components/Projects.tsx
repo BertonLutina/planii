@@ -7,7 +7,7 @@ import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
 import type { InviteInfo, ProjectLabel, ProjectSummary, PaginatedResponse } from '@/lib/types'
 import { LoadMoreButton } from '@/lib/usePagination'
 import { Ic } from './Icon'
-import { useI18n, t as tt } from '@/lib/i18n'
+import { useI18n, t as tt, trTerm } from '@/lib/i18n'
 
 const TYPE_SHORT: Record<string, string> = new Proxy({}, { get: (_o, k) => tt('proj.type' + String(k)[0].toUpperCase() + String(k).slice(1)) }) as Record<string, string>
 const TYPE_ICON: Record<string, string> = { solo: 'user', team: 'users', group: 'users' }
@@ -153,7 +153,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
         </div>
         <div className="project-legend" aria-label="Légende des libellés">
           {legendLabels.map((l) => (
-            <span key={l.id} className="project-legend-item"><i style={{ background: l.color }} />{l.label}</span>
+            <span key={l.id} className="project-legend-item"><i style={{ background: l.color }} />{trTerm(l.label)}</span>
           ))}
         </div>
       </div>
@@ -199,7 +199,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                           <span className="pt-pct">{h.pct}%</span>
                         </div>
                       </td>
-                      <td><span className="pt-chip" style={{ color: labelColor, background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}><i style={{ background: labelColor }} />{labelName}</span></td>
+                      <td><span className="pt-chip" style={{ color: labelColor, background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}><i style={{ background: labelColor }} />{trTerm(labelName)}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -224,7 +224,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                     <b className="pcard-name">{p.name}</b>
                     <span className="pcard-type"><Ic name={TYPE_ICON[p.type] || 'folder'} s={12} /> {typeShort}{role ? ' · ' + role : ''}</span>
                   </div>
-                  <span className="pcard-chip" style={{ color: labelColor, background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}>{labelName}</span>
+                  <span className="pcard-chip" style={{ color: labelColor, background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}>{trTerm(labelName)}</span>
                 </div>
                 <div className="pcard-stats">
                   <span className="pcard-stat"><Ic name="users" s={14} /> {memberCount}</span>
@@ -281,7 +281,7 @@ function NewProject({ labels, onClose, onCreated }: { labels: ProjectLabel[]; on
         </div></div>
       <div className="field"><label>{tr('proj.labelList')}</label>
         <select value={f.labelId} onChange={(e) => setF({ ...f, labelId: e.target.value })}>
-          {labels.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+          {labels.map((l) => <option key={l.id} value={l.id}>{trTerm(l.label)}</option>)}
         </select>
       </div>
       <div className="field"><label>{tr('proj.deadline')}</label>
