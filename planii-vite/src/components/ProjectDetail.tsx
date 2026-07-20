@@ -10,6 +10,7 @@ import { LoadMoreButton } from '@/lib/usePagination'
 import { Meeting } from './Meeting'
 import { Mic, MicInput, MicTextarea } from './Mic'
 import { Ic } from './Icon'
+import { t as tt, trTerm } from '@/lib/i18n'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
 import { useRealtime } from '@/lib/realtime'
 import { taskComparator, type TaskSort, type Dir } from '@/lib/sort'
@@ -55,8 +56,8 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
   useEffect(() => { load() }, [load])
   useRealtime((m) => { if (m.type === 'project' && m.projectId === id) load() })
 
-  if (err) return <div className="app project-detail-app"><div className="wrap"><button className="btn-link" onClick={onBack}>‹ Retour</button><div className="empty">{err}</div></div></div>
-  if (!p) return <div className="app project-detail-app"><div className="wrap"><div className="empty">Chargement…</div></div></div>
+  if (err) return <div className="app project-detail-app"><div className="wrap"><button className="btn-link" onClick={onBack}>{tt('pd.back')}</button><div className="empty">{err}</div></div></div>
+  if (!p) return <div className="app project-detail-app"><div className="wrap"><div className="empty">{tt('common.loading')}</div></div></div>
   if (meet) return <Meeting p={p} me={me} onClose={() => setMeet(false)} />
 
   const h = health(p.taskCount ?? p.tasks.length, p.doneCount ?? p.tasks.filter((t) => t.done).length, p.status)
@@ -66,15 +67,15 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
   const memberName = (uid: string | null) => { const m = p.members.find((x) => x.id === uid); return m ? m.name : '—' }
 
   async function closeProject() {
-    try { await api('POST', '/projects/' + id + '/close'); setConfirmClose(false); toast('Projet clôturé ✓'); load() } catch (e: any) { toastErr(e.message) }
+    try { await api('POST', '/projects/' + id + '/close'); setConfirmClose(false); toast(tt('pd.closedOk')); load() } catch (e: any) { toastErr(e.message) }
   }
   async function reopenProject() {
-    try { await api('POST', '/projects/' + id + '/reopen'); toast('Projet réouvert ✓'); load() } catch (e: any) { toastErr(e.message) }
+    try { await api('POST', '/projects/' + id + '/reopen'); toast(tt('pd.reopenOk')); load() } catch (e: any) { toastErr(e.message) }
   }
   async function deleteProject() {
     try {
       const r = await api<{ notified: number }>('DELETE', '/projects/' + id)
-      toast(r.notified > 0 ? `Projet supprimé ✓ — ${r.notified} membre(s) averti(s)` : 'Projet supprimé ✓')
+      toast(r.notified > 0 ? tt('pd.delNotif', { n: r.notified }) : tt('pd.delOk'))
       onBack()
     } catch (e: any) { toastErr(e.message) }
   }
@@ -86,61 +87,59 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
         <div className="who"><span className="role-tag">{ROLE_LABEL[p.my_role] || p.my_role}</span><Avatar name={me.name} /></div>
       </div>
       <div className="wrap">
-        <button className="btn-link" onClick={onBack}>‹ Retour</button>
+        <button className="btn-link" onClick={onBack}>{tt('pd.back')}</button>
         <div className="card" style={{ marginTop: 10 }}>
           <div className="row">
             <div>
               <p className="title-lg">{p.name}</p>
-              <p className="sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span className="role-tag">{TYPE_LABEL[p.type]}</span> · <Ic name="star" s={12} c="var(--gold)" /> {projectPoints(p)} pts{p.deadline ? ` · livraison ${formatDue(p.deadline)}` : ''}</p>
+              <p className="sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span className="role-tag">{TYPE_LABEL[p.type]}</span> · <Ic name="star" s={12} c="var(--gold)" /> {projectPoints(p)} pts{p.deadline ? ` · ${tt('pd.delivery')} ${formatDue(p.deadline)}` : ''}</p>
             </div>
-            <span className={'pill ' + (p.status === 'done' ? 'ok' : 'acc')}>{p.status === 'done' ? 'Terminé' : `${h.done}/${h.total}`}</span>
+            <span className={'pill ' + (p.status === 'done' ? 'ok' : 'acc')}>{p.status === 'done' ? tt('term.doneSt') : `${h.done}/${h.total}`}</span>
           </div>
           <div className="mini-bar"><i style={{ width: h.pct + '%', background: p.status === 'done' ? 'var(--ok)' : 'var(--accent)' }} /></div>
           <div className="sheet-actions" style={{ marginTop: 12, flexWrap: 'wrap' }}>
-            {!closed && <button className="btn sm primary" onClick={() => setMeet(true)}><Ic name="video" s={15} />Meeting</button>}
-            {manage && !closed && <button className="btn sm ghost" onClick={() => setConfirmClose(true)}><Ic name="check" s={15} />Clôturer</button>}
-            {isOwner && closed && p.canReopen && <button className="btn sm primary" onClick={reopenProject}>↻ Réouvrir</button>}
-            {isOwner && !closed && <button className="btn sm ghost" onClick={() => setEditing(true)}><Ic name="edit" s={15} />Modifier</button>}
-            {isOwner && <button className="btn sm danger" onClick={() => setConfirmDel(true)}><Ic name="trash" s={15} />Supprimer</button>}
+            {!closed && <button className="btn sm primary" onClick={() => setMeet(true)}><Ic name="video" s={15} />{tt('meet.title')}</button>}
+            {manage && !closed && <button className="btn sm ghost" onClick={() => setConfirmClose(true)}><Ic name="check" s={15} />{tt('pd.close')}</button>}
+            {isOwner && closed && p.canReopen && <button className="btn sm primary" onClick={reopenProject}>{tt('pd.reopen')}</button>}
+            {isOwner && !closed && <button className="btn sm ghost" onClick={() => setEditing(true)}><Ic name="edit" s={15} />{tt('action.edit')}</button>}
+            {isOwner && <button className="btn sm danger" onClick={() => setConfirmDel(true)}><Ic name="trash" s={15} />{tt('action.delete')}</button>}
           </div>
         </div>
 
         {closed && (
           <div className="banner closed-project-banner">
-            <b>Projet clôturé.</b> Les tâches, les rendez-vous, le meeting, les sondages et les modifications sont bloqués.
-            {isOwner && p.canReopen && p.reopenUntil ? ` Vous pouvez le réouvrir jusqu’au ${new Date(p.reopenUntil).toLocaleDateString('fr-FR')}.` : ''}
-            {isOwner && !p.canReopen ? ' Le délai de réouverture de 30 jours est dépassé.' : ''}
+            <b>{tt('pd.closedT')}</b> {tt('pd.closedX')}
+            {isOwner && p.canReopen && p.reopenUntil ? ' ' + tt('pd.reopenUntil', { d: new Date(p.reopenUntil).toLocaleDateString() }) : ''}
+            {isOwner && !p.canReopen ? ' ' + tt('pd.reopenLate') : ''}
           </div>
         )}
 
         {editing && <EditProject p={p} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); load() }} />}
         {confirmClose && (
-          <Modal title="Clôturer le projet ?" onClose={() => setConfirmClose(false)}>
+          <Modal title={tt('pd.closeQ')} onClose={() => setConfirmClose(false)}>
             <p className="sub" style={{ marginTop: 0 }}>
-              Le projet <b>« {p.name} »</b> passera en lecture seule : plus de meeting, plus de modification, plus d’action sur les tâches.
-              Le propriétaire pourra le réouvrir pendant 30 jours.
+              {tt('pd.closeX', { n: p.name })}
             </p>
             <div className="sheet-actions">
-              <button className="btn primary" onClick={closeProject}>Oui, clôturer</button>
-              <button className="btn ghost" onClick={() => setConfirmClose(false)}>Annuler</button>
+              <button className="btn primary" onClick={closeProject}>{tt('pd.yesClose')}</button>
+              <button className="btn ghost" onClick={() => setConfirmClose(false)}>{tt('action.cancel')}</button>
             </div>
           </Modal>
         )}
         {confirmDel && (
-          <Modal title="Supprimer le projet ?" onClose={() => setConfirmDel(false)}>
+          <Modal title={tt('pd.delQ')} onClose={() => setConfirmDel(false)}>
             <p className="sub" style={{ marginTop: 0 }}>
-              Le projet <b>« {p.name} »</b> sera supprimé définitivement, avec toutes ses tâches, sondages et son historique.
-              {p.members.length > 1 ? ` Les ${p.members.length - 1} autre(s) membre(s) seront retirés et avertis.` : ''} Cette action est irréversible.
+              {tt('pd.delX', { n: p.name })}{p.members.length > 1 ? ' ' + tt('pd.delMembers', { c: p.members.length - 1 }) : ''} {tt('pd.irrev')}
             </p>
             <div className="sheet-actions">
-              <button className="btn danger" onClick={deleteProject}>Oui, supprimer</button>
-              <button className="btn ghost" onClick={() => setConfirmDel(false)}>Annuler</button>
+              <button className="btn danger" onClick={deleteProject}>{tt('pd.yesDel')}</button>
+              <button className="btn ghost" onClick={() => setConfirmDel(false)}>{tt('action.cancel')}</button>
             </div>
           </Modal>
         )}
 
         <div className="tabs" style={{ marginTop: 6 }}>
-          {([['taches', 'Tâches'], ['rendezvous', 'Rendez-vous'], ['equipe', 'Équipe'], ['membres', 'Membres'], ['sondages', 'Sondages'], ['activite', 'Activité']] as const).map(([k, l]) => (
+          {([['taches', tt('ad.tasks')], ['rendezvous', tt('qa.appt')], ['equipe', tt('pd.tabTeam')], ['membres', tt('proj.thMembers')], ['sondages', tt('pd.tabPolls')], ['activite', tt('pd.tabActivity')]] as const).map(([k, l]) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
           ))}
         </div>
@@ -182,8 +181,8 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
   const [statusBusy, setStatusBusy] = useState(false)
   const member = (id: string | null) => p.members.find((x) => x.id === id)
   const statuses = (p.statuses && p.statuses.length ? p.statuses : [
-    { id: 'todo', key: 'todo', label: 'À faire', color: '#9a988f', position: 0, fixed: true },
-    { id: 'in_progress', key: 'in_progress', label: 'En cours', color: '#3b82d6', position: 1, fixed: true },
+    { id: 'todo', key: 'todo', label: tt('term.todo'), color: '#9a988f', position: 0, fixed: true },
+    { id: 'in_progress', key: 'in_progress', label: tt('term.doing'), color: '#3b82d6', position: 1, fixed: true },
     { id: 'review', key: 'review', label: 'Revu', color: '#9b5de5', position: 2, fixed: true },
     { id: 'transferred', key: 'transferred', label: 'Transféré', color: '#f59f30', position: 3, fixed: false },
     { id: 'done', key: 'done', label: 'Terminé', color: '#4caf50', position: 99, fixed: true },
@@ -204,7 +203,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
 
   async function addTask() {
     if (!nf.title.trim()) return
-    try { await api('POST', '/projects/' + p.id + '/tasks', { title: nf.title.trim(), description: nf.desc || null, type: nf.type || null, assigneeId: nf.assigneeId || null, due: nf.due || null, estHours: nf.est || null, priority: nf.priority, transferable: nf.transferable }); setNf({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6, transferable: false }); setAdding(false); toast('Tâche créée ✓'); reload() }
+    try { await api('POST', '/projects/' + p.id + '/tasks', { title: nf.title.trim(), description: nf.desc || null, type: nf.type || null, assigneeId: nf.assigneeId || null, due: nf.due || null, estHours: nf.est || null, priority: nf.priority, transferable: nf.transferable }); setNf({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6, transferable: false }); setAdding(false); toast(tt('qt.created')); reload() }
     catch (e: any) { toastErr(e.message) }
   }
   async function addSub(parentId: string) {
@@ -212,22 +211,22 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
     try { await api('POST', '/projects/' + p.id + '/tasks', { title: subTitle.trim(), parentId, priority: 6 }); setSubTitle(''); setAddSubFor(null); reload() }
     catch (e: any) { toastErr(e.message) }
   }
-  async function toggle(t: Task) { try { await api('PATCH', '/tasks/' + t.id, { done: !t.done }); if (!t.done) toast('Tâche terminée ✓'); reload() } catch (e: any) { toastErr(e.message) } }
-  async function claim(t: Task) { try { await api('POST', '/tasks/' + t.id + '/claim', {}); toast('Tâche prise ✓'); reload() } catch (e: any) { toastErr(e.message) } }
-  async function del(t: Task) { try { await api('DELETE', '/tasks/' + t.id); setDeleteId(null); toast('Tâche supprimée ✓'); reload() } catch (e: any) { toastErr(e.message) } }
-  async function setPriority(t: Task, n: number) { try { await api('PATCH', '/tasks/' + t.id, { priority: n }); setPrioId(null); toast('Priorité P' + n); reload() } catch (e: any) { toastErr(e.message) } }
+  async function toggle(t: Task) { try { await api('PATCH', '/tasks/' + t.id, { done: !t.done }); if (!t.done) toast(tt('pd.taskDone')); reload() } catch (e: any) { toastErr(e.message) } }
+  async function claim(t: Task) { try { await api('POST', '/tasks/' + t.id + '/claim', {}); toast(tt('pd.taskClaimed')); reload() } catch (e: any) { toastErr(e.message) } }
+  async function del(t: Task) { try { await api('DELETE', '/tasks/' + t.id); setDeleteId(null); toast(tt('pd.taskDeleted')); reload() } catch (e: any) { toastErr(e.message) } }
+  async function setPriority(t: Task, n: number) { try { await api('PATCH', '/tasks/' + t.id, { priority: n }); setPrioId(null); toast(tt('ad.prioSet', { n })); reload() } catch (e: any) { toastErr(e.message) } }
   async function moveTask(t: Task, statusKey: string) {
-    if (statusKey === 'transferred' && !t.transferable) { toastErr('Cette tâche n’est pas transférable'); return }
+    if (statusKey === 'transferred' && !t.transferable) { toastErr(tt('pd.notTransferable')); return }
     const other = p.members.find((m) => m.id !== (t.assigneeId || me.id))
     const transferTo = statusKey === 'transferred' ? (t.transferredTo || other?.id || t.assigneeId || null) : null
-    try { await api('PATCH', '/tasks/' + t.id, { statusKey, transferredTo: transferTo }); setDragId(null); toast(statusKey === 'transferred' ? 'Tâche transférée ✓' : 'Statut mis à jour ✓'); reload() }
+    try { await api('PATCH', '/tasks/' + t.id, { statusKey, transferredTo: transferTo }); setDragId(null); toast(statusKey === 'transferred' ? tt('pd.taskTransferred') : tt('pd.statusOk')); reload() }
     catch (e: any) { toastErr(e.message); setDragId(null) }
   }
   async function transferTask(t: Task, userId: string) {
     try {
       await api('PATCH', '/tasks/' + t.id, { statusKey: 'transferred', transferredTo: userId })
       setTransferId(null)
-      toast('Tâche transférée ✓')
+      toast(tt('pd.taskTransferred'))
       reload()
     } catch (e: any) { toastErr(e.message) }
   }
@@ -247,7 +246,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
   async function relance(t: Task) {
     try {
       await api('POST', '/tasks/' + t.id + '/remind', {})
-      toast('Relance envoyée ✓')
+      toast(tt('pd.remindOk'))
       reload()
     } catch (e: any) { toastErr(e.message) }
   }
@@ -281,63 +280,63 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
         onDragStart={!isSub && !closed ? () => setDragId(t.id) : undefined}
         onDragEnd={!isSub && !closed ? () => setDragId(null) : undefined}>
         <div className="tt">
-          <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} title={closed ? 'Projet clôturé' : mine ? '' : 'Seul le responsable peut cocher'} aria-label="Cocher">{t.done ? <Ic name="check" s={13} c="#fff" strokeWidth={2.6} /> : (mine && !closed ? '' : <Ic name="lock" s={11} />)}</button>
+          <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} title={closed ? tt('pd.closedShort') : mine ? '' : tt('pd.onlyOwner')} aria-label={tt('home.check')}>{t.done ? <Ic name="check" s={13} c="#fff" strokeWidth={2.6} /> : (mine && !closed ? '' : <Ic name="lock" s={11} />)}</button>
           <div className="tname">
             <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
-              {t.type && <span className={'ttype ' + typeTone(t.type)}>{t.type}</span>}
+              {t.type && <span className={'ttype ' + typeTone(t.type)}>{trTerm(t.type)}</span>}
               <span style={{ flex: 1, minWidth: 0 }}>{t.title}</span>
             </span>
             {t.description && <div className="sub" style={{ marginTop: 2 }}>{t.description}</div>}
             <div className="meta">
-              <span className={'tag ' + (unassigned ? 'due' : 'client')}>{unassigned ? <><Ic name="hand" s={12} /> à prendre</> : <><Ic name="user" s={12} /> {memberName(t.assigneeId)}</>}</span>
+              <span className={'tag ' + (unassigned ? 'due' : 'client')}>{unassigned ? <><Ic name="hand" s={12} /> {tt('vw.toTake')}</> : <><Ic name="user" s={12} /> {memberName(t.assigneeId)}</>}</span>
               {t.due && <span className={'tag ' + (over ? 'late' : 'due')}>📅 {formatDue(t.due)}</span>}
               {hasHours && <span className="tag hours">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? ` / ~${t.estHours}h` : ''}</span>}
-              {t.transferable && <span className="tag acc">⇄ transférable</span>}
+              {t.transferable && <span className="tag acc">⇄ {tt('pd.transferableTag')}</span>}
               {!!t.commentCount && <span className="tag due">💬 {t.commentCount}</span>}
               {subs.length > 0 && <span className="tag due">☑ {subDone}/{subs.length}</span>}
-              <span className="tag due">{statuses.find((s) => s.key === statusOf(t))?.label || 'À faire'}</span>
+              <span className="tag due">{statuses.find((s) => s.key === statusOf(t))?.label ? trTerm(statuses.find((s) => s.key === statusOf(t))!.label) : tt('term.todo')}</span>
               {statusOf(t) === 'transferred' && <span className="tag acc">↪ {nameOf(t.transferredFrom)} → {nameOf(t.transferredTo)}</span>}
-              {t.transferHistory && t.transferHistory.length > 0 && <span className="tag due">parcours {t.transferHistory.length}</span>}
+              {t.transferHistory && t.transferHistory.length > 0 && <span className="tag due">{tt('pd.pathN')} {t.transferHistory.length}</span>}
             </div>
             {t.transferHistory && t.transferHistory.length > 0 && (
               <div className="transfer-path">
-                {t.transferHistory.map((h) => <span key={h.id}>{h.fromName || 'Départ'} → {h.toName}</span>)}
+                {t.transferHistory.map((h) => <span key={h.id}>{h.fromName || tt('pd.depart')} → {h.toName}</span>)}
               </div>
             )}
           </div>
-          {hasMenu && <button className="more-btn" onClick={() => setMenuId(t.id)} aria-label="Actions">⋯</button>}
+          {hasMenu && <button className="more-btn" onClick={() => setMenuId(t.id)} aria-label={tt('pd.actions')}>⋯</button>}
         </div>
-        {canRelance && <div className="relance"><span>En retard — relancer {memberName(t.assigneeId)} ?</span><button onClick={() => relance(t)}>Relancer ✉</button></div>}
+        {canRelance && <div className="relance"><span>{tt('pd.lateRemind', { n: memberName(t.assigneeId) })}</span><button onClick={() => relance(t)}>{tt('pd.remindBtn')}</button></div>}
         {menuId === t.id && (
           <Modal title={t.title} onClose={() => setMenuId(null)}>
-            {(canEditMeta || canLogHours) && <button className="mact" onClick={() => { setMenuId(null); setEditId(t.id) }}><span className="mi"><Ic name="edit" s={17} /></span>Modifier la tâche</button>}
-            {!isSub && !closed && <button className="mact" onClick={() => { setMenuId(null); setSubTitle(''); setAddSubFor(t.id) }}><span className="mi"><Ic name="plus" s={17} /></span>Ajouter une sous-tâche</button>}
-            {canPrio && <button className="mact" onClick={() => { setMenuId(null); setPrioId(t.id) }}><span className="mi">🚩</span>Changer la priorité</button>}
-            {canTransfer && <button className="mact" onClick={() => { setMenuId(null); setTransferId(t.id) }}><span className="mi">⇄</span>Transférer la tâche</button>}
-            {unassigned && !closed && <button className="mact" onClick={() => { setMenuId(null); claim(t) }}><span className="mi">👐</span>Je m’en occupe</button>}
-            {canRelance && <button className="mact" onClick={() => { setMenuId(null); relance(t) }}><span className="mi"><Ic name="mail" s={17} /></span>Relancer</button>}
-            {canDel && <button className="mact danger" onClick={() => { setMenuId(null); setDeleteId(t.id) }}><span className="mi"><Ic name="trash" s={17} /></span>Supprimer{subs.length > 0 ? ' (et ses sous-tâches)' : ''}</button>}
+            {(canEditMeta || canLogHours) && <button className="mact" onClick={() => { setMenuId(null); setEditId(t.id) }}><span className="mi"><Ic name="edit" s={17} /></span>{tt('pd.mEdit')}</button>}
+            {!isSub && !closed && <button className="mact" onClick={() => { setMenuId(null); setSubTitle(''); setAddSubFor(t.id) }}><span className="mi"><Ic name="plus" s={17} /></span>{tt('pd.mSub')}</button>}
+            {canPrio && <button className="mact" onClick={() => { setMenuId(null); setPrioId(t.id) }}><span className="mi">🚩</span>{tt('pd.mPrio')}</button>}
+            {canTransfer && <button className="mact" onClick={() => { setMenuId(null); setTransferId(t.id) }}><span className="mi">⇄</span>{tt('pd.mTransfer')}</button>}
+            {unassigned && !closed && <button className="mact" onClick={() => { setMenuId(null); claim(t) }}><span className="mi">👐</span>{tt('pd.mClaim')}</button>}
+            {canRelance && <button className="mact" onClick={() => { setMenuId(null); relance(t) }}><span className="mi"><Ic name="mail" s={17} /></span>{tt('pd.mRemind')}</button>}
+            {canDel && <button className="mact danger" onClick={() => { setMenuId(null); setDeleteId(t.id) }}><span className="mi"><Ic name="trash" s={17} /></span>{tt('action.delete')}{subs.length > 0 ? tt('pd.andSubs') : ''}</button>}
           </Modal>
         )}
         {transferId === t.id && <TransferTaskModal p={p} t={t} me={me} onClose={() => setTransferId(null)} onTransfer={(userId) => transferTask(t, userId)} />}
         {deleteId === t.id && (
           <Modal title="Supprimer la tâche ?" onClose={() => setDeleteId(null)}>
             <p className="sub" style={{ marginTop: 0 }}>
-              La tâche <b>« {t.title} »</b>{subs.length > 0 ? ' et ses sous-tâches' : ''} seront supprimées définitivement.
+              La tâche <b>« {t.title} »</b>{subs.length > 0 ? tt('pd.andSubs2') : ''} seront supprimées définitivement.
             </p>
             <div className="sheet-actions">
-              <button className="btn danger" onClick={() => del(t)}>Oui, supprimer</button>
-              <button className="btn ghost" onClick={() => setDeleteId(null)}>Annuler</button>
+              <button className="btn danger" onClick={() => del(t)}>{tt('pd.yesDel')}</button>
+              <button className="btn ghost" onClick={() => setDeleteId(null)}>{tt('action.cancel')}</button>
             </div>
           </Modal>
         )}
         {prioId === t.id && (
-          <Modal title="Priorité" onClose={() => setPrioId(null)}>
+          <Modal title={tt('td.priority')} onClose={() => setPrioId(null)}>
             {PRIORITIES.map((n) => (
               <button key={n} className="prow" onClick={() => setPriority(t, n)}>
                 <span className={'pflag ' + prioMeta(n).flagCls} style={{ width: 30, textAlign: 'center' }}>{prioMeta(n).tag}</span>
-                <span style={{ flex: 1 }}>Priorité {n}{n === 1 ? ' — la plus urgente' : n === 6 ? ' — la plus basse' : ''}</span>
+                <span style={{ flex: 1 }}>{tt('td.priority')} {n}{n === 1 ? tt('pd.mostUrgent') : n === 6 ? tt('pd.lowest') : ''}</span>
                 {prio(t.priority) === n ? '✓' : ''}
               </button>
             ))}
@@ -363,9 +362,9 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
             {subs.map((s) => renderTask(s, true))}
             {addSubFor === t.id && (
               <div className="subtask-add">
-                <input autoFocus value={subTitle} onChange={(e) => setSubTitle(e.target.value)} placeholder="Nouvelle sous-tâche…" onKeyDown={(e) => { if (e.key === 'Enter') addSub(t.id) }} />
+                <input autoFocus value={subTitle} onChange={(e) => setSubTitle(e.target.value)} placeholder={tt('pd.newSub')} onKeyDown={(e) => { if (e.key === 'Enter') addSub(t.id) }} />
                 <Mic value={subTitle} onChange={setSubTitle} />
-                <button className="btn sm primary" onClick={() => addSub(t.id)}>Ajouter</button>
+                <button className="btn sm primary" onClick={() => addSub(t.id)}>{tt('action.add')}</button>
                 <button className="btn sm ghost" onClick={() => { setAddSubFor(null); setSubTitle('') }}>✕</button>
               </div>
             )}
@@ -390,7 +389,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
   const sectionMembers = () => {
     const base = p.members.map((m) => ({ id: m.id, name: m.name }))
     const hasUnassigned = roots.some((t) => !t.assigneeId)
-    const withNone = hasUnassigned ? [...base, { id: 'none', name: 'À prendre' }] : base
+    const withNone = hasUnassigned ? [...base, { id: 'none', name: tt('pd.toTakeCap') }] : base
     return filterUser === 'all' ? withNone : withNone.filter((m) => m.id === filterUser)
   }
   const tasksForPerson = (personId: string) => roots.filter((t) => {
@@ -411,7 +410,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
           <span className="chev">{isCollapsed ? '›' : '⌄'}</span>
           {initials ? <span className="avatar">{initials}</span> : <Avatar name={u.name} size={34} />}
           <span className="user-status-name">{u.name}</span>
-          <span className="user-status-count">{personTasks.length} tâche{personTasks.length > 1 ? 's' : ''}</span>
+          <span className="user-status-count">{personTasks.length} {tt('pd.taskCount')}</span>
         </button>
         {!isCollapsed && (
           <div className="user-status-board">
@@ -430,7 +429,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
                     <b>{list.length}</b>
                     {canManage(p.my_role) && !closed && !s.fixed && <button className="status-remove" onClick={() => removeStatus(s.key)} title="Supprimer ce statut">×</button>}
                   </div>
-                  <div className="status-drop-label">Déposer ici</div>
+                  <div className="status-drop-label">{tt('pd.dropHere')}</div>
                   {list.map((t) => renderRoot(t))}
                 </div>
               )
@@ -447,71 +446,71 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
       {p.status !== 'done' && (
         <div className="sheet-actions" style={{ marginBottom: 12 }}>
           <button className="btn" style={{ flex: 1 }} onClick={() => setAdding((v) => !v)}>＋ Nouvelle tâche</button>
-          <button className="btn primary" onClick={() => setVoice(true)} title="Créer une tâche à la voix"><Ic name="mic" s={16} />Dicter une tâche</button>
+          <button className="btn primary" onClick={() => setVoice(true)} title="Créer une tâche à la voix"><Ic name="mic" s={16} />{tt('pd.dictate')}</button>
         </div>
       )}
       {voice && <VoiceTaskWizard p={p} me={me} onClose={() => setVoice(false)} onCreated={() => { setVoice(false); reload() }} />}
       {adding && (
         <div className="card">
-          <div className="field"><label>Intitulé</label>
+          <div className="field"><label>{tt('qt.label')}</label>
             <MicInput value={nf.title} onChange={(v) => setNf({ ...nf, title: v })} placeholder="Ex. Envoyer les visuels" /></div>
-          <div className="field"><label>Description (optionnel)</label>
+          <div className="field"><label>{tt('pd.descOpt')}</label>
             <MicTextarea value={nf.desc} onChange={(v) => setNf({ ...nf, desc: v })} placeholder="Détails, contexte…" /></div>
-          <div className="field"><label>Type</label>
+          <div className="field"><label>{tt('qt.type')}</label>
             <div className="type-pick">
-              <button className={nf.type === '' ? 'on' : ''} onClick={() => setNf({ ...nf, type: '' })}>Aucun</button>
+              <button className={nf.type === '' ? 'on' : ''} onClick={() => setNf({ ...nf, type: '' })}>{tt('vw.none')}</button>
               {myTypes.map((t) => <button key={t} className={nf.type === t ? 'on ' + typeTone(t) : ''} onClick={() => setNf({ ...nf, type: t })}>{t}</button>)}
             </div></div>
-          <div className="field"><label>Responsable</label>
+          <div className="field"><label>{tt('td.assignee')}</label>
             <select value={nf.assigneeId} onChange={(e) => setNf({ ...nf, assigneeId: e.target.value })}>
               <option value="">— À prendre (non assignée)</option>
-              {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}{m.id === me.id ? ' (moi)' : ''}</option>)}
+              {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}{m.id === me.id ? ' ' + tt('vw.me') : ''}</option>)}
             </select></div>
           <div className="field"><label>Échéance</label><input type="date" value={nf.due} onChange={(e) => setNf({ ...nf, due: e.target.value })} /></div>
-          <div className="field"><label>Priorité</label>
+          <div className="field"><label>{tt('td.priority')}</label>
             <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={nf.priority === n ? 'on o' + n : ''} onClick={() => setNf({ ...nf, priority: n })}>P{n}</button>)}</div></div>
-          <label className="checkline"><input type="checkbox" checked={nf.transferable} onChange={(e) => setNf({ ...nf, transferable: e.target.checked })} /> Tâche transférable</label>
-          <div className="field"><label>Heures estimées (optionnel)</label><input type="number" min="0" step="0.5" value={nf.est} onChange={(e) => setNf({ ...nf, est: e.target.value })} placeholder="ex. 5" /></div>
-          <div className="sheet-actions"><button className="btn primary sm" onClick={addTask}>Ajouter</button><button className="btn ghost sm" onClick={() => setAdding(false)}>Annuler</button></div>
+          <label className="checkline"><input type="checkbox" checked={nf.transferable} onChange={(e) => setNf({ ...nf, transferable: e.target.checked })} /> {tt('meet.transferable')}</label>
+          <div className="field"><label>{tt('pd.estOpt')}</label><input type="number" min="0" step="0.5" value={nf.est} onChange={(e) => setNf({ ...nf, est: e.target.value })} placeholder="ex. 5" /></div>
+          <div className="sheet-actions"><button className="btn primary sm" onClick={addTask}>{tt('action.add')}</button><button className="btn ghost sm" onClick={() => setAdding(false)}>{tt('action.cancel')}</button></div>
         </div>
       )}
       <div className="status-workspace">
         <aside className="status-filter">
-          <div className="status-filter-title">Filtrer</div>
-          <button className={filterUser === 'all' ? 'on' : ''} onClick={() => setFilterUser('all')}>👥 Tout le monde</button>
+          <div className="status-filter-title">{tt('pd.filter')}</div>
+          <button className={filterUser === 'all' ? 'on' : ''} onClick={() => setFilterUser('all')}>👥 {tt('pd.everyone')}</button>
           {p.members.map((m) => <button key={m.id} className={filterUser === m.id ? 'on' : ''} onClick={() => setFilterUser(m.id)}><Avatar name={m.name} size={26} />{m.name.split(' ')[0]}</button>)}
-          <button className={filterUser === 'none' ? 'on' : ''} onClick={() => setFilterUser('none')}><Ic name="hand" s={13} /> À prendre</button>
+          <button className={filterUser === 'none' ? 'on' : ''} onClick={() => setFilterUser('none')}><Ic name="hand" s={13} /> {tt('pd.toTakeCap')}</button>
           <div className="status-filter-sep" />
-          <button className={statusFilter === 'all' ? 'on' : ''} onClick={() => setStatusFilter('all')}>Tous les statuts</button>
-          {statuses.map((s) => <button key={s.key} className={statusFilter === s.key ? 'on' : ''} onClick={() => setStatusFilter(s.key)}><i style={{ background: s.color }} />{s.label}</button>)}
+          <button className={statusFilter === 'all' ? 'on' : ''} onClick={() => setStatusFilter('all')}>{tt('pd.allStatuses')}</button>
+          {statuses.map((s) => <button key={s.key} className={statusFilter === s.key ? 'on' : ''} onClick={() => setStatusFilter(s.key)}><i style={{ background: s.color }} />{trTerm(s.label)}</button>)}
           {canManage(p.my_role) && !closed && (
             <div className="status-admin">
               <input value={newStatus} onChange={(e) => setNewStatus(e.target.value)} placeholder="Nouveau statut…" onKeyDown={(e) => { if (e.key === 'Enter') addStatus() }} />
-              <button className="btn sm" disabled={statusBusy} onClick={addStatus}>Ajouter</button>
+              <button className="btn sm" disabled={statusBusy} onClick={addStatus}>{tt('action.add')}</button>
             </div>
           )}
         </aside>
         <section className="status-main">
-          <div className="status-hint">{closed ? 'Projet clôturé : les tâches sont affichées en lecture seule.' : 'Glissez une tâche d’un statut à un autre. Les tâches se créent avec le bouton principal, puis se déplacent ici.'}</div>
+          <div className="status-hint">{closed ? tt('pd.closedRO') : 'Glissez une tâche d’un statut à un autre. Les tâches se créent avec le bouton principal, puis se déplacent ici.'}</div>
           {p.tasks.length > 0 && (
             <div className="list-tools status-sort">
-              <label className="lt-lbl">Trier</label>
+              <label className="lt-lbl">{tt('projects.sort')}</label>
               <select value={sortMode} onChange={(e) => setSortMode(e.target.value as TaskSort)} aria-label="Trier les tâches par">
-                <option value="priority">Priorité</option>
-                <option value="due">Échéance</option>
-                <option value="title">Titre</option>
-                <option value="manual">Manuel</option>
+                <option value="priority">{tt('td.priority')}</option>
+                <option value="due">{tt('td.due')}</option>
+                <option value="title">{tt('projects.sortTitle')}</option>
+                <option value="manual">{tt('projects.sortManual')}</option>
               </select>
               <button className="btn sm" onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}</button>
             </div>
           )}
-          <div className="section-h">Tâches</div>
-      {p.tasks.length === 0 && !loadingMore && <div className="empty"><div className="big">✓</div>Aucune tâche pour l’instant.</div>}
+          <div className="section-h">{tt('ad.tasks')}</div>
+      {p.tasks.length === 0 && !loadingMore && <div className="empty"><div className="big">✓</div>{tt('pd.noTasks')}</div>}
           {renderUserStatusBoard()}
           {hasMore && loadMore && (
             <div className="sheet-actions" style={{ marginTop: 12 }}>
               <button className="btn ghost" disabled={loadingMore} onClick={loadMore}>
-                {loadingMore ? 'Chargement…' : `Charger plus (${p.tasks.length}/${p.taskCount ?? '?'})`}
+                {loadingMore ? tt('common.loading') : `Charger plus (${p.tasks.length}/${p.taskCount ?? '?'})`}
               </button>
             </div>
           )}
@@ -523,7 +522,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
 
 function TeamBoard({ p, me, reload }: { p: Project; me: User; reload: () => void }) {
   const closed = p.status === 'done'
-  async function toggle(t: Task) { try { await api('PATCH', '/tasks/' + t.id, { done: !t.done }); if (!t.done) toast('+ points 🎉'); reload() } catch (e: any) { toastErr(e.message) } }
+  async function toggle(t: Task) { try { await api('PATCH', '/tasks/' + t.id, { done: !t.done }); if (!t.done) toast(tt('pd.plusPoints')); reload() } catch (e: any) { toastErr(e.message) } }
   const ranked = [...p.members].map((m) => ({ m, pts: memberPoints(p, m.id) })).sort((a, b) => b.pts - a.pts)
   const unassigned = p.tasks.filter((t) => !t.assigneeId && !t.done)
   return (
@@ -536,17 +535,17 @@ function TeamBoard({ p, me, reload }: { p: Project; me: User; reload: () => void
           return (
             <div key={m.id} className={'board-col' + (i === 0 && pts > 0 ? ' lead' : '')}>
               <div className="board-head">
-                <div className="board-who"><Avatar name={m.name} /><div><div className="nm">{m.name}{m.id === me.id ? ' (moi)' : ''}</div><div className="sc">{l.medal} Niveau {l.level}</div></div></div>
+                <div className="board-who"><Avatar name={m.name} /><div><div className="nm">{m.name}{m.id === me.id ? ' ' + tt('vw.me') : ''}</div><div className="sc">{l.medal} Niveau {l.level}</div></div></div>
                 <div className="board-pts">{pts}<span>pts</span></div>
               </div>
               <div className="score-bar sm"><i style={{ width: l.pct + '%' }} /></div>
               <div className="board-tasks">
-                {tasks.length === 0 && <div className="sub" style={{ padding: '6px 2px' }}>Aucune tâche</div>}
+                {tasks.length === 0 && <div className="sub" style={{ padding: '6px 2px' }}>{tt('pd.noTask')}</div>}
                 {tasks.map((t) => {
                   const mine = t.assigneeId === me.id
                   return (
                     <div key={t.id} className={'board-task' + (t.done ? ' done' : '')}>
-                      <button className={'check' + (t.done ? ' done' : '') + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} aria-label="Cocher">{t.done ? <Ic name="check" s={13} c="#fff" strokeWidth={2.6} /> : (mine && !closed ? '' : <Ic name="lock" s={11} />)}</button>
+                      <button className={'check' + (t.done ? ' done' : '') + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} aria-label={tt('home.check')}>{t.done ? <Ic name="check" s={13} c="#fff" strokeWidth={2.6} /> : (mine && !closed ? '' : <Ic name="lock" s={11} />)}</button>
                       <span className="bt-title">{t.title}{t.done ? ` · +${taskPoints(t)}` : ''}</span>
                     </div>
                   )
@@ -578,20 +577,20 @@ function MembersTab({ p, me, manage, reload }: { p: Project; me: User; manage: b
   const suggestions = library.filter((r) => !roles.some((pr) => pr.name.toLowerCase() === r.toLowerCase()))
 
   async function invite(role: string) {
-    try { const r = await api<{ role: string; link: string }>('POST', '/projects/' + p.id + '/invites', { role }); setLinks((l) => [r, ...l]); toast('Lien d’invitation créé') }
+    try { const r = await api<{ role: string; link: string }>('POST', '/projects/' + p.id + '/invites', { role }); setLinks((l) => [r, ...l]); toast(tt('pd.inviteMade')) }
     catch (e: any) { toastErr(e.message) }
   }
-  function copy(link: string) { (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(() => toast('Lien copié 📋')).catch(() => toast('Copie indisponible')) }
+  function copy(link: string) { (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(() => toast(tt('pd.linkCopied'))).catch(() => toast(tt('pd.copyUnavail'))) }
   async function addRole(name?: string) {
     const nm = (name ?? newRole).trim(); if (!nm) return
-    try { await api('POST', '/projects/' + p.id + '/roles', { name: nm }); if (!name) setNewRole(''); toast('Rôle ajouté ✓'); reload() }
+    try { await api('POST', '/projects/' + p.id + '/roles', { name: nm }); if (!name) setNewRole(''); toast(tt('msg.saved')); reload() }
     catch (e: any) { toastErr(e.message) }
   }
   async function delRole(id: string) {
     try { await api('DELETE', '/projects/' + p.id + '/roles/' + id); reload() } catch (e: any) { toastErr(e.message) }
   }
   async function saveAssign(memberId: string, roleIds: string[]) {
-    try { await api('PUT', '/projects/' + p.id + '/members/' + memberId + '/roles', { roleIds }); setAssignFor(null); toast('Rôles mis à jour ✓'); reload() }
+    try { await api('PUT', '/projects/' + p.id + '/members/' + memberId + '/roles', { roleIds }); setAssignFor(null); toast(tt('pd.rolesOk')); reload() }
     catch (e: any) { toastErr(e.message) }
   }
 
@@ -599,7 +598,7 @@ function MembersTab({ p, me, manage, reload }: { p: Project; me: User; manage: b
     <div>
       {manage && p.status !== 'done' && (
         <>
-          <div className="section-h">Rôles du projet</div>
+          <div className="section-h">{tt('pd.projRoles')}</div>
           <div className="card">
             <p className="sub" style={{ marginTop: 0 }}>Crée des rôles (ex. Chef de projet, Développeur) puis assigne-les aux membres.</p>
             <div className="chips">
@@ -608,16 +607,16 @@ function MembersTab({ p, me, manage, reload }: { p: Project; me: User; manage: b
                   <button className="chip-x" onClick={() => delRole(r.id)} aria-label={'Supprimer ' + r.name}>×</button>
                 </span>
               ))}
-              {roles.length === 0 && <span className="sub">Aucun rôle pour l’instant.</span>}
+              {roles.length === 0 && <span className="sub">{tt('pd.noRoles')}</span>}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <input style={{ flex: 1 }} value={newRole} maxLength={40} placeholder="Nouveau rôle…" onChange={(e) => setNewRole(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addRole() }} />
               <Mic value={newRole} onChange={setNewRole} />
-              <button className="btn sm" onClick={() => addRole()}>Ajouter</button>
+              <button className="btn sm" onClick={() => addRole()}>{tt('action.add')}</button>
             </div>
             {suggestions.length > 0 && (
               <div style={{ marginTop: 12 }}>
-                <p className="sub" style={{ margin: '0 0 6px' }}>Depuis ta bibliothèque :</p>
+                <p className="sub" style={{ margin: '0 0 6px' }}>{tt('pd.fromLib')}</p>
                 <div className="chips">
                   {suggestions.map((r) => <button key={r} className="chip as-btn" onClick={() => addRole(r)}>＋ {r}</button>)}
                 </div>
@@ -640,7 +639,7 @@ function MembersTab({ p, me, manage, reload }: { p: Project; me: User; manage: b
               </div>
             )}
           </div>
-          {manage && roles.length > 0 && <button className="btn ghost sm" onClick={() => setAssignFor(m)}>Rôles</button>}
+          {manage && roles.length > 0 && <button className="btn ghost sm" onClick={() => setAssignFor(m)}>{tt('pd.roles')}</button>}
         </div>
       ))}
 
@@ -650,17 +649,17 @@ function MembersTab({ p, me, manage, reload }: { p: Project; me: User; manage: b
 
       {manage && p.status !== 'done' && (
         <>
-          <div className="section-h">Inviter</div>
-          <div className="banner">Générez un lien à envoyer. Le lien « client » est à usage unique ; les autres sont réutilisables.</div>
+          <div className="section-h">{tt('pd.invite')}</div>
+          <div className="banner">{tt('pd.inviteBanner')}</div>
           <div className="sheet-actions" style={{ flexWrap: 'wrap' }}>
-            {(INVITE_ROLES[p.type] || []).map(([role, label]) => <button key={role} className="btn sm" onClick={() => invite(role)}>＋ Lien {label}</button>)}
+            {(INVITE_ROLES[p.type] || []).map(([role, label]) => <button key={role} className="btn sm" onClick={() => invite(role)}>{tt('pd.linkBtn')} {label}</button>)}
           </div>
           {links.map((lk, i) => (
             <div key={i} className="card" style={{ marginTop: 10 }}>
-              <p className="sub" style={{ margin: '0 0 6px' }}>Invitation <b>{ROLE_LABEL[lk.role] || lk.role}</b> :</p>
+              <p className="sub" style={{ margin: '0 0 6px' }}>{tt('pd.invitation')} <b>{ROLE_LABEL[lk.role] || lk.role}</b> :</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input readOnly value={lk.link} style={{ flex: 1, fontSize: '12.5px' }} onFocus={(e) => e.currentTarget.select()} />
-                <button className="btn sm primary" onClick={() => copy(lk.link)}>Copier</button>
+                <button className="btn sm primary" onClick={() => copy(lk.link)}>{tt('pd.copy')}</button>
               </div>
             </div>
           ))}
@@ -674,8 +673,8 @@ function AssignRoles({ member, roles, onClose, onSave }: { member: Member; roles
   const [sel, setSel] = useState<string[]>(member.roleIds || [])
   const toggle = (id: string) => setSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id])
   return (
-    <Modal title={'Rôles de ' + member.name} onClose={onClose}>
-      <p className="sub" style={{ marginTop: 0 }}>Coche les rôles à attribuer à ce membre.</p>
+    <Modal title={tt('pd.rolesOf') + ' ' + member.name} onClose={onClose}>
+      <p className="sub" style={{ marginTop: 0 }}>{tt('pd.pickRoles')}</p>
       {roles.map((r) => (
         <button key={r.id} className="prow" onClick={() => toggle(r.id)}>
           <span className={'chip sm ' + typeTone(r.name)}>{r.name}</span>
@@ -684,8 +683,8 @@ function AssignRoles({ member, roles, onClose, onSave }: { member: Member; roles
         </button>
       ))}
       <div className="sheet-actions" style={{ marginTop: 12 }}>
-        <button className="btn primary" onClick={() => onSave(sel)}>Enregistrer</button>
-        <button className="btn ghost" onClick={onClose}>Annuler</button>
+        <button className="btn primary" onClick={() => onSave(sel)}>{tt('action.save')}</button>
+        <button className="btn ghost" onClick={onClose}>{tt('action.cancel')}</button>
       </div>
     </Modal>
   )
@@ -713,7 +712,7 @@ function AppointmentsTab({ p, me, reload }: { p: Project; me: User; reload: () =
     if (!deleting) return
     try {
       await api('DELETE', '/appointments/' + deleting.id)
-      toast('Rendez-vous supprimé ✓')
+      toast(tt('pd.apptDel'))
       setDeleting(null)
       reload()
     } catch (e: any) { toastErr(e.message) }
@@ -732,7 +731,7 @@ function AppointmentsTab({ p, me, reload }: { p: Project; me: User; reload: () =
           ＋ Nouveau rendez-vous
         </button>
       )}
-      {items.length === 0 && <div className="empty">Aucun rendez-vous planifié.</div>}
+      {items.length === 0 && <div className="empty">{tt('pd.noAppt')}</div>}
       {items.map((a) => (
         <div key={a.id} className="card">
           <div className="row">
@@ -744,14 +743,14 @@ function AppointmentsTab({ p, me, reload }: { p: Project; me: User; reload: () =
             </div>
             {canEdit(a) && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button className="btn sm ghost" onClick={() => setEditing(a)}><Ic name="edit" s={15} />Modifier</button>
-                <button className="btn sm danger" onClick={() => setDeleting(a)}><Ic name="trash" s={15} />Supprimer</button>
+                <button className="btn sm ghost" onClick={() => setEditing(a)}><Ic name="edit" s={15} />{tt('action.edit')}</button>
+                <button className="btn sm danger" onClick={() => setDeleting(a)}><Ic name="trash" s={15} />{tt('action.delete')}</button>
               </div>
             )}
           </div>
           {a.description && <p className="sub" style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>{a.description}</p>}
           <p className="sub" style={{ marginTop: 8 }}>
-            Participants : {a.participants.length ? a.participants.map((x) => x.name).join(', ') : '—'}
+            {tt('pd.parts2')} {a.participants.length ? a.participants.map((x) => x.name).join(', ') : '—'}
           </p>
         </div>
       ))}
@@ -781,8 +780,8 @@ function AppointmentsTab({ p, me, reload }: { p: Project; me: User; reload: () =
             Le rendez-vous <b>« {deleting.title} »</b> sera supprimé définitivement.
           </p>
           <div className="sheet-actions">
-            <button className="btn danger" onClick={remove}>Supprimer</button>
-            <button className="btn ghost" onClick={() => setDeleting(null)}>Annuler</button>
+            <button className="btn danger" onClick={remove}>{tt('action.delete')}</button>
+            <button className="btn ghost" onClick={() => setDeleting(null)}>{tt('action.cancel')}</button>
           </div>
         </Modal>
       )}
@@ -824,11 +823,11 @@ function AppointmentModal({
   }
 
   async function save() {
-    if (!f.title.trim()) { toastErr('L’intitulé est requis'); return }
-    if (!f.date) { toastErr('La date est requise'); return }
-    if (!f.timeStart || !f.timeEnd) { toastErr('Le créneau horaire est requis'); return }
-    if (f.timeStart >= f.timeEnd) { toastErr('L’heure de fin doit être après l’heure de début'); return }
-    if (!f.participants.length) { toastErr('Sélectionnez au moins un participant'); return }
+    if (!f.title.trim()) { toastErr(tt('pd.titleReq')); return }
+    if (!f.date) { toastErr(tt('pd.dateReq')); return }
+    if (!f.timeStart || !f.timeEnd) { toastErr(tt('pd.slotReq')); return }
+    if (f.timeStart >= f.timeEnd) { toastErr(tt('pd.endAfter')); return }
+    if (!f.participants.length) { toastErr(tt('pd.needPart')); return }
     setBusy(true)
     const body = {
       title: f.title.trim(),
@@ -841,10 +840,10 @@ function AppointmentModal({
     try {
       if (initial) {
         await api('PATCH', '/appointments/' + initial.id, body)
-        toast('Rendez-vous modifié ✓')
+        toast(tt('pd.apptUpd'))
       } else {
         await api('POST', '/projects/' + p.id + '/appointments', body)
-        toast('Rendez-vous créé ✓ — les participants seront notifiés par e-mail')
+        toast(tt('pd.apptMade'))
       }
       onSaved()
     } catch (e: any) {
@@ -856,19 +855,19 @@ function AppointmentModal({
   return (
     <Modal title={title} onClose={onClose}>
       <div className="field">
-        <label>Intitulé</label>
+        <label>{tt('qt.label')}</label>
         <MicInput value={f.title} onChange={(v) => setF({ ...f, title: v })} placeholder="Ex. Point d’équipe hebdomadaire" />
       </div>
       <div className="field">
-        <label>Description</label>
+        <label>{tt('pd.desc')}</label>
         <MicTextarea value={f.description} onChange={(v) => setF({ ...f, description: v })} placeholder="Ordre du jour, lieu, lien visio…" rows={3} />
       </div>
       <div className="field">
-        <label>Date</label>
+        <label>{tt('qa.date')}</label>
         <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
       </div>
       <div className="field">
-        <label>Créneau</label>
+        <label>{tt('pd.slot')}</label>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input type="time" value={f.timeStart} onChange={(e) => setF({ ...f, timeStart: e.target.value })} />
           <span className="sub">à</span>
@@ -876,8 +875,8 @@ function AppointmentModal({
         </div>
       </div>
       <div className="field">
-        <label>Participants</label>
-        <p className="sub" style={{ marginTop: 0, marginBottom: 8 }}>Cochez les personnes invitées au rendez-vous.</p>
+        <label>{tt('pd.parts')}</label>
+        <p className="sub" style={{ marginTop: 0, marginBottom: 8 }}>{tt('pd.pickParts')}</p>
         {p.members.map((m) => (
           <label key={m.id} className="checkline" style={{ display: 'flex', marginBottom: 6 }}>
             <input
@@ -885,15 +884,15 @@ function AppointmentModal({
               checked={f.participants.includes(m.id)}
               onChange={() => toggleParticipant(m.id)}
             />
-            <span>{m.name}{m.id === me.id ? ' (vous)' : ''}</span>
+            <span>{m.name}{m.id === me.id ? ' ' + tt('vw.me') : ''}</span>
           </label>
         ))}
       </div>
       <div className="sheet-actions">
         <button className="btn primary" disabled={busy} onClick={save}>
-          {initial ? 'Enregistrer' : 'Créer le rendez-vous'}
+          {initial ? tt('action.save') : tt('pd.createAppt')}
         </button>
-        <button className="btn ghost" onClick={onClose}>Annuler</button>
+        <button className="btn ghost" onClick={onClose}>{tt('action.cancel')}</button>
       </div>
     </Modal>
   )
@@ -915,13 +914,13 @@ function PollsTab({ p, reload }: { p: Project; reload: () => void }) {
       {p.status !== 'done' && <button className="btn block" style={{ marginBottom: 12 }} onClick={() => setAdding((v) => !v)}>＋ Nouveau sondage</button>}
       {adding && (
         <div className="card">
-          <div className="field"><label>Question</label><MicInput value={q} onChange={setQ} placeholder="Ex. Quelle date pour le lancement ?" /></div>
+          <div className="field"><label>{tt('pd.question')}</label><MicInput value={q} onChange={setQ} placeholder="Ex. Quelle date pour le lancement ?" /></div>
           {opts.map((o, i) => <div className="field" key={i}><label>Option {i + 1}</label><MicInput value={o} onChange={(v) => { const c = [...opts]; c[i] = v; setOpts(c) }} /></div>)}
           <button className="btn-link" onClick={() => setOpts([...opts, ''])}>＋ Ajouter une option</button>
-          <div className="sheet-actions"><button className="btn primary sm" onClick={create}>Lancer le sondage</button><button className="btn ghost sm" onClick={() => setAdding(false)}>Annuler</button></div>
+          <div className="sheet-actions"><button className="btn primary sm" onClick={create}>{tt('pd.launchPoll')}</button><button className="btn ghost sm" onClick={() => setAdding(false)}>{tt('action.cancel')}</button></div>
         </div>
       )}
-      {p.polls.length === 0 && <div className="empty">Aucun sondage.</div>}
+      {p.polls.length === 0 && <div className="empty">{tt('pd.noPolls')}</div>}
       {p.polls.map((poll: Poll) => {
         const total = poll.options.reduce((s, o) => s + o.votes, 0)
         return (
@@ -966,25 +965,25 @@ function EditProject({ p, onClose, onSaved }: { p: Project; onClose: () => void;
       .catch(() => {})
   }, [])
   async function save() {
-    if (!name.trim()) { toastErr('Le nom ne peut pas être vide'); return }
+    if (!name.trim()) { toastErr(tt('pd.nameEmpty')); return }
     setBusy(true)
-    try { await api('PATCH', '/projects/' + p.id, { name: name.trim(), deadline: deadline || null, labelId: labelId || null }); toast('Projet mis à jour ✓'); onSaved() }
+    try { await api('PATCH', '/projects/' + p.id, { name: name.trim(), deadline: deadline || null, labelId: labelId || null }); toast(tt('pd.projUpd')); onSaved() }
     catch (e: any) { toastErr(e.message); setBusy(false) }
   }
   return (
     <Modal title="Modifier le projet" onClose={onClose}>
-      <div className="field"><label>Nom du projet</label>
+      <div className="field"><label>{tt('proj.name')}</label>
         <MicInput value={name} onChange={setName} placeholder="Nom du projet" /></div>
-      <div className="field"><label>Date de livraison</label>
+      <div className="field"><label>{tt('pd.deadline')}</label>
         <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></div>
-      <div className="field"><label>Liste de libellés</label>
+      <div className="field"><label>{tt('proj.labelList')}</label>
         <select value={labelId} onChange={(e) => setLabelId(e.target.value)}>
           {labels.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
         </select>
       </div>
       <div className="sheet-actions">
-        <button className="btn primary" disabled={busy} onClick={save}>Enregistrer</button>
-        <button className="btn ghost" onClick={onClose}>Annuler</button>
+        <button className="btn primary" disabled={busy} onClick={save}>{tt('action.save')}</button>
+        <button className="btn ghost" onClick={onClose}>{tt('action.cancel')}</button>
       </div>
     </Modal>
   )
@@ -1009,7 +1008,7 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
   async function save() {
     const body: any = { priority: f.prio }
     if (canEditMeta) {
-      if (!f.title.trim()) { toastErr('L’intitulé ne peut pas être vide'); return }
+      if (!f.title.trim()) { toastErr(tt('pd.titleEmpty')); return }
       body.title = f.title.trim(); body.description = f.desc || null; body.type = f.type || null; body.due = f.due || null; body.assigneeId = f.assigneeId || null; body.transferable = f.transferable
     }
     if (canLogHours) {
@@ -1019,46 +1018,46 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
     body.statusKey = f.statusKey
     body.transferredTo = f.statusKey === 'transferred' ? (f.transferredTo || null) : null
     setBusy(true)
-    try { await api('PATCH', '/tasks/' + t.id, body); toast('Tâche mise à jour ✓'); onSaved() }
+    try { await api('PATCH', '/tasks/' + t.id, body); toast(tt('pd.taskUpd')); onSaved() }
     catch (e: any) { toastErr(e.message); setBusy(false) }
   }
   return (
     <Modal title="Modifier la tâche" onClose={onClose}>
       {canEditMeta && (
         <>
-          <div className="field"><label>Intitulé</label>
+          <div className="field"><label>{tt('qt.label')}</label>
             <MicInput value={f.title} onChange={(v) => setF({ ...f, title: v })} /></div>
-          <div className="field"><label>Description</label>
+          <div className="field"><label>{tt('pd.desc')}</label>
             <MicTextarea value={f.desc} onChange={(v) => setF({ ...f, desc: v })} placeholder="Détails, contexte…" /></div>
-          <div className="field"><label>Type</label>
+          <div className="field"><label>{tt('qt.type')}</label>
             <div className="type-pick">
-              <button className={f.type === '' ? 'on' : ''} onClick={() => setF({ ...f, type: '' })}>Aucun</button>
+              <button className={f.type === '' ? 'on' : ''} onClick={() => setF({ ...f, type: '' })}>{tt('vw.none')}</button>
               {typeOpts.map((t) => <button key={t} className={f.type === t ? 'on ' + typeTone(t) : ''} onClick={() => setF({ ...f, type: t })}>{t}</button>)}
             </div></div>
-          <div className="field"><label>Responsable</label>
+          <div className="field"><label>{tt('td.assignee')}</label>
             <select value={f.assigneeId} onChange={(e) => setF({ ...f, assigneeId: e.target.value })}>
               <option value="">— À prendre (non assignée)</option>
               {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select></div>
           <div className="field"><label>Échéance</label>
             <input type="date" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></div>
-          <label className="checkline"><input type="checkbox" checked={f.transferable} onChange={(e) => setF({ ...f, transferable: e.target.checked, statusKey: e.target.checked ? f.statusKey : (f.statusKey === 'transferred' ? 'todo' : f.statusKey) })} /> Tâche transférable</label>
+          <label className="checkline"><input type="checkbox" checked={f.transferable} onChange={(e) => setF({ ...f, transferable: e.target.checked, statusKey: e.target.checked ? f.statusKey : (f.statusKey === 'transferred' ? 'todo' : f.statusKey) })} /> {tt('meet.transferable')}</label>
         </>
       )}
       {canLogHours && (
         <>
-          <div className="field"><label>Heures estimées</label>
+          <div className="field"><label>{tt('pd.estH')}</label>
             <input type="number" min="0" step="0.5" value={f.est} onChange={(e) => setF({ ...f, est: e.target.value })} placeholder="ex. 5" /></div>
-          <div className="field"><label>Heures passées</label>
+          <div className="field"><label>{tt('pd.spentH')}</label>
             <div style={{ display: 'flex', gap: 8 }}>
               <input type="number" min="0" step="0.5" style={{ flex: 1 }} value={f.spent} onChange={(e) => setF({ ...f, spent: e.target.value })} placeholder="ex. 3" />
-              <button className="btn sm" onClick={() => setF({ ...f, spent: '8' })} title="Journée entière">Journée (8h)</button>
+              <button className="btn sm" onClick={() => setF({ ...f, spent: '8' })} title={tt('pd.fullDay')}>{tt('pd.day8')}</button>
             </div></div>
         </>
       )}
-      <div className="field"><label>Priorité</label>
+      <div className="field"><label>{tt('td.priority')}</label>
         <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={f.prio === n ? 'on o' + n : ''} onClick={() => setF({ ...f, prio: n })}>P{n}</button>)}</div></div>
-      <div className="field"><label>Statut</label>
+      <div className="field"><label>{tt('meet.status')}</label>
         <div className="type-pick">
           {(p.statuses || []).map((s) => {
             const blocked = s.key === 'transferred' && !f.transferable
@@ -1066,7 +1065,7 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
           })}
         </div></div>
       {f.statusKey === 'transferred' && (
-        <div className="field"><label>Transféré à</label>
+        <div className="field"><label>{tt('pd.transferTo')}</label>
           <select value={f.transferredTo} onChange={(e) => setF({ ...f, transferredTo: e.target.value })}>
             <option value="">— Choisir une personne</option>
             {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -1075,8 +1074,8 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
       <TaskComments task={t} projectClosed={p.status === 'done'} />
       <TaskTimeline taskId={t.id} />
       <div className="sheet-actions">
-        <button className="btn primary" disabled={busy} onClick={save}>Enregistrer</button>
-        <button className="btn ghost" onClick={onClose}>Annuler</button>
+        <button className="btn primary" disabled={busy} onClick={save}>{tt('action.save')}</button>
+        <button className="btn ghost" onClick={onClose}>{tt('action.cancel')}</button>
       </div>
     </Modal>
   )
@@ -1086,9 +1085,9 @@ function TransferTaskModal({ p, t, me, onClose, onTransfer }: { p: Project; t: T
   const current = t.assigneeId || me.id
   const targets = p.members.filter((m) => m.id !== current)
   return (
-    <Modal title="Transférer la tâche" onClose={onClose}>
-      <p className="sub" style={{ marginTop: 0 }}>Choisis la personne à qui transférer <b>« {t.title} »</b>.</p>
-      {targets.length === 0 && <div className="empty">Aucun autre membre disponible.</div>}
+    <Modal title={tt('pd.mTransfer')} onClose={onClose}>
+      <p className="sub" style={{ marginTop: 0 }}>{tt('pd.pickTransfer', { n: t.title })}</p>
+      {targets.length === 0 && <div className="empty">{tt('pd.noTarget')}</div>}
       {targets.map((m) => (
         <button key={m.id} className="prow" onClick={() => onTransfer(m.id)}>
           <Avatar name={m.name} size={30} />
@@ -1096,11 +1095,11 @@ function TransferTaskModal({ p, t, me, onClose, onTransfer }: { p: Project; t: T
             <b>{m.name}</b>
             <span className="sub" style={{ display: 'block', fontSize: '12px' }}>{ROLE_LABEL[m.role] || m.role}{m.id === me.id ? ' · moi' : ''}</span>
           </span>
-          <span>Transférer</span>
+          <span>{tt('pd.transferBtn')}</span>
         </button>
       ))}
       <div className="sheet-actions" style={{ marginTop: 12 }}>
-        <button className="btn ghost" onClick={onClose}>Annuler</button>
+        <button className="btn ghost" onClick={onClose}>{tt('action.cancel')}</button>
       </div>
     </Modal>
   )
@@ -1125,7 +1124,7 @@ function TaskComments({ task, projectClosed }: { task: Task; projectClosed: bool
       const r = await api<{ comment: TaskComment }>('POST', '/tasks/' + task.id + '/comments', { body: text })
       setComments((list) => [...(list || []), r.comment])
       setBody('')
-      toast('Commentaire ajouté ✓')
+      toast(tt('pd.cAdd'))
     } catch (e: any) { toastErr(e.message) }
     finally { setBusy(false) }
   }
@@ -1133,15 +1132,15 @@ function TaskComments({ task, projectClosed }: { task: Task; projectClosed: bool
     try {
       await api('DELETE', '/task-comments/' + c.id)
       setComments((list) => (list || []).map((x) => x.id === c.id ? { ...x, body: '[commentaire supprimé]', deleted: true, canDelete: false } : x))
-      toast('Commentaire supprimé ✓')
+      toast(tt('pd.cDelOk'))
     } catch (e: any) { toastErr(e.message) }
   }
 
   return (
     <div className="task-side-panel">
       <div className="task-side-head"><b>Commentaires</b><span>{comments ? comments.filter((c) => !c.deleted).length : 0}</span></div>
-      {!comments && <div className="sub">Chargement…</div>}
-      {comments && comments.length === 0 && <div className="sub">Aucun commentaire pour l’instant.</div>}
+      {!comments && <div className="sub">{tt('common.loading')}</div>}
+      {comments && comments.length === 0 && <div className="sub">{tt('pd.noComments')}</div>}
       <div className="task-comments">
         {(comments || []).map((c) => (
           <div key={c.id} className={'task-comment' + (c.deleted ? ' deleted' : '')}>
@@ -1149,15 +1148,15 @@ function TaskComments({ task, projectClosed }: { task: Task; projectClosed: bool
             <div>
               <div className="task-comment-meta"><b>{c.userName}</b><span>{new Date(c.at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>
               <p>{c.body}</p>
-              {c.canDelete && <button className="btn-link" onClick={() => remove(c)}>Supprimer</button>}
+              {c.canDelete && <button className="btn-link" onClick={() => remove(c)}>{tt('action.delete')}</button>}
             </div>
           </div>
         ))}
       </div>
       {!projectClosed && (
         <div className="task-comment-form">
-          <MicTextarea value={body} onChange={setBody} placeholder="Ajouter un commentaire…" />
-          <button className="btn primary sm" disabled={busy || !body.trim()} onClick={add}>Commenter</button>
+          <MicTextarea value={body} onChange={setBody} placeholder={tt('pd.commentPh')} />
+          <button className="btn primary sm" disabled={busy || !body.trim()} onClick={add}>{tt('pd.commentBtn')}</button>
         </div>
       )}
     </div>
@@ -1165,19 +1164,19 @@ function TaskComments({ task, projectClosed }: { task: Task; projectClosed: bool
 }
 
 const EVENT_LABEL: Record<string, string> = {
-  task_created: 'Tâche créée',
-  task_done: 'Tâche terminée',
-  task_reopened: 'Tâche rouverte',
-  task_status_changed: 'Statut modifié',
-  task_transferred: 'Tâche transférée',
-  task_hours_updated: 'Heures mises à jour',
-  task_priority_changed: 'Priorité modifiée',
-  task_updated: 'Tâche modifiée',
-  task_claimed: 'Tâche prise',
-  task_reminded: 'Relance envoyée',
-  task_deleted: 'Tâche supprimée',
-  comment_added: 'Commentaire ajouté',
-  comment_deleted: 'Commentaire supprimé',
+  task_created: tt('pd.evCreated'),
+  task_done: tt('pd.evDone'),
+  task_reopened: tt('pd.evReopened'),
+  task_status_changed: tt('pd.evStatus'),
+  task_transferred: tt('pd.evTransferred'),
+  task_hours_updated: tt('pd.evHours'),
+  task_priority_changed: tt('pd.evPrio'),
+  task_updated: tt('pd.evUpdated'),
+  task_claimed: tt('pd.evClaimed'),
+  task_reminded: tt('pd.evReminded'),
+  task_deleted: tt('pd.evDeleted'),
+  comment_added: tt('pd.evCAdd'),
+  comment_deleted: tt('pd.evCDel'),
 }
 
 function TaskTimeline({ taskId }: { taskId: string }) {
@@ -1189,9 +1188,9 @@ function TaskTimeline({ taskId }: { taskId: string }) {
   }, [taskId])
   return (
     <div className="task-side-panel">
-      <div className="task-side-head"><b>Historique</b><span>{events ? events.length : 0}</span></div>
-      {!events && <div className="sub">Chargement…</div>}
-      {events && events.length === 0 && <div className="sub">Aucun historique pour l’instant.</div>}
+      <div className="task-side-head"><b>{tt('pd.history')}</b><span>{events ? events.length : 0}</span></div>
+      {!events && <div className="sub">{tt('common.loading')}</div>}
+      {events && events.length === 0 && <div className="sub">{tt('pd.noHistory')}</div>}
       <div className="task-timeline">
         {(events || []).map((e) => (
           <div key={e.id} className="task-event">
@@ -1232,15 +1231,15 @@ function ActivityTab({ projectId }: { projectId: string }) {
 
   useEffect(() => { load(1, false) }, [load])
 
-  if (loading && activity.length === 0) return <div className="empty">Chargement de l’activité…</div>
-  if (!activity.length) return <div className="empty">Aucune activité pour l’instant.</div>
+  if (loading && activity.length === 0) return <div className="empty">{tt('pd.loadingActivity')}</div>
+  if (!activity.length) return <div className="empty">{tt('pd.noActivity')}</div>
   return (
     <div style={{ marginTop: 6 }}>
       {activity.map((a) => (
         <div key={a.id} className="act-row">
           <span className="act-dot" />
           <div>
-            <span style={{ fontWeight: 600 }}>{a.user || 'Quelqu’un'}</span> <span className="sub" style={{ display: 'inline' }}>{a.detail}</span>
+            <span style={{ fontWeight: 600 }}>{a.user || tt('pd.someone')}</span> <span className="sub" style={{ display: 'inline' }}>{a.detail}</span>
             <div className="sub" style={{ fontSize: '11.5px' }}>{new Date(a.at).toLocaleString('fr-FR')}</div>
           </div>
         </div>
