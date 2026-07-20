@@ -1,10 +1,84 @@
 import { Ic } from './Icon'
+import { getLang } from '@/lib/i18n'
 
 const LAST_UPDATED = '16 juillet 2026'
+
+
+type PSec = { h: string; p?: string[]; ul?: string[]; p2?: string[] }
+type PDoc = { title: string; updated: string; note: string; back: string; sections: PSec[]; contact: string }
+
+const P_EN: PDoc = {
+  title: 'Privacy policy', updated: 'Last updated: 16 July 2026',
+  note: 'The French version of this policy is the authoritative one.',
+  back: 'Back to the app', contact: 'For any question about this policy or your personal data: ',
+  sections: [
+    { h: '', p: ['This policy explains what personal data Planii ("the Service", "we") collects, why, how we protect it, and what your rights are. We comply with the GDPR (EU 2016/679) for all our users, in Europe and in Africa.'] },
+    { h: '1. Data controller', p: ['The data controller is [Legal entity name], established at [full address], [country]. For any question about your personal data, contact us at info@planii.app.'] },
+    { h: '2. Data we collect', p: ['We only collect the data needed to run the Service:'], ul: ['Account data: your name, email address, job (optional) and password (never stored in plain text).', 'Content you create: projects, tasks, comments, polls, appointments, roles and invitations.', 'Communication data: emails exchanged through the built-in messaging (notifications and support).', 'Technical data: IP address, login logs and security logs needed to keep the Service safe.'], p2: ['We collect no sensitive data (health, opinions, banking data) and use no advertising trackers.'] },
+    { h: '3. Purposes and legal bases', ul: ['Provide the Service (account, projects, tasks, collaboration) — legal basis: contract (art. 6.1.b).', 'Send you notifications by email (task created, invitation, deadline reminder) — contract and legitimate interest (art. 6.1.b and 6.1.f).', 'Ensure security and prevent abuse (rate limiting, logs) — legitimate interest (art. 6.1.f).', 'Improve the Service and fix issues — legitimate interest (art. 6.1.f).'] },
+    { h: '4. Cookies and local storage', p: ['Planii uses no advertising cookies or third-party trackers. The Service stores in your browser only what is strictly necessary: your session token and your display preferences (theme, view type, language). This data stays on your device.'] },
+    { h: '5. Recipients and processors', p: ['Your data is never sold or rented. It is accessible only to you, the people you explicitly share a project with, and the Planii team strictly for support and maintenance.', 'We use one technical processor: Hostinger — server hosting (VPS) and email service (info@planii.app), under a GDPR art. 28 data-processing agreement.'] },
+    { h: '6. International transfers', p: ['Planii operates in Europe and Africa. Where data is transferred outside the EEA, appropriate safeguards are in place (EU standard contractual clauses or equivalent).'] },
+    { h: '7. Retention', p: ['We keep your account data and content while your account is active. When you delete your account, personal data is erased or anonymized within a reasonable period, unless legal retention applies. Security logs are kept for a limited period (indicatively [12] months).'] },
+    { h: '8. Security', ul: ['Passwords stored hashed (never in plain text).', 'Encryption in transit (HTTPS/TLS).', 'Token authentication and per-project access control.', 'Request rate limiting against abuse.', 'Restricted, logged server access.'] },
+    { h: '9. Your rights', p: ['Under the GDPR you have the rights of access, rectification, erasure, restriction, objection and portability (art. 15–21), and to withdraw consent at any time.', 'To exercise them, write to info@planii.app. You may also lodge a complaint with a supervisory authority — in France, the CNIL (cnil.fr) — or the authority of your country.'] },
+    { h: '10. Minors', p: ['The Service is not intended for people under 16. We do not knowingly collect data about minors without parental consent.'] },
+    { h: '11. Changes', p: ['We may update this policy. Any significant change will be announced in the Service and the date above updated.'] },
+  ],
+}
+
+const P_NL: PDoc = {
+  title: 'Privacybeleid', updated: 'Laatst bijgewerkt: 16 juli 2026',
+  note: 'De Franse versie van dit beleid is de authentieke versie.',
+  back: 'Terug naar de app', contact: 'Voor vragen over dit beleid of je persoonsgegevens: ',
+  sections: [
+    { h: '', p: ['Dit beleid legt uit welke persoonsgegevens Planii ("de Dienst", "wij") verzamelt, waarom, hoe we ze beschermen en wat je rechten zijn. Wij voldoen aan de AVG (EU 2016/679) voor al onze gebruikers, in Europa en in Afrika.'] },
+    { h: '1. Verwerkingsverantwoordelijke', p: ['De verwerkingsverantwoordelijke is [Naam rechtspersoon], gevestigd te [volledig adres], [land]. Voor vragen over je persoonsgegevens: info@planii.app.'] },
+    { h: '2. Gegevens die we verzamelen', p: ['We verzamelen alleen wat nodig is om de Dienst te laten werken:'], ul: ['Accountgegevens: je naam, e-mailadres, beroep (optioneel) en wachtwoord (nooit in leesbare vorm opgeslagen).', 'Inhoud die je aanmaakt: projecten, taken, opmerkingen, polls, afspraken, rollen en uitnodigingen.', 'Communicatiegegevens: e-mails via de ingebouwde berichten (meldingen en support).', 'Technische gegevens: IP-adres, aanmeldlogboeken en beveiligingslogboeken.'], p2: ['We verzamelen geen gevoelige gegevens (gezondheid, opinies, bankgegevens) en gebruiken geen advertentietrackers.'] },
+    { h: '3. Doeleinden en rechtsgronden', ul: ['De Dienst leveren (account, projecten, taken, samenwerking) — rechtsgrond: overeenkomst (art. 6.1.b).', 'Meldingen per e-mail sturen (taak aangemaakt, uitnodiging, deadlineherinnering) — overeenkomst en gerechtvaardigd belang (art. 6.1.b en 6.1.f).', 'Beveiliging en misbruikpreventie (rate limiting, logboeken) — gerechtvaardigd belang (art. 6.1.f).', 'De Dienst verbeteren en fouten herstellen — gerechtvaardigd belang (art. 6.1.f).'] },
+    { h: '4. Cookies en lokale opslag', p: ['Planii gebruikt geen advertentiecookies of trackers van derden. In je browser wordt alleen het strikt noodzakelijke bewaard: je sessietoken en je weergavevoorkeuren (thema, weergavetype, taal). Deze gegevens blijven op je apparaat.'] },
+    { h: '5. Ontvangers en verwerkers', p: ['Je gegevens worden nooit verkocht of verhuurd. Ze zijn alleen toegankelijk voor jou, de mensen met wie je expliciet een project deelt, en het Planii-team strikt voor support en onderhoud.', 'We gebruiken één technische verwerker: Hostinger — hosting (VPS) en e-maildienst (info@planii.app), onder een verwerkersovereenkomst conform art. 28 AVG.'] },
+    { h: '6. Internationale doorgiften', p: ['Planii is actief in Europa en Afrika. Bij doorgifte buiten de EER zijn passende waarborgen van kracht (EU-modelcontractbepalingen of gelijkwaardig).'] },
+    { h: '7. Bewaartermijn', p: ['We bewaren je accountgegevens en inhoud zolang je account actief is. Bij verwijdering worden persoonsgegevens binnen een redelijke termijn gewist of geanonimiseerd, behoudens wettelijke bewaarplicht. Beveiligingslogboeken worden beperkt bewaard (indicatief [12] maanden).'] },
+    { h: '8. Beveiliging', ul: ['Wachtwoorden gehasht opgeslagen (nooit leesbaar).', 'Versleuteling onderweg (HTTPS/TLS).', 'Tokenauthenticatie en toegangscontrole per project.', 'Rate limiting tegen misbruik.', 'Beperkte, gelogde servertoegang.'] },
+    { h: '9. Je rechten', p: ['Onder de AVG heb je recht op inzage, rectificatie, wissing, beperking, bezwaar en overdraagbaarheid (art. 15–21), en om toestemming op elk moment in te trekken.', 'Schrijf naar info@planii.app om ze uit te oefenen. Je kunt ook een klacht indienen bij een toezichthouder — in Nederland de Autoriteit Persoonsgegevens, in België de GBA — of de autoriteit van je land.'] },
+    { h: '10. Minderjarigen', p: ['De Dienst is niet bedoeld voor personen jonger dan 16 jaar. We verzamelen niet bewust gegevens van minderjarigen zonder ouderlijke toestemming.'] },
+    { h: '11. Wijzigingen', p: ['We kunnen dit beleid bijwerken. Belangrijke wijzigingen worden in de Dienst aangekondigd en de datum hierboven wordt aangepast.'] },
+  ],
+}
+
+function PrivacyGeneric({ d }: { d: PDoc }) {
+  return (
+    <div className="legal-page">
+      <header className="legal-top">
+        <a className="legal-brand" href="/"><span className="logo"><b /></span> Planii</a>
+        <a className="btn sm" href="/"><Ic name="back" s={15} /> {d.back}</a>
+      </header>
+      <main className="legal">
+        <h1>{d.title}</h1>
+        <p className="legal-date">{d.updated} · {d.note}</p>
+        {d.sections.map((sec, i) => (
+          <section key={i}>
+            {sec.h && <h2>{sec.h}</h2>}
+            {(sec.p || []).map((x, j) => <p key={j}>{x}</p>)}
+            {sec.ul && <ul>{sec.ul.map((x, j) => <li key={j}>{x}</li>)}</ul>}
+            {(sec.p2 || []).map((x, j) => <p key={j}>{x}</p>)}
+          </section>
+        ))}
+        <h2>12. Contact</h2>
+        <p>{d.contact}<a href="mailto:info@planii.app">info@planii.app</a>.</p>
+        <footer className="legal-foot">© {new Date().getFullYear()} Planii</footer>
+      </main>
+    </div>
+  )
+}
 
 /** Page publique de politique de confidentialité (RGPD). Accessible sans compte
  *  via /confidentialite. Les champs entre crochets sont à compléter par l'éditeur. */
 export function Privacy() {
+  const l = getLang()
+  if (l === 'nl') return <PrivacyGeneric d={P_NL} />
+  if (l !== 'fr') return <PrivacyGeneric d={P_EN} />
   return (
     <div className="legal-page">
       <header className="legal-top">

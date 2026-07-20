@@ -1,3 +1,4 @@
+import { t as tt } from './i18n'
 import { useCallback, useState } from 'react'
 import { api } from './api'
 import type { PaginatedResponse } from './types'
@@ -36,7 +37,7 @@ export function LoadMoreButton({ hasMore, loading, loaded, total, onClick }: {
   return (
     <div className="sheet-actions" style={{ marginTop: 12 }}>
       <button className="btn ghost" disabled={loading} onClick={onClick}>
-        {loading ? 'Chargement…' : `Charger plus (${loaded}/${total})`}
+        {loading ? tt('common.loading') : `${tt('common.loadMore')} (${loaded}/${total})`}
       </button>
     </div>
   )
