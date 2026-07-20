@@ -3,7 +3,7 @@ import { api, setTok } from '@/lib/api'
 import { toastErr } from '@/lib/ui'
 import { MicInput } from './Mic'
 import type { User } from '@/lib/types'
-import { useI18n, LangFlags } from '@/lib/i18n'
+import { useI18n, LangFlags, getLang } from '@/lib/i18n'
 
 export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
   const { t: tr } = useI18n()
@@ -16,7 +16,7 @@ export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
     setBusy(true)
     try {
       const path = mode === 'login' ? '/auth/login' : '/auth/register'
-      const body = mode === 'login' ? { email: f.email, password: f.password } : f
+      const body = mode === 'login' ? { email: f.email, password: f.password } : { ...f, lang: getLang() }
       const r = await api<{ token: string; user: User }>('POST', path, body)
       setTok(r.token); onAuth(r.user)
     } catch (e: any) { toastErr(e.message) } finally { setBusy(false) }

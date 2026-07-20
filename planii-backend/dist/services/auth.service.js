@@ -52,9 +52,14 @@ async function register(body) {
     if (await UserModel.findByEmail(email))
         (0, http_error_1.fail)(409, 'Cet email est déjà inscrit');
     const job = (body.job || '').trim().slice(0, 60) || null;
+    const lang = ['fr', 'en', 'nl', 'es', 'pt', 'it', 'el', 'ru', 'sw'].includes(body.lang || '') ? body.lang : 'fr';
     const pass_hash = await bcryptjs_1.default.hash(password, 12);
     const u = { id: (0, utils_1.uid)(), name, email, pass_hash, job };
     await UserModel.createUser({ id: u.id, name: u.name, email: u.email, pass_hash: u.pass_hash, job });
+    try {
+        await (await Promise.resolve().then(() => __importStar(require('../db/pool')))).q('UPDATE users SET lang=$1 WHERE id=$2', [lang, u.id]);
+    }
+    catch { /* colonne absente en test */ }
     return { token: UserView.signToken(u), user: u };
 }
 async function login(body) {

@@ -13,6 +13,7 @@ export type DbUser = QueryResultRow & {
   task_types?: string[] | null
   role_library?: string[] | null
   project_label_colors?: string[] | null
+  lang?: string | null
 }
 
 export const findByEmail = (email: string) => one<DbUser>('SELECT * FROM users WHERE email=$1', [email])
@@ -41,6 +42,7 @@ export async function updateUser(
     task_types?: string
     role_library?: string
     project_label_colors?: string
+    lang?: string
   },
 ) {
   if ('project_label_colors' in data) {
@@ -48,15 +50,15 @@ export async function updateUser(
     return
   }
   await q(
-    'UPDATE users SET first_name=$1, last_name=$2, name=$3, job=$4, task_types=$5, role_library=$6 WHERE id=$7',
-    [data.first_name ?? null, data.last_name ?? null, data.name, data.job ?? null, data.task_types, data.role_library, id],
+    'UPDATE users SET first_name=$1, last_name=$2, name=$3, job=$4, task_types=$5, role_library=$6, lang=coalesce($7, lang) WHERE id=$8',
+    [data.first_name ?? null, data.last_name ?? null, data.name, data.job ?? null, data.task_types, data.role_library, data.lang ?? null, id],
   )
 }
 
 export const touchLastLogin = (id: string) => q('UPDATE users SET last_login=now() WHERE id=$1', [id])
 
 export const projectManagers = (projectId: string) => many(
-  `SELECT DISTINCT u.id, u.name, u.email, m.role
+  `SELECT DISTINCT u.id, u.name, u.email, u.lang, m.role
     FROM memberships m JOIN users u ON u.id=m.user_id
     WHERE m.project_id=$1 AND m.role IN ('owner','lead')`,
   [projectId],

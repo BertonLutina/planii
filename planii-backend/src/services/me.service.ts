@@ -23,6 +23,8 @@ export async function updateProfile(user: DbUser, body: Record<string, unknown>)
     taskTypes = cleaned.length ? cleaned : DEFAULT_TASK_TYPES
   }
   const roleLibrary = Array.isArray(body.roleLibrary) ? cleanLabels(body.roleLibrary, 40, 40) : UserView.roleLibraryOf(user)
+  const LANGS = ['fr', 'en', 'nl', 'es', 'pt', 'it', 'el', 'ru', 'sw']
+  const lang = typeof body.lang === 'string' && LANGS.includes(body.lang) ? body.lang : undefined
   await UserModel.updateUser(user.id, {
     first_name: first || null,
     last_name: last || null,
@@ -30,6 +32,7 @@ export async function updateProfile(user: DbUser, body: Record<string, unknown>)
     job,
     task_types: JSON.stringify(taskTypes),
     role_library: JSON.stringify(roleLibrary),
+    lang,
   })
   const u = await UserModel.findById(user.id)
   return u!

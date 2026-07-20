@@ -43,6 +43,7 @@ const http_error_1 = require("../core/http-error");
 const ProjectModel = __importStar(require("../models/Project.model"));
 const UserModel = __importStar(require("../models/User.model"));
 const project_service_1 = require("./project.service");
+const mail_i18n_1 = require("../lib/mail-i18n");
 const mail_service_1 = require("./mail.service");
 const notification_service_1 = require("./notification.service");
 async function createInvite(projectId, user, body) {
@@ -64,14 +65,14 @@ async function createInvite(projectId, user, body) {
     await (0, notification_service_1.logActivity)(p.id, user.id, 'invite_created', `a créé une invitation (${role})`);
     (async () => {
         const invitedEmail = (body.email || '').trim().toLowerCase();
-        const rows = [['Projet', p.name], ['Rôle', role], invitedEmail ? ['Invité', invitedEmail] : null, ['Créé par', user.name]];
+        const rowsFor = (l) => [[(0, mail_i18n_1.mt)(l, 'r.project'), p.name], [(0, mail_i18n_1.mt)(l, 'r.assignee'), role], invitedEmail ? ['Email', invitedEmail] : null, [(0, mail_i18n_1.mt)(l, 'r.organizer'), user.name]];
         const owner = await UserModel.findById(p.owner_id);
         if (owner && owner.email)
-            await (0, mail_service_1.sendMail)(owner.email, `Invitation créée — ${p.name}`, { intro: `Un lien d'invitation (${role}) a été généré pour le projet « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env_1.env.webUrl });
+            await (0, mail_service_1.sendMail)(owner.email, (0, mail_i18n_1.mt)(owner.lang, 'invNew.s', { project: p.name }), { intro: (0, mail_i18n_1.mt)(owner.lang, 'invNew.i', { role, project: p.name }), rows: rowsFor(owner.lang), ctaText: (0, mail_i18n_1.mt)(owner.lang, 'cta'), ctaUrl: env_1.env.webUrl });
         for (const adminEmail of env_1.env.superAdminEmails) {
             if (owner && owner.email && adminEmail === owner.email.toLowerCase())
                 continue;
-            await (0, mail_service_1.sendMail)(adminEmail, `Invitation créée — ${p.name}`, { intro: `${user.name} a généré un lien d'invitation (${role}) pour « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env_1.env.webUrl });
+            await (0, mail_service_1.sendMail)(adminEmail, (0, mail_i18n_1.mt)('fr', 'invNew.s', { project: p.name }), { intro: (0, mail_i18n_1.mt)('fr', 'invNewAdmin.i', { actor: user.name, role, project: p.name }), rows: rowsFor('fr'), ctaText: (0, mail_i18n_1.mt)('fr', 'cta'), ctaUrl: env_1.env.webUrl });
         }
     })().catch((e) => console.error('mail invite_created', e.message));
     return { token: t, link: `${env_1.env.appUrl}/invite/${t}`, role, expiresAt: expires, multi };
@@ -106,13 +107,13 @@ async function acceptInvite(token, user) {
     await (0, pool_1.q)('UPDATE invites SET uses=uses+1 WHERE token=$1', [inv.token]);
     await (0, notification_service_1.logActivity)(p.id, user.id, 'member_joined', `${user.name} a rejoint (${inv.role})`);
     (async () => {
-        const rows = [['Projet', p.name], ['Rôle', inv.role]];
+        const rowsFor = (l) => [[(0, mail_i18n_1.mt)(l, 'r.project'), p.name], [(0, mail_i18n_1.mt)(l, 'r.assignee'), inv.role]];
         if (user.email)
-            await (0, mail_service_1.sendMail)(user.email, `Bienvenue dans « ${p.name} »`, { intro: `Vous avez rejoint le projet « ${p.name} » en tant que ${inv.role}.`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env_1.env.webUrl });
+            await (0, mail_service_1.sendMail)(user.email, (0, mail_i18n_1.mt)(user.lang, 'welcome.s', { project: p.name }), { intro: (0, mail_i18n_1.mt)(user.lang, 'welcome.i', { project: p.name, role: inv.role }), rows: rowsFor(user.lang), ctaText: (0, mail_i18n_1.mt)(user.lang, 'cta'), ctaUrl: env_1.env.webUrl });
         const owner = await UserModel.findById(p.owner_id);
         if (owner && owner.id !== user.id) {
             if (owner.email)
-                await (0, mail_service_1.sendMail)(owner.email, `${user.name} a rejoint « ${p.name} »`, { intro: `${user.name} (${user.email}) a rejoint votre projet « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env_1.env.webUrl });
+                await (0, mail_service_1.sendMail)(owner.email, (0, mail_i18n_1.mt)(owner.lang, 'joined.s', { actor: user.name, project: p.name }), { intro: (0, mail_i18n_1.mt)(owner.lang, 'joined.i', { actor: user.name, email: user.email, project: p.name }), rows: rowsFor(owner.lang), ctaText: (0, mail_i18n_1.mt)(owner.lang, 'cta'), ctaUrl: env_1.env.webUrl });
             await (0, notification_service_1.notify)(owner.id, 'member_joined', `${user.name} a rejoint « ${p.name} »`, `Rôle : ${inv.role}`);
         }
     })().catch((e) => console.error('mail member_joined', e.message));

@@ -63,6 +63,7 @@ const pagination_1 = require("../lib/pagination");
 const ProjectModel = __importStar(require("../models/Project.model"));
 const UserModel = __importStar(require("../models/User.model"));
 const TaskView = __importStar(require("../views/Task.view"));
+const mail_i18n_1 = require("../lib/mail-i18n");
 const mail_service_1 = require("./mail.service");
 const notification_service_1 = require("./notification.service");
 const appointment_service_1 = require("./appointment.service");
@@ -262,11 +263,18 @@ async function sendTaskAssignmentMails({ project, task, actor, assigneeId, sourc
         task.due ? ['Échéance', task.due] : null,
         source === 'meeting' ? ['Origine', 'Meeting'] : null,
     ];
+    const rowsFor = (l) => [
+        [(0, mail_i18n_1.mt)(l, 'r.task'), task.title],
+        [(0, mail_i18n_1.mt)(l, 'r.assignee'), assignee.name],
+        task.priority ? [(0, mail_i18n_1.mt)(l, 'r.priority'), 'P' + task.priority] : null,
+        task.due ? [(0, mail_i18n_1.mt)(l, 'r.due'), task.due] : null,
+        source === 'meeting' ? [(0, mail_i18n_1.mt)(l, 'r.origin'), (0, mail_i18n_1.mt)(l, 'r.meeting')] : null,
+    ];
     if (assignee.email && assignee.id !== actor.id) {
-        await (0, mail_service_1.sendMail)(assignee.email, `Tâche attribuée : ${task.title}`, {
-            intro: `La tâche « ${task.title} » vous a été attribuée dans le projet « ${project.name} ».`,
-            rows,
-            ctaText: 'Ouvrir Planii',
+        await (0, mail_service_1.sendMail)(assignee.email, (0, mail_i18n_1.mt)(assignee.lang, 'tAssign.s', { title: task.title }), {
+            intro: (0, mail_i18n_1.mt)(assignee.lang, 'tAssign.i', { title: task.title, project: project.name }),
+            rows: rowsFor(assignee.lang),
+            ctaText: (0, mail_i18n_1.mt)(assignee.lang, 'cta'),
             ctaUrl: env_1.env.webUrl,
         });
         await (0, notification_service_1.notify)(assignee.id, 'task_assigned', `Tâche attribuée : ${task.title}`, `Projet « ${project.name} »`);
@@ -274,10 +282,10 @@ async function sendTaskAssignmentMails({ project, task, actor, assigneeId, sourc
     for (const manager of await UserModel.projectManagers(project.id)) {
         if (!manager.email || manager.id === assignee.id)
             continue;
-        await (0, mail_service_1.sendMail)(manager.email, `Tâche attribuée dans « ${project.name} »`, {
-            intro: `${actor.name} a attribué la tâche « ${task.title} » à ${assignee.name}.`,
-            rows,
-            ctaText: 'Ouvrir Planii',
+        await (0, mail_service_1.sendMail)(manager.email, (0, mail_i18n_1.mt)(manager.lang, 'tAssignMgr.s', { project: project.name }), {
+            intro: (0, mail_i18n_1.mt)(manager.lang, 'tAssignMgr.i', { actor: actor.name, title: task.title, assignee: assignee.name }),
+            rows: rowsFor(manager.lang),
+            ctaText: (0, mail_i18n_1.mt)(manager.lang, 'cta'),
             ctaUrl: env_1.env.webUrl,
         });
     }

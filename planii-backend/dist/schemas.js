@@ -15,6 +15,7 @@ exports.registerSchema = zod_1.z.object({
     email: zod_1.z.string().min(3, 'email requis').max(200),
     password: zod_1.z.string().min(1, 'mot de passe requis').max(200),
     job: zod_1.z.string().max(60).nullish(),
+    lang: zod_1.z.string().max(5).nullish(),
 }).passthrough();
 exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().min(1, 'email requis').max(200),
@@ -27,6 +28,7 @@ exports.meUpdateSchema = zod_1.z.object({
     job: zod_1.z.string().max(60).nullish(),
     taskTypes: zod_1.z.array(zod_1.z.any()).nullish(),
     roleLibrary: zod_1.z.array(zod_1.z.any()).nullish(),
+    lang: zod_1.z.string().max(5).nullish(),
 }).passthrough();
 exports.projectLabelSchema = zod_1.z.object({
     label: zod_1.z.string().min(1, 'libellé requis').max(60),

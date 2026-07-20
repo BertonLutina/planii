@@ -54,6 +54,7 @@ const UserModel = __importStar(require("../models/User.model"));
 const TaskView = __importStar(require("../views/Task.view"));
 const project_service_1 = require("./project.service");
 const notification_service_1 = require("./notification.service");
+const mail_i18n_1 = require("../lib/mail-i18n");
 const mail_service_1 = require("./mail.service");
 async function reorderTasks(projectId, userId, ids) {
     const p = await ProjectModel.findById(projectId);
@@ -119,10 +120,12 @@ async function createTask(projectId, user, body) {
             await (0, project_service_1.sendTaskAssignmentMails)({ project: p, task: { id, title, priority: prio, due: body.due || null }, actor: user, assigneeId: assignee });
         }
         else {
-            const rows = [['Projet', p.name], ['Priorité', 'P' + prio], type ? ['Type', type] : null, body.due ? ['Échéance', body.due] : null];
             for (const manager of await UserModel.projectManagers(p.id)) {
-                if (manager.email && manager.id !== user.id)
-                    await (0, mail_service_1.sendMail)(manager.email, `Nouvelle tâche dans « ${p.name} » : ${title}`, { intro: `${user.name} a ajouté une tâche non assignée au projet « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env_1.env.webUrl });
+                if (!manager.email || manager.id === user.id)
+                    continue;
+                const L = manager.lang;
+                const rows = [[(0, mail_i18n_1.mt)(L, 'r.project'), p.name], [(0, mail_i18n_1.mt)(L, 'r.priority'), 'P' + prio], type ? [(0, mail_i18n_1.mt)(L, 'r.type'), type] : null, body.due ? [(0, mail_i18n_1.mt)(L, 'r.due'), body.due] : null];
+                await (0, mail_service_1.sendMail)(manager.email, (0, mail_i18n_1.mt)(L, 'tNew.s', { project: p.name, title }), { intro: (0, mail_i18n_1.mt)(L, 'tNew.i', { actor: user.name, project: p.name }), rows, ctaText: (0, mail_i18n_1.mt)(L, 'cta'), ctaUrl: env_1.env.webUrl });
             }
         }
     })().catch((e) => console.error('mail task_created', e.message));
@@ -290,11 +293,12 @@ async function remindTask(taskId, user) {
     const assignee = await UserModel.findById(t.assignee_id);
     if (!assignee || !assignee.email)
         (0, http_error_1.fail)(400, 'Pas d’email pour ce responsable');
-    const rows = [['Projet', p.name], ['Tâche', t.title], ['Responsable', assignee.name], t.due ? ['Échéance', t.due] : null, ['Priorité', 'P' + (t.priority || 6)]];
-    await (0, mail_service_1.sendMail)(assignee.email, `Relance : « ${t.title} »`, {
-        intro: `${user.name} vous relance pour la tâche « ${t.title} » dans le projet « ${p.name} ».`,
+    const L = assignee.lang;
+    const rows = [[(0, mail_i18n_1.mt)(L, 'r.project'), p.name], [(0, mail_i18n_1.mt)(L, 'r.task'), t.title], [(0, mail_i18n_1.mt)(L, 'r.assignee'), assignee.name], t.due ? [(0, mail_i18n_1.mt)(L, 'r.due'), t.due] : null, [(0, mail_i18n_1.mt)(L, 'r.priority'), 'P' + (t.priority || 6)]];
+    await (0, mail_service_1.sendMail)(assignee.email, (0, mail_i18n_1.mt)(L, 'relance.s', { title: t.title }), {
+        intro: (0, mail_i18n_1.mt)(L, 'relance.i', { actor: user.name, title: t.title, project: p.name }),
         rows,
-        ctaText: 'Ouvrir Planii',
+        ctaText: (0, mail_i18n_1.mt)(L, 'cta'),
         ctaUrl: env_1.env.webUrl,
     });
     await (0, notification_service_1.notify)(assignee.id, 'task_reminder', `Relance : ${t.title}`, `${user.name} vous a relancé.`);

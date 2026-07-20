@@ -44,6 +44,7 @@ const http_error_1 = require("../core/http-error");
 const env_1 = require("../config/env");
 const ProjectModel = __importStar(require("../models/Project.model"));
 const UserModel = __importStar(require("../models/User.model"));
+const mail_i18n_1 = require("../lib/mail-i18n");
 const mail_service_1 = require("./mail.service");
 const notification_service_1 = require("./notification.service");
 function cleanTime(v) {
@@ -72,7 +73,7 @@ async function assertMember(projectId, userId) {
     return m;
 }
 async function loadParticipants(appointmentId) {
-    return (0, pool_1.many)(`SELECT u.id, u.name, u.email FROM appointment_participants ap
+    return (0, pool_1.many)(`SELECT u.id, u.name, u.email, u.lang FROM appointment_participants ap
      JOIN users u ON u.id = ap.user_id WHERE ap.appointment_id = $1 ORDER BY u.name`, [appointmentId]);
 }
 async function sendAppointmentMails({ project, actor, appointment, participants, kind, }) {
@@ -80,23 +81,21 @@ async function sendAppointmentMails({ project, actor, appointment, participants,
     const subject = kind === 'created'
         ? `Rendez-vous : ${appointment.title}`
         : `Rendez-vous modifié : ${appointment.title}`;
-    const intro = kind === 'created'
-        ? `${actor.name} vous a invité(e) à un rendez-vous dans le projet « ${project.name} ».`
-        : `${actor.name} a modifié un rendez-vous du projet « ${project.name} » auquel vous participez.`;
-    const rows = [
-        ['Projet', project.name],
-        ['Intitulé', appointment.title],
-        ['Date et créneau', slot],
-        appointment.description ? ['Description', appointment.description] : null,
-        ['Organisateur', actor.name],
+    const key = kind === 'created' ? 'apptNew' : 'apptUpd';
+    const rowsFor = (l) => [
+        [(0, mail_i18n_1.mt)(l, 'r.project'), project.name],
+        [(0, mail_i18n_1.mt)(l, 'r.title'), appointment.title],
+        [(0, mail_i18n_1.mt)(l, 'r.slot'), slot],
+        appointment.description ? [(0, mail_i18n_1.mt)(l, 'r.desc'), appointment.description] : null,
+        [(0, mail_i18n_1.mt)(l, 'r.organizer'), actor.name],
     ];
     for (const p of participants) {
         if (!p.email)
             continue;
-        await (0, mail_service_1.sendMail)(p.email, subject, {
-            intro,
-            rows,
-            ctaText: 'Ouvrir Planii',
+        await (0, mail_service_1.sendMail)(p.email, (0, mail_i18n_1.mt)(p.lang, key + '.s', { title: appointment.title }), {
+            intro: (0, mail_i18n_1.mt)(p.lang, key + '.i', { actor: actor.name, project: project.name }),
+            rows: rowsFor(p.lang),
+            ctaText: (0, mail_i18n_1.mt)(p.lang, 'cta'),
             ctaUrl: env_1.env.webUrl,
         });
         if (p.id !== actor.id) {

@@ -6,6 +6,7 @@ import type { DbUser } from '../models/User.model'
 import * as ProjectModel from '../models/Project.model'
 import * as UserModel from '../models/User.model'
 import { assertProjectOpen } from './project.service'
+import { mt } from '../lib/mail-i18n'
 import { sendMail } from './mail.service'
 import { logActivity, notify } from './notification.service'
 
@@ -26,12 +27,12 @@ export async function createInvite(projectId: string, user: DbUser, body: { role
   await logActivity(p.id, user.id, 'invite_created', `a créé une invitation (${role})`)
   ;(async () => {
     const invitedEmail = (body.email || '').trim().toLowerCase()
-    const rows: ([string, string] | null)[] = [['Projet', p.name], ['Rôle', role], invitedEmail ? ['Invité', invitedEmail] : null, ['Créé par', user.name]]
+    const rowsFor = (l?: string | null): ([string, string] | null)[] => [[mt(l, 'r.project'), p.name], [mt(l, 'r.assignee'), role], invitedEmail ? ['Email', invitedEmail] : null, [mt(l, 'r.organizer'), user.name]]
     const owner = await UserModel.findById(p.owner_id)
-    if (owner && owner.email) await sendMail(owner.email, `Invitation créée — ${p.name}`, { intro: `Un lien d'invitation (${role}) a été généré pour le projet « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env.webUrl })
+    if (owner && owner.email) await sendMail(owner.email, mt(owner.lang, 'invNew.s', { project: p.name }), { intro: mt(owner.lang, 'invNew.i', { role, project: p.name }), rows: rowsFor(owner.lang), ctaText: mt(owner.lang, 'cta'), ctaUrl: env.webUrl })
     for (const adminEmail of env.superAdminEmails) {
       if (owner && owner.email && adminEmail === owner.email.toLowerCase()) continue
-      await sendMail(adminEmail, `Invitation créée — ${p.name}`, { intro: `${user.name} a généré un lien d'invitation (${role}) pour « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env.webUrl })
+      await sendMail(adminEmail, mt('fr', 'invNew.s', { project: p.name }), { intro: mt('fr', 'invNewAdmin.i', { actor: user.name, role, project: p.name }), rows: rowsFor('fr'), ctaText: mt('fr', 'cta'), ctaUrl: env.webUrl })
     }
   })().catch((e) => console.error('mail invite_created', (e as Error).message))
   return { token: t, link: `${env.appUrl}/invite/${t}`, role, expiresAt: expires, multi }
@@ -60,11 +61,11 @@ export async function acceptInvite(token: string, user: DbUser) {
   await q('UPDATE invites SET uses=uses+1 WHERE token=$1', [inv.token])
   await logActivity(p.id, user.id, 'member_joined', `${user.name} a rejoint (${inv.role})`)
   ;(async () => {
-    const rows: ([string, string] | null)[] = [['Projet', p.name], ['Rôle', inv.role]]
-    if (user.email) await sendMail(user.email, `Bienvenue dans « ${p.name} »`, { intro: `Vous avez rejoint le projet « ${p.name} » en tant que ${inv.role}.`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env.webUrl })
+    const rowsFor = (l?: string | null): ([string, string] | null)[] => [[mt(l, 'r.project'), p.name], [mt(l, 'r.assignee'), inv.role]]
+    if (user.email) await sendMail(user.email, mt(user.lang, 'welcome.s', { project: p.name }), { intro: mt(user.lang, 'welcome.i', { project: p.name, role: inv.role }), rows: rowsFor(user.lang), ctaText: mt(user.lang, 'cta'), ctaUrl: env.webUrl })
     const owner = await UserModel.findById(p.owner_id)
     if (owner && owner.id !== user.id) {
-      if (owner.email) await sendMail(owner.email, `${user.name} a rejoint « ${p.name} »`, { intro: `${user.name} (${user.email}) a rejoint votre projet « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env.webUrl })
+      if (owner.email) await sendMail(owner.email, mt(owner.lang, 'joined.s', { actor: user.name, project: p.name }), { intro: mt(owner.lang, 'joined.i', { actor: user.name, email: user.email, project: p.name }), rows: rowsFor(owner.lang), ctaText: mt(owner.lang, 'cta'), ctaUrl: env.webUrl })
       await notify(owner.id, 'member_joined', `${user.name} a rejoint « ${p.name} »`, `Rôle : ${inv.role}`)
     }
   })().catch((e) => console.error('mail member_joined', (e as Error).message))

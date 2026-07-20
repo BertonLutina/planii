@@ -14,6 +14,7 @@ import * as ProjectModel from '../models/Project.model'
 import type { DbProject } from '../models/Project.model'
 import * as UserModel from '../models/User.model'
 import * as TaskView from '../views/Task.view'
+import { mt } from '../lib/mail-i18n'
 import { sendMail } from './mail.service'
 import { logActivity, notify, notifyProject, bump } from './notification.service'
 import { appointmentsForProject } from './appointment.service'
@@ -243,21 +244,28 @@ export async function sendTaskAssignmentMails({
     task.due ? ['Échéance', task.due] : null,
     source === 'meeting' ? ['Origine', 'Meeting'] : null,
   ]
+  const rowsFor = (l?: string | null): ([string, string] | null)[] => [
+    [mt(l, 'r.task'), task.title],
+    [mt(l, 'r.assignee'), assignee.name],
+    task.priority ? [mt(l, 'r.priority'), 'P' + task.priority] : null,
+    task.due ? [mt(l, 'r.due'), task.due] : null,
+    source === 'meeting' ? [mt(l, 'r.origin'), mt(l, 'r.meeting')] : null,
+  ]
   if (assignee.email && assignee.id !== actor.id) {
-    await sendMail(assignee.email, `Tâche attribuée : ${task.title}`, {
-      intro: `La tâche « ${task.title} » vous a été attribuée dans le projet « ${project.name} ».`,
-      rows,
-      ctaText: 'Ouvrir Planii',
+    await sendMail(assignee.email, mt(assignee.lang, 'tAssign.s', { title: task.title }), {
+      intro: mt(assignee.lang, 'tAssign.i', { title: task.title, project: project.name }),
+      rows: rowsFor(assignee.lang),
+      ctaText: mt(assignee.lang, 'cta'),
       ctaUrl: env.webUrl,
     })
     await notify(assignee.id, 'task_assigned', `Tâche attribuée : ${task.title}`, `Projet « ${project.name} »`)
   }
   for (const manager of await UserModel.projectManagers(project.id)) {
     if (!manager.email || manager.id === assignee.id) continue
-    await sendMail(manager.email, `Tâche attribuée dans « ${project.name} »`, {
-      intro: `${actor.name} a attribué la tâche « ${task.title} » à ${assignee.name}.`,
-      rows,
-      ctaText: 'Ouvrir Planii',
+    await sendMail(manager.email, mt(manager.lang, 'tAssignMgr.s', { project: project.name }), {
+      intro: mt(manager.lang, 'tAssignMgr.i', { actor: actor.name, title: task.title, assignee: assignee.name }),
+      rows: rowsFor(manager.lang),
+      ctaText: mt(manager.lang, 'cta'),
       ctaUrl: env.webUrl,
     })
   }

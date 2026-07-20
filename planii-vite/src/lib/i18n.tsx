@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { api, getTok } from './api'
 
 /** i18n Planii — mécanisme léger sans dépendance.
  *  - 5 langues : fr (défaut), en, nl, es, pt.
@@ -343,6 +344,8 @@ export function setLang(l: Lang) {
   try { localStorage.setItem(KEY, l) } catch { /* ignore */ }
   document.documentElement.lang = l
   listeners.forEach((fn) => fn())
+  // Mémorise côté serveur (mails transactionnels dans la langue du destinataire)
+  try { if (getTok()) api('PATCH', '/me', { lang: l }).catch(() => {}) } catch { /* hors session */ }
 }
 
 /** Traduit une clé dans la langue active (repli : français, puis la clé elle-même).

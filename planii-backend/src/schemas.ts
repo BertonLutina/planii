@@ -15,6 +15,7 @@ export const registerSchema = z.object({
   email: z.string().min(3, 'email requis').max(200),
   password: z.string().min(1, 'mot de passe requis').max(200),
   job: z.string().max(60).nullish(),
+  lang: z.string().max(5).nullish(),
 }).passthrough()
 
 export const loginSchema = z.object({
@@ -29,6 +30,7 @@ export const meUpdateSchema = z.object({
   job: z.string().max(60).nullish(),
   taskTypes: z.array(z.any()).nullish(),
   roleLibrary: z.array(z.any()).nullish(),
+  lang: z.string().max(5).nullish(),
 }).passthrough()
 
 export const projectLabelSchema = z.object({

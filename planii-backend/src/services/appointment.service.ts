@@ -4,6 +4,7 @@ import { fail } from '../core/http-error'
 import { env } from '../config/env'
 import * as ProjectModel from '../models/Project.model'
 import * as UserModel from '../models/User.model'
+import { mt } from '../lib/mail-i18n'
 import { sendMail } from './mail.service'
 import { logActivity, notify, bump } from './notification.service'
 
@@ -46,7 +47,7 @@ async function assertMember(projectId: string, userId: string) {
 
 async function loadParticipants(appointmentId: string) {
   return many<{ id: string; name: string; email: string }>(
-    `SELECT u.id, u.name, u.email FROM appointment_participants ap
+    `SELECT u.id, u.name, u.email, u.lang FROM appointment_participants ap
      JOIN users u ON u.id = ap.user_id WHERE ap.appointment_id = $1 ORDER BY u.name`,
     [appointmentId],
   )
@@ -62,29 +63,27 @@ async function sendAppointmentMails({
   project: { id: string; name: string }
   actor: { id: string; name: string }
   appointment: { title: string; description?: string | null; date: string; timeStart: string; timeEnd: string }
-  participants: { id: string; name: string; email: string }[]
+  participants: { id: string; name: string; email: string; lang?: string | null }[]
   kind: 'created' | 'updated'
 }) {
   const slot = formatSlot(appointment.date, appointment.timeStart, appointment.timeEnd)
   const subject = kind === 'created'
     ? `Rendez-vous : ${appointment.title}`
     : `Rendez-vous modifié : ${appointment.title}`
-  const intro = kind === 'created'
-    ? `${actor.name} vous a invité(e) à un rendez-vous dans le projet « ${project.name} ».`
-    : `${actor.name} a modifié un rendez-vous du projet « ${project.name} » auquel vous participez.`
-  const rows: ([string, string] | null)[] = [
-    ['Projet', project.name],
-    ['Intitulé', appointment.title],
-    ['Date et créneau', slot],
-    appointment.description ? ['Description', appointment.description] : null,
-    ['Organisateur', actor.name],
+  const key = kind === 'created' ? 'apptNew' : 'apptUpd'
+  const rowsFor = (l?: string | null): ([string, string] | null)[] => [
+    [mt(l, 'r.project'), project.name],
+    [mt(l, 'r.title'), appointment.title],
+    [mt(l, 'r.slot'), slot],
+    appointment.description ? [mt(l, 'r.desc'), appointment.description] : null,
+    [mt(l, 'r.organizer'), actor.name],
   ]
   for (const p of participants) {
     if (!p.email) continue
-    await sendMail(p.email, subject, {
-      intro,
-      rows,
-      ctaText: 'Ouvrir Planii',
+    await sendMail(p.email, mt(p.lang, key + '.s', { title: appointment.title }), {
+      intro: mt(p.lang, key + '.i', { actor: actor.name, project: project.name }),
+      rows: rowsFor(p.lang),
+      ctaText: mt(p.lang, 'cta'),
       ctaUrl: env.webUrl,
     })
     if (p.id !== actor.id) {

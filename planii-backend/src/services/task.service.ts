@@ -9,6 +9,7 @@ import * as UserModel from '../models/User.model'
 import * as TaskView from '../views/Task.view'
 import { assertProjectOpen, ensureProjectStatuses, sendTaskAssignmentMails } from './project.service'
 import { logActivity, recordTaskEvent, notify, notifyProject, bump } from './notification.service'
+import { mt } from '../lib/mail-i18n'
 import { sendMail } from './mail.service'
 
 export async function reorderTasks(projectId: string, userId: string, ids: string[]) {
@@ -64,9 +65,11 @@ export async function createTask(projectId: string, user: DbUser, body: Record<s
     if (assignee) {
       await sendTaskAssignmentMails({ project: p, task: { id, title, priority: prio, due: (body.due as string) || null }, actor: user, assigneeId: assignee })
     } else {
-      const rows: ([string, string] | null)[] = [['Projet', p.name], ['Priorité', 'P' + prio], type ? ['Type', type] : null, body.due ? ['Échéance', body.due as string] : null]
       for (const manager of await UserModel.projectManagers(p.id)) {
-        if (manager.email && manager.id !== user.id) await sendMail(manager.email, `Nouvelle tâche dans « ${p.name} » : ${title}`, { intro: `${user.name} a ajouté une tâche non assignée au projet « ${p.name} ».`, rows, ctaText: 'Ouvrir Planii', ctaUrl: env.webUrl })
+        if (!manager.email || manager.id === user.id) continue
+        const L = manager.lang
+        const rows: ([string, string] | null)[] = [[mt(L, 'r.project'), p.name], [mt(L, 'r.priority'), 'P' + prio], type ? [mt(L, 'r.type'), type] : null, body.due ? [mt(L, 'r.due'), body.due as string] : null]
+        await sendMail(manager.email, mt(L, 'tNew.s', { project: p.name, title }), { intro: mt(L, 'tNew.i', { actor: user.name, project: p.name }), rows, ctaText: mt(L, 'cta'), ctaUrl: env.webUrl })
       }
     }
   })().catch((e) => console.error('mail task_created', (e as Error).message))
@@ -196,11 +199,12 @@ export async function remindTask(taskId: string, user: DbUser) {
   if (!(manage || t.created_by === user.id)) fail(403, 'Relance réservée au créateur ou au responsable du projet')
   const assignee = await UserModel.findById(t.assignee_id)
   if (!assignee || !assignee.email) fail(400, 'Pas d’email pour ce responsable')
-  const rows: ([string, string] | null)[] = [['Projet', p!.name], ['Tâche', t.title], ['Responsable', assignee.name], t.due ? ['Échéance', t.due] : null, ['Priorité', 'P' + (t.priority || 6)]]
-  await sendMail(assignee.email, `Relance : « ${t.title} »`, {
-    intro: `${user.name} vous relance pour la tâche « ${t.title} » dans le projet « ${p!.name} ».`,
+  const L = assignee.lang
+  const rows: ([string, string] | null)[] = [[mt(L, 'r.project'), p!.name], [mt(L, 'r.task'), t.title], [mt(L, 'r.assignee'), assignee.name], t.due ? [mt(L, 'r.due'), t.due] : null, [mt(L, 'r.priority'), 'P' + (t.priority || 6)]]
+  await sendMail(assignee.email, mt(L, 'relance.s', { title: t.title }), {
+    intro: mt(L, 'relance.i', { actor: user.name, title: t.title, project: p!.name }),
     rows,
-    ctaText: 'Ouvrir Planii',
+    ctaText: mt(L, 'cta'),
     ctaUrl: env.webUrl,
   })
   await notify(assignee.id, 'task_reminder', `Relance : ${t.title}`, `${user.name} vous a relancé.`)
