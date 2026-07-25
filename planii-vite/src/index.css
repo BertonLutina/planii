@@ -1605,10 +1605,29 @@ textarea:focus-visible,[tabindex]:focus-visible,[role="button"]:focus-visible,[c
 .brand .logo,.side-brand .logo,.logo-big{background:var(--grad-accent);box-shadow:0 4px 14px rgba(109,92,255,.35)}
 .avatar{background:var(--grad-accent);color:#fff}
 .avatar.avatar-img{background:var(--surface-2)!important;color:transparent}
-.auth-social{display:flex;flex-direction:column;gap:10px;margin:14px 0 6px;width:100%;max-width:360px}
-.auth-social-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:1px solid var(--line)}
-.auth-social-btn:hover{background:var(--surface-2)}
-.auth-or{display:flex;align-items:center;gap:10px;margin:4px 0 2px;color:var(--hint);font-size:12.5px;font-weight:600}
+.auth-social{display:flex;flex-direction:column;gap:12px;margin:8px 0 10px;width:100%}
+.auth-social-title{margin:0;text-align:center;font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+.auth-social-row{display:flex;justify-content:center;align-items:stretch;gap:10px;width:100%}
+.auth-social-btn{
+  flex:1 1 0;
+  aspect-ratio:1;
+  min-width:0;
+  min-height:88px;
+  max-height:110px;
+  display:inline-grid;
+  place-items:center;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:transparent;
+  color:inherit;
+  cursor:pointer;
+  transition:background var(--dur-fast,120ms) var(--ease-out),border-color var(--dur-fast,120ms) var(--ease-out),transform var(--dur-fast,120ms) var(--ease-out);
+}
+.auth-social-btn:hover{background:var(--accent-bg);border-color:var(--accent);transform:translateY(-1px)}
+.auth-social-btn:active{transform:translateY(0)}
+.auth-social-btn svg{width:42px;height:42px;display:block}
+.auth-or{display:flex;align-items:center;gap:10px;margin:2px 0 4px;color:var(--hint);font-size:12.5px;font-weight:600}
 .auth-or::before,.auth-or::after{content:'';flex:1;height:1px;background:var(--line)}
 .auth-or span{flex:none}
 .fab{background:var(--grad-accent);box-shadow:0 10px 26px rgba(109,92,255,.45)}
