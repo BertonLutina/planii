@@ -11,6 +11,7 @@ export type DbProject = QueryResultRow & {
   deadline?: string | null
   label_id?: string | null
   done_at?: string | null
+  image_url?: string | null
 }
 
 export const findById = (id: string) => one<DbProject>('SELECT * FROM projects WHERE id=$1', [id])

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '@/lib/api'
+import { api, apiUpload, mediaUrl } from '@/lib/api'
 import { toast, toastErr, Avatar, health, Modal } from '@/lib/ui'
 import { TYPE_LABEL, ROLE_LABEL, INVITE_ROLES, canManage, formatDue, isOverdue } from '@/lib/dates'
 import { memberPoints, projectPoints, levelOf, taskPoints } from '@/lib/points'
@@ -85,15 +85,18 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
     <div className="app project-detail-app">
       <div className="topbar">
         <div className="brand"><span className="logo"><b /></span><span>Planii</span></div>
-        <div className="who"><span className="role-tag">{ROLE_LABEL[p.my_role] || p.my_role}</span><Avatar name={me.name} /></div>
+        <div className="who"><span className="role-tag">{ROLE_LABEL[p.my_role] || p.my_role}</span><Avatar name={me.name} src={mediaUrl(me.avatarUrl)} /></div>
       </div>
       <div className="wrap">
         <button className="btn-link" onClick={onBack}>{tt('pd.back')}</button>
         <div className="card" style={{ marginTop: 10 }}>
           <div className="row">
-            <div>
-              <p className="title-lg">{p.name}</p>
-              <p className="sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span className="role-tag">{TYPE_LABEL[p.type]}</span> · <Ic name="star" s={12} c="var(--gold)" /> {projectPoints(p)} pts{p.deadline ? ` · ${tt('pd.delivery')} ${formatDue(p.deadline)}` : ''}</p>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', minWidth: 0 }}>
+              <Avatar name={p.name} size={48} src={mediaUrl(p.imageUrl)} />
+              <div style={{ minWidth: 0 }}>
+                <p className="title-lg">{p.name}</p>
+                <p className="sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span className="role-tag">{TYPE_LABEL[p.type]}</span> · <Ic name="star" s={12} c="var(--gold)" /> {projectPoints(p)} pts{p.deadline ? ` · ${tt('pd.delivery')} ${formatDue(p.deadline)}` : ''}</p>
+              </div>
             </div>
             <span className={'pill ' + (p.status === 'done' ? 'ok' : 'acc')}>{p.status === 'done' ? tt('term.doneSt') : `${h.done}/${h.total}`}</span>
           </div>
@@ -963,6 +966,8 @@ function EditProject({ p, onClose, onSaved }: { p: Project; onClose: () => void;
   const [labels, setLabels] = useState<ProjectLabel[]>([])
   const [labelId, setLabelId] = useState(p.labelId || '')
   const [busy, setBusy] = useState(false)
+  const [imageUrl, setImageUrl] = useState(p.imageUrl || null)
+  const [photoBusy, setPhotoBusy] = useState(false)
   useEffect(() => {
     api<{ labels: ProjectLabel[] }>('GET', '/project-labels')
       .then((r) => {
@@ -974,6 +979,26 @@ function EditProject({ p, onClose, onSaved }: { p: Project; onClose: () => void;
       })
       .catch(() => {})
   }, [])
+  async function onPickImage(file: File | null) {
+    if (!file || photoBusy) return
+    setPhotoBusy(true)
+    try {
+      const r = await apiUpload<{ imageUrl: string }>('/projects/' + p.id + '/image', file)
+      setImageUrl(r.imageUrl)
+      toast(tt('pd.photoOk'))
+    } catch (e: any) { toastErr(e.message) }
+    finally { setPhotoBusy(false) }
+  }
+  async function onRemoveImage() {
+    if (!imageUrl || photoBusy) return
+    setPhotoBusy(true)
+    try {
+      await api('DELETE', '/projects/' + p.id + '/image')
+      setImageUrl(null)
+      toast(tt('pd.photoRemoved'))
+    } catch (e: any) { toastErr(e.message) }
+    finally { setPhotoBusy(false) }
+  }
   async function save() {
     if (!name.trim()) { toastErr(tt('pd.nameEmpty')); return }
     setBusy(true)
@@ -982,6 +1007,19 @@ function EditProject({ p, onClose, onSaved }: { p: Project; onClose: () => void;
   }
   return (
     <Modal title="Modifier le projet" onClose={onClose}>
+      <div className="field"><label>{tt('pd.projectPhoto')}</label>
+        <div className="who" style={{ gap: 12, alignItems: 'center' }}>
+          <Avatar name={name || p.name} size={56} src={mediaUrl(imageUrl)} />
+          <div className="sheet-actions" style={{ marginTop: 0 }}>
+            <label className="btn sm ghost" style={{ cursor: photoBusy ? 'wait' : 'pointer' }}>
+              {photoBusy ? tt('common.loading') : tt('profile.changePhoto')}
+              <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={photoBusy}
+                onChange={(e) => { onPickImage(e.target.files?.[0] || null); e.target.value = '' }} />
+            </label>
+            {imageUrl && <button type="button" className="btn sm ghost" disabled={photoBusy} onClick={onRemoveImage}>{tt('profile.removePhoto')}</button>}
+          </div>
+        </div>
+      </div>
       <div className="field"><label>{tt('proj.name')}</label>
         <MicInput value={name} onChange={setName} placeholder="Nom du projet" /></div>
       <div className="field"><label>{tt('pd.deadline')}</label>

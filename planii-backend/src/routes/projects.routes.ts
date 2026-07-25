@@ -13,6 +13,8 @@ export function projectsRoutes() {
   r.post('/projects/:id/close', ...ProjectController.close)
   r.post('/projects/:id/reopen', ...ProjectController.reopen)
   r.patch('/projects/:id', validate(projectUpdateSchema), ...ProjectController.update)
+  r.post('/projects/:id/image', ...ProjectController.uploadImage)
+  r.delete('/projects/:id/image', ...ProjectController.deleteImage)
   r.delete('/projects/:id', ...ProjectController.remove)
   r.post('/projects/:id/roles', validate(roleNameSchema), ...ProjectController.createRole)
   r.delete('/projects/:id/roles/:roleId', ...ProjectController.deleteRole)

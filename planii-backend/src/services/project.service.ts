@@ -183,6 +183,7 @@ export async function projectDetail(p: DbProject, userId: string, opts: { includ
   const appointments = await appointmentsForProject(p.id)
   return {
     ...p,
+    imageUrl: p.image_url || null,
     closedAt: p.done_at || null,
     reopenUntil: ProjectModel.reopenUntil(p)?.toISOString() || null,
     canReopen: ProjectModel.canReopen(p),
@@ -328,6 +329,7 @@ export async function listProjects(userId: string, query: Record<string, unknown
   if (!paginate) {
     const rows = await many(select, vals)
     for (const row of rows) {
+      row.imageUrl = row.image_url || null
       if (!row.labelId) {
         row.labelId = fallback.id
         row.labelName = fallback.label
@@ -342,6 +344,7 @@ export async function listProjects(userId: string, query: Record<string, unknown
   const total = Number(countRow.c) || 0
   const rows = await many(`${select} LIMIT ${limit} OFFSET ${offset}`, vals)
   for (const row of rows) {
+    row.imageUrl = row.image_url || null
     if (!row.labelId) {
       row.labelId = fallback.id
       row.labelName = fallback.label
@@ -451,6 +454,9 @@ export async function deleteProject(projectId: string, userId: string, userName:
   } finally {
     client.release()
   }
+  // Remove image from disk after DB delete
+  const { deleteProjectImageFiles } = await import('./upload.service')
+  deleteProjectImageFiles(p.id, p.image_url)
   return members.length - 1
 }
 

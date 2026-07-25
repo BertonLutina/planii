@@ -6,8 +6,10 @@ import { env } from './config/env'
 import { logger } from './logger'
 import { apiRateLimit, errorHandler } from './middleware/security'
 import { apiRoutes } from './routes'
+import { uploadDir, ensureUploadDirs } from './services/upload.service'
 
 export function createApp() {
+  ensureUploadDirs()
   const app = express()
 
   // Derrière Traefik : faire confiance au 1er proxy pour lire l'IP client réelle
@@ -36,6 +38,7 @@ export function createApp() {
   app.options('*', cors(corsOptions))
   app.use(express.json())
   app.use(pinoHttp({ logger }))
+  app.use('/api/uploads', express.static(uploadDir, { maxAge: '7d', fallthrough: false }))
   app.use('/api', apiRateLimit)
   app.use('/api', apiRoutes())
   app.use(errorHandler)

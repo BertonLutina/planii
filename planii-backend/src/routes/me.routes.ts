@@ -7,6 +7,8 @@ export function meRoutes() {
   const r = Router()
   r.get('/me', ...MeController.getMe)
   r.patch('/me', validate(meUpdateSchema), ...MeController.patchMe)
+  r.post('/me/avatar', ...MeController.uploadAvatar)
+  r.delete('/me/avatar', ...MeController.deleteAvatar)
   r.get('/project-labels', ...MeController.getProjectLabels)
   r.post('/project-labels', validate(projectLabelSchema), ...MeController.createProjectLabel)
   r.patch('/project-label-colors', validate(labelColorsSchema), ...MeController.patchProjectLabelColors)

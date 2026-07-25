@@ -27,6 +27,7 @@ export const toPublic = (u: DbUser | null) => u && {
   firstName: u.first_name || '',
   lastName: u.last_name || '',
   job: u.job || '',
+  avatarUrl: u.avatar_url || null,
   taskTypes: taskTypesOf(u),
   roleLibrary: roleLibraryOf(u),
   admin: isAdmin(u),

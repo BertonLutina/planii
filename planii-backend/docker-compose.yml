@@ -4,6 +4,10 @@ services:
     container_name: planii-api
     restart: unless-stopped
     env_file: .env
+    environment:
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - planii_uploads:/data/uploads
     networks:
       - dbnet
     labels:
@@ -23,3 +27,5 @@ networks:
   dbnet:
     external: true
     name: postgresql-5yar_default
+volumes:
+  planii_uploads:

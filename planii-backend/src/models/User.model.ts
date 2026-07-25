@@ -14,6 +14,7 @@ export type DbUser = QueryResultRow & {
   role_library?: string[] | null
   project_label_colors?: string[] | null
   lang?: string | null
+  avatar_url?: string | null
 }
 
 export const findByEmail = (email: string) => one<DbUser>('SELECT * FROM users WHERE email=$1', [email])

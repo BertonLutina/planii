@@ -1,7 +1,7 @@
 export type Role = 'owner' | 'lead' | 'provider' | 'client' | 'member'
 export type ProjectType = 'solo' | 'team' | 'group'
 
-export interface User { id: string; name: string; email: string; firstName?: string; lastName?: string; job?: string; taskTypes?: string[]; roleLibrary?: string[]; admin?: boolean; superAdmin?: boolean }
+export interface User { id: string; name: string; email: string; firstName?: string; lastName?: string; job?: string; avatarUrl?: string | null; taskTypes?: string[]; roleLibrary?: string[]; admin?: boolean; superAdmin?: boolean }
 
 export interface ProjectRole { id: string; name: string }
 export interface ProjectLabel { id: string; label: string; color: string; position: number; fixed: boolean }
@@ -139,6 +139,7 @@ export interface ProjectSummary {
   labelId?: string | null
   labelName?: string | null
   labelColor?: string | null
+  imageUrl?: string | null
   taskCount: number
   doneCount: number
   totalPoints?: number

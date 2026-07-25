@@ -1,5 +1,6 @@
 import { asyncHandler, auth } from '../middleware/auth'
 import * as ProjectService from '../services/project.service'
+import * as UploadService from '../services/upload.service'
 import * as ProjectView from '../views/Project.view'
 
 export const create = [auth, asyncHandler(async (req, res) => {
@@ -49,6 +50,20 @@ export const update = [auth, asyncHandler(async (req, res) => {
 export const remove = [auth, asyncHandler(async (req, res) => {
   const notified = await ProjectService.deleteProject(req.params.id, req.user!.id, req.user!.name)
   res.json({ ok: true, notified })
+})]
+
+export const uploadImage = [
+  auth,
+  UploadService.imageUpload.single('file'),
+  asyncHandler(async (req, res) => {
+    const imageUrl = await UploadService.setProjectImage(req.params.id, req.user!.id, req.file)
+    res.json({ imageUrl })
+  }),
+]
+
+export const deleteImage = [auth, asyncHandler(async (req, res) => {
+  await UploadService.clearProjectImage(req.params.id, req.user!.id)
+  res.json({ ok: true })
 })]
 
 export const createRole = [auth, asyncHandler(async (req, res) => {

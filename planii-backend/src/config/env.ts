@@ -35,6 +35,7 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
+  UPLOAD_DIR: z.string().min(1).default(path.join(process.cwd(), 'uploads')),
 })
 
 const parsed = envSchema.safeParse({
@@ -72,6 +73,7 @@ export const env = {
   pgSsl: raw.PGSSL === 'true',
   isProd: raw.NODE_ENV === 'production',
   isTest: raw.NODE_ENV === 'test',
+  UPLOAD_DIR: path.resolve(raw.UPLOAD_DIR),
 }
 
 if (env.isProd && env.JWT_SECRET === 'dev-secret-change-me') {

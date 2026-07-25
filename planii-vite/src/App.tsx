@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, getTok, setTok } from '@/lib/api'
+import { api, apiUpload, getTok, mediaUrl, setTok } from '@/lib/api'
 import { Toaster, Avatar, health, toast, toastErr, Modal } from '@/lib/ui'
 import type { ProjectLabel, User } from '@/lib/types'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
@@ -276,13 +276,65 @@ function EditInfoModal({ me, onClose, onUpdate }: { me: User; onClose: () => voi
 function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void }) {
   const { t: tr } = useI18n()
   const [editInfo, setEditInfo] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
+
+  async function onPickAvatar(file: File | null) {
+    if (!file || photoBusy) return
+    setPhotoBusy(true)
+    try {
+      const r = await apiUpload<{ user: User }>('/me/avatar', file)
+      onUpdate(r.user)
+      toast(tr('profile.photoOk'))
+    } catch (e: any) { toastErr(e.message) }
+    finally { setPhotoBusy(false) }
+  }
+
+  async function onRemoveAvatar() {
+    if (photoBusy || !me.avatarUrl) return
+    setPhotoBusy(true)
+    try {
+      const r = await api<{ user: User }>('DELETE', '/me/avatar')
+      onUpdate(r.user)
+      toast(tr('profile.photoRemoved'))
+    } catch (e: any) { toastErr(e.message) }
+    finally { setPhotoBusy(false) }
+  }
 
   return (
     <div className="settings-page profile-page">
       <div className="card profile-hero">
         <div className="who" style={{ gap: 12 }}>
-          <Avatar name={me.name} size={48} />
-          <div><p className="title-lg" style={{ fontSize: 16 }}>{me.name}</p><p className="sub">{me.email}{me.job ? ' · ' + me.job : ''}</p></div>
+          <label className="avatar-upload" title={tr('profile.changePhoto')}>
+            <Avatar name={me.name} size={64} src={mediaUrl(me.avatarUrl)} />
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              disabled={photoBusy}
+              onChange={(e) => { onPickAvatar(e.target.files?.[0] || null); e.target.value = '' }}
+            />
+          </label>
+          <div>
+            <p className="title-lg" style={{ fontSize: 16 }}>{me.name}</p>
+            <p className="sub">{me.email}{me.job ? ' · ' + me.job : ''}</p>
+            <div className="sheet-actions" style={{ marginTop: 8 }}>
+              <label className="btn sm ghost" style={{ cursor: photoBusy ? 'wait' : 'pointer' }}>
+                {photoBusy ? tr('common.loading') : tr('profile.changePhoto')}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  hidden
+                  disabled={photoBusy}
+                  onChange={(e) => { onPickAvatar(e.target.files?.[0] || null); e.target.value = '' }}
+                />
+              </label>
+              {me.avatarUrl && (
+                <button type="button" className="btn sm ghost" disabled={photoBusy} onClick={onRemoveAvatar}>
+                  {tr('profile.removePhoto')}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
         <button className="btn ghost sm profile-logout" onClick={onLogout}><Ic name="logout" s={15} /> {tr('profile.logout')}</button>
       </div>
@@ -385,7 +437,10 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="side-brand"><span className="logo"><b /></span><span>Planii</span></div>
+        <button type="button" className="side-user" onClick={() => setTab('profil')} title={tr('nav.profile')}>
+          <Avatar name={me.name} size={52} src={mediaUrl(me.avatarUrl)} />
+          <span className="side-user-name">{me.name}</span>
+        </button>
         <button className="side-search" onClick={() => setCmd(true)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
           <span>{tr('action.search')}</span><span className="kbd">{CMD_LABEL}</span>
@@ -402,15 +457,21 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
         <div className="side-projects">
           {(projects || []).filter((p) => p.status !== 'done').slice(0, 5).map((p, index) => {
             const h = health(p.taskCount, p.doneCount, p.status)
+            const img = mediaUrl(p.imageUrl)
             return (
               <button key={p.id} className="side-project" onClick={() => setOpenId(p.id)} title={`${h.done}/${h.total} tâches`}>
-                <span className={'side-dot d' + (index % 5)} />
+                {img
+                  ? <span className="side-dot side-dot-img"><img src={img} alt="" /></span>
+                  : <span className={'side-dot d' + (index % 5)} />}
                 <span>{p.name}</span>
               </button>
             )
           })}
         </div>
-        <div className="side-foot"><Avatar name={me.name} /><span className="nm">{me.name}</span><ThemeToggleButton /></div>
+        <div className="side-foot">
+          <div className="side-brand"><span className="logo"><b /></span><span>Planii</span></div>
+          <ThemeToggleButton />
+        </div>
       </aside>
 
       <main className="shell-main">
@@ -429,7 +490,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
             )}
             <HelpButton tab={tab} />
             <span className="mobile-pill"><ThemeToggleButton /><NotifBell /></span>
-            <Avatar name={me.name} />
+            <Avatar name={me.name} src={mediaUrl(me.avatarUrl)} />
           </div>
         </header>
         <div className="wrap">

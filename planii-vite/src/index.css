@@ -68,7 +68,11 @@ a{color:var(--accent)}
 .brand .logo b{width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:8px 0 0 rgba(255,255,255,.55);display:block}
 .who{display:flex;align-items:center;gap:9px}
 .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent-bg);color:var(--accent);
-  display:grid;place-items:center;font-weight:600;font-size:13px}
+  display:grid;place-items:center;font-weight:600;font-size:13px;overflow:hidden;flex:none}
+.avatar.avatar-img{padding:0;background:var(--surface-2)}
+.avatar.avatar-img img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar-upload{cursor:pointer;display:inline-grid;border-radius:50%}
+.avatar-upload:hover{outline:2px solid var(--accent);outline-offset:2px}
 .role-tag{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;background:var(--surface-2);color:var(--muted)}
 /* notifications */
 .notif-btn{position:relative;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);
@@ -360,9 +364,14 @@ input, select, textarea { font-size: 16px; }
 .fab{position:fixed;right:18px;bottom:calc(86px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;
   background:var(--accent);color:var(--on-accent);border:none;display:grid;place-items:center;box-shadow:0 10px 26px rgba(83,74,183,.45);z-index:41}
 .fab svg{width:26px;height:26px}
-.side-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;padding:6px 8px 14px}
+.side-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;padding:0}
 .side-brand .logo{width:28px;height:28px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
 .side-brand .logo b{width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:7px 0 0 rgba(255,255,255,.55);display:block}
+.side-user{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 8px 14px;border:0;background:transparent;cursor:pointer;width:100%;color:inherit}
+.side-user:hover .side-user-name{color:var(--accent)}
+.side-user-name{font-size:13.5px;font-weight:700;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-dot-img,.pt-avatar-img,.pcard-avatar-img{padding:0!important;overflow:hidden;background:var(--surface-2)!important}
+.side-dot-img img,.pt-avatar-img img,.pcard-avatar-img img{width:100%;height:100%;object-fit:cover;display:block}
 
 @media(min-width:900px){
   .sidebar{display:flex;flex-direction:column;width:238px;flex:none;background:var(--surface-2);border-right:1px solid var(--line);
@@ -373,8 +382,9 @@ input, select, textarea { font-size: 16px; }
   .side-nav button svg{width:19px;height:19px;flex:none}
   .side-nav button:hover{background:var(--surface)}
   .side-nav button.on{background:var(--accent-bg);color:var(--accent)}
-  .side-foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid var(--line)}
+  .side-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 8px;border-top:1px solid var(--line)}
   .side-foot .nm{flex:1;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side-foot .side-brand{flex:1;min-width:0}
   .bottomnav,.fab{display:none}
   .only-mobile{display:none}
   .appbar{border-bottom:1px solid var(--line);padding-top:16px;padding-bottom:14px}
@@ -1594,6 +1604,7 @@ textarea:focus-visible,[tabindex]:focus-visible,[role="button"]:focus-visible,[c
 .newbtn{background:var(--grad-accent);border-color:transparent;box-shadow:0 6px 16px rgba(109,92,255,.30)}
 .brand .logo,.side-brand .logo,.logo-big{background:var(--grad-accent);box-shadow:0 4px 14px rgba(109,92,255,.35)}
 .avatar{background:var(--grad-accent);color:#fff}
+.avatar.avatar-img{background:var(--surface-2)!important;color:transparent}
 .fab{background:var(--grad-accent);box-shadow:0 10px 26px rgba(109,92,255,.45)}
 .side-nav button.on{background:var(--accent-bg);color:var(--accent);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
 .appbar-title,.title-lg,.brand{letter-spacing:-.02em}

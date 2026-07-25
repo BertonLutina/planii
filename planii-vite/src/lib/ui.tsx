@@ -22,9 +22,17 @@ export function Toaster() {
 }
 
 /* ---------- avatar ---------- */
-export function Avatar({ name, size }: { name?: string; size?: number }) {
+export function Avatar({ name, size, src }: { name?: string; size?: number; src?: string | null }) {
+  const style = size ? { width: size, height: size, fontSize: size / 2.6 } : undefined
+  if (src) {
+    return (
+      <span className="avatar avatar-img" style={style}>
+        <img src={src} alt={name || ''} />
+      </span>
+    )
+  }
   return (
-    <span className="avatar" style={size ? { width: size, height: size, fontSize: size/2.6 } : undefined}>
+    <span className="avatar" style={style}>
       {initials(name)}
     </span>
   )

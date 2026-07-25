@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '@/lib/api'
-import { toast, toastErr, Modal, health } from '@/lib/ui'
+import { api, apiUpload, mediaUrl } from '@/lib/api'
+import { toast, toastErr, Modal, health, Avatar } from '@/lib/ui'
 import { ROLE_LABEL } from '@/lib/dates'
 import { MicInput } from './Mic'
 import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
@@ -186,7 +186,9 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                     <tr key={p.id} onClick={() => onOpen(p.id)} tabIndex={0}
                       onKeyDown={(e) => { if (e.key === 'Enter') onOpen(p.id) }}>
                       <td className="pt-name">
-                        <span className="pt-avatar" style={{ background: labelColor }}>{initialsOf(p.name)}</span>
+                        {mediaUrl(p.imageUrl)
+                          ? <span className="pt-avatar pt-avatar-img"><img src={mediaUrl(p.imageUrl)!} alt="" /></span>
+                          : <span className="pt-avatar" style={{ background: labelColor }}>{initialsOf(p.name)}</span>}
                         <span className="pt-name-txt">{p.name}</span>
                       </td>
                       <td><span className="pt-type"><Ic name={TYPE_ICON[p.type] || 'folder'} s={13} /> {typeShort}</span></td>
@@ -219,7 +221,9 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                 onDrop={canDrag ? (e) => { e.preventDefault(); dropOn(p.id) } : undefined}>
                 <span className="pcard-accent" style={{ background: labelColor }} />
                 <div className="pcard-head">
-                  <span className="pcard-avatar" style={{ background: labelColor }}>{initialsOf(p.name)}</span>
+                  {mediaUrl(p.imageUrl)
+                    ? <span className="pcard-avatar pcard-avatar-img"><img src={mediaUrl(p.imageUrl)!} alt="" /></span>
+                    : <span className="pcard-avatar" style={{ background: labelColor }}>{initialsOf(p.name)}</span>}
                   <div className="pcard-titles">
                     <b className="pcard-name">{p.name}</b>
                     <span className="pcard-type"><Ic name={TYPE_ICON[p.type] || 'folder'} s={12} /> {typeShort}{role ? ' · ' + role : ''}</span>
@@ -260,17 +264,47 @@ function NewProject({ labels, onClose, onCreated }: { labels: ProjectLabel[]; on
   const defaultLabel = labels.find((l) => l.label.toLowerCase() === 'travail') || labels[0]
   const [f, setF] = useState({ name: '', type: 'solo', deadline: '', labelId: defaultLabel?.id || '' })
   const [busy, setBusy] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   useEffect(() => { if (!f.labelId && defaultLabel) setF((x) => ({ ...x, labelId: defaultLabel.id })) }, [defaultLabel, f.labelId])
+  useEffect(() => () => { if (imagePreview) URL.revokeObjectURL(imagePreview) }, [imagePreview])
   async function create() {
     if (!f.name.trim()) return
     setBusy(true)
     try {
       const r = await api<{ project: { id: string } }>('POST', '/projects', { name: f.name.trim(), type: f.type, deadline: f.deadline || null, labelId: f.labelId || null })
+      if (imageFile) {
+        try { await apiUpload('/projects/' + r.project.id + '/image', imageFile) }
+        catch (e: any) { toastErr(e.message) }
+      }
       toast(tr('proj.created')); onCreated(r.project.id)
     } catch (e: any) { toastErr(e.message); setBusy(false) }
   }
   return (
     <Modal title={tr('projects.newProject')} onClose={onClose}>
+      <div className="field"><label>{tr('pd.projectPhoto')}</label>
+        <div className="who" style={{ gap: 12, alignItems: 'center' }}>
+          <Avatar name={f.name || 'P'} size={56} src={imagePreview} />
+          <label className="btn sm ghost" style={{ cursor: 'pointer' }}>
+            {tr('profile.changePhoto')}
+            <input type="file" accept="image/jpeg,image/png,image/webp" hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null
+                setImageFile(file)
+                if (imagePreview) URL.revokeObjectURL(imagePreview)
+                setImagePreview(file ? URL.createObjectURL(file) : null)
+                e.target.value = ''
+              }} />
+          </label>
+          {imageFile && (
+            <button type="button" className="btn sm ghost" onClick={() => {
+              setImageFile(null)
+              if (imagePreview) URL.revokeObjectURL(imagePreview)
+              setImagePreview(null)
+            }}>{tr('profile.removePhoto')}</button>
+          )}
+        </div>
+      </div>
       <div className="field"><label>{tr('proj.name')}</label>
         <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Site web — Café du Coin" /></div>
       <div className="field"><label>{tr('proj.type')}</label>
