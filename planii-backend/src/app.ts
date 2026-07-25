@@ -1,15 +1,19 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
+import session from 'express-session'
+import passport from 'passport'
 import pinoHttp from 'pino-http'
 import { env } from './config/env'
 import { logger } from './logger'
 import { apiRateLimit, errorHandler } from './middleware/security'
 import { apiRoutes } from './routes'
 import { uploadDir, ensureUploadDirs } from './services/upload.service'
+import { configurePassport } from './auth/passport'
 
 export function createApp() {
   ensureUploadDirs()
+  configurePassport()
   const app = express()
 
   // Derrière Traefik : faire confiance au 1er proxy pour lire l'IP client réelle
@@ -37,6 +41,19 @@ export function createApp() {
   app.use(cors(corsOptions))
   app.options('*', cors(corsOptions))
   app.use(express.json())
+  app.use(session({
+    secret: env.sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: env.isProd,
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 10 * 60 * 1000,
+    },
+  }))
+  app.use(passport.initialize())
+  app.use(passport.session())
   app.use(pinoHttp({ logger }))
   app.use('/api/uploads', express.static(uploadDir, { maxAge: '7d', fallthrough: false }))
   app.use('/api', apiRateLimit)

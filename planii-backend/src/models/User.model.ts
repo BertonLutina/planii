@@ -5,7 +5,7 @@ export type DbUser = QueryResultRow & {
   id: string
   name: string
   email: string
-  pass_hash: string
+  pass_hash: string | null
   first_name?: string | null
   last_name?: string | null
   is_admin?: boolean
@@ -24,12 +24,18 @@ export async function createUser(data: {
   id: string
   name: string
   email: string
-  pass_hash: string
+  pass_hash: string | null
   job?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  avatar_url?: string | null
 }) {
   await q(
-    'INSERT INTO users (id,name,email,pass_hash,job) VALUES ($1,$2,$3,$4,$5)',
-    [data.id, data.name, data.email, data.pass_hash, data.job ?? null],
+    'INSERT INTO users (id,name,email,pass_hash,job,first_name,last_name,avatar_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+    [
+      data.id, data.name, data.email, data.pass_hash, data.job ?? null,
+      data.first_name ?? null, data.last_name ?? null, data.avatar_url ?? null,
+    ],
   )
 }
 

@@ -562,6 +562,22 @@ export default function App() {
   const [me, setMe] = useState<User | null | undefined>(undefined)
   useEffect(() => {
     if (styleGuide || privacy) return
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const oauth = params.get('oauth_token')
+      if (oauth) {
+        setTok(oauth)
+        params.delete('oauth_token')
+        params.delete('authError')
+        const clean = params.toString()
+        window.history.replaceState({}, '', window.location.pathname + (clean ? '?' + clean : '') + window.location.hash)
+      } else if (params.get('authError')) {
+        params.delete('authError')
+        const clean = params.toString()
+        window.history.replaceState({}, '', window.location.pathname + (clean ? '?' + clean : ''))
+        toastErr('Connexion sociale échouée')
+      }
+    } catch { /* ignore */ }
     if (!getTok()) { setMe(null); return }
     api<{ user: User }>('GET', '/me').then((r) => { setMe(r.user); connectRealtime() }).catch(() => { setTok(null); setMe(null) })
     return () => disconnectRealtime()

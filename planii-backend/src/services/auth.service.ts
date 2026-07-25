@@ -22,8 +22,9 @@ export async function register(body: { name?: string; email?: string; password?:
 export async function login(body: { email?: string; password?: string }) {
   const email = (body.email || '').trim().toLowerCase()
   const u = await UserModel.findByEmail(email)
-  if (!u || !(await bcrypt.compare(body.password || '', u.pass_hash)))
-    fail(401, 'Identifiants incorrects')
+  if (!u) fail(401, 'Identifiants incorrects')
+  if (!u.pass_hash) fail(401, 'Ce compte utilise une connexion sociale — choisissez Google, Outlook, etc.')
+  if (!(await bcrypt.compare(body.password || '', u.pass_hash))) fail(401, 'Identifiants incorrects')
   await UserModel.touchLastLogin(u.id)
   return { token: UserView.signToken(u), user: u }
 }

@@ -36,6 +36,16 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
   UPLOAD_DIR: z.string().min(1).default(path.join(process.cwd(), 'uploads')),
+  GOOGLE_CLIENT_ID: z.string().optional().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
+  MICROSOFT_CLIENT_ID: z.string().optional().default(''),
+  MICROSOFT_CLIENT_SECRET: z.string().optional().default(''),
+  LINKEDIN_CLIENT_ID: z.string().optional().default(''),
+  LINKEDIN_CLIENT_SECRET: z.string().optional().default(''),
+  YAHOO_CLIENT_ID: z.string().optional().default(''),
+  YAHOO_CLIENT_SECRET: z.string().optional().default(''),
+  OAUTH_CALLBACK_BASE: z.string().optional().default(''),
+  SESSION_SECRET: z.string().optional().default(''),
 })
 
 const parsed = envSchema.safeParse({
@@ -74,6 +84,15 @@ export const env = {
   isProd: raw.NODE_ENV === 'production',
   isTest: raw.NODE_ENV === 'test',
   UPLOAD_DIR: path.resolve(raw.UPLOAD_DIR),
+  googleClientId: raw.GOOGLE_CLIENT_ID || '',
+  googleClientSecret: raw.GOOGLE_CLIENT_SECRET || '',
+  microsoftClientId: raw.MICROSOFT_CLIENT_ID || '',
+  microsoftClientSecret: raw.MICROSOFT_CLIENT_SECRET || '',
+  linkedinClientId: raw.LINKEDIN_CLIENT_ID || '',
+  linkedinClientSecret: raw.LINKEDIN_CLIENT_SECRET || '',
+  yahooClientId: raw.YAHOO_CLIENT_ID || '',
+  yahooClientSecret: raw.YAHOO_CLIENT_SECRET || '',
+  sessionSecret: raw.SESSION_SECRET || raw.JWT_SECRET,
 }
 
 if (env.isProd && env.JWT_SECRET === 'dev-secret-change-me') {
