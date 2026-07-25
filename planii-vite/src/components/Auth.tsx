@@ -83,55 +83,60 @@ export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
   const enabled = PROVIDER_ORDER.filter((p) => providers[p])
 
   return (
-    <div className="auth">
-      <div className="logo-big"><b /></div>
-      <h1>Planii</h1>
-      <p className="tag">{tr('auth.tagline')}</p>
-      <LangFlags />
+    <div className="auth-screen">
+      <div className="auth-bg" aria-hidden>
+        <img src="/auth-bg.png" alt="" />
+      </div>
+      <div className="auth auth-glass">
+        <div className="logo-big"><b /></div>
+        <h1>Planii</h1>
+        {/* Tagline kept in i18n as auth.tagline — not shown on auth screen */}
+        <LangFlags />
 
-      {enabled.length > 0 && (
-        <div className="auth-social">
-          <p className="auth-social-title">{tr('auth.login')}</p>
-          <div className="auth-social-row" role="group" aria-label={tr('auth.login')}>
-            {enabled.map((provider) => (
-              <button
-                key={provider}
-                type="button"
-                className={`auth-social-btn auth-${provider}`}
-                aria-label={tr(PROVIDER_LABEL[provider])}
-                title={tr(PROVIDER_LABEL[provider])}
-                onClick={() => startOAuth(provider)}
-              >
-                <ProviderIcon provider={provider} />
-              </button>
-            ))}
+        {enabled.length > 0 && (
+          <div className="auth-social">
+            <p className="auth-social-title">{tr('auth.login')}</p>
+            <div className="auth-social-row" role="group" aria-label={tr('auth.login')}>
+              {enabled.map((provider) => (
+                <button
+                  key={provider}
+                  type="button"
+                  className={`auth-social-btn auth-${provider}`}
+                  aria-label={tr(PROVIDER_LABEL[provider])}
+                  title={tr(PROVIDER_LABEL[provider])}
+                  onClick={() => startOAuth(provider)}
+                >
+                  <ProviderIcon provider={provider} />
+                </button>
+              ))}
+            </div>
+            <div className="auth-or"><span>{tr('auth.orEmail')}</span></div>
           </div>
-          <div className="auth-or"><span>{tr('auth.orEmail')}</span></div>
-        </div>
-      )}
+        )}
 
-      {mode === 'signup' && (
-        <>
-          <div className="field"><label>{tr('auth.name')}</label>
-            <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Awa Ndiaye" /></div>
-          <div className="field"><label>{tr('auth.job')}</label>
-            <MicInput value={f.job} onChange={(v) => setF({ ...f, job: v })} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
-        </>
-      )}
-      <div className="field"><label>{tr('auth.email')}</label>
-        <input type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" /></div>
-      <div className="field"><label>{tr('auth.password')}</label>
-        <input type="password" value={f.password} onChange={set('password')} placeholder="••••••••" /></div>
-      <button className="btn primary block" disabled={busy} onClick={submit}>
-        {busy ? '…' : mode === 'login' ? tr('auth.login') : tr('auth.signup')}
-      </button>
-      <p className="switch">
-        {mode === 'login'
-          ? <>{tr('auth.noAccount')} <button className="btn-link" onClick={() => setMode('signup')}>{tr('auth.register')}</button></>
-          : <>{tr('auth.hasAccount')} <button className="btn-link" onClick={() => setMode('login')}>{tr('auth.login')}</button></>}
-      </p>
-      <p className="auth-support">{tr('auth.support')} <a href="mailto:info@planii.app">info@planii.app</a></p>
-      <p className="auth-support"><a href="/confidentialite">{tr('auth.privacy')}</a></p>
+        {mode === 'signup' && (
+          <>
+            <div className="field"><label>{tr('auth.name')}</label>
+              <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Awa Ndiaye" /></div>
+            <div className="field"><label>{tr('auth.job')}</label>
+              <MicInput value={f.job} onChange={(v) => setF({ ...f, job: v })} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
+          </>
+        )}
+        <div className="field"><label>{tr('auth.email')}</label>
+          <input type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" /></div>
+        <div className="field"><label>{tr('auth.password')}</label>
+          <input type="password" value={f.password} onChange={set('password')} placeholder="••••••••" /></div>
+        <button className="btn primary block" disabled={busy} onClick={submit}>
+          {busy ? '…' : mode === 'login' ? tr('auth.login') : tr('auth.signup')}
+        </button>
+        <p className="switch">
+          {mode === 'login'
+            ? <>{tr('auth.noAccount')} <button className="btn-link" onClick={() => setMode('signup')}>{tr('auth.register')}</button></>
+            : <>{tr('auth.hasAccount')} <button className="btn-link" onClick={() => setMode('login')}>{tr('auth.login')}</button></>}
+        </p>
+        <p className="auth-support">{tr('auth.support')} <a href="mailto:info@planii.app">info@planii.app</a></p>
+        <p className="auth-support"><a href="/confidentialite">{tr('auth.privacy')}</a></p>
+      </div>
     </div>
   )
 }
