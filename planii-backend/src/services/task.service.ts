@@ -76,6 +76,84 @@ export async function createTask(projectId: string, user: DbUser, body: Record<s
   return { id, title, description, type, assigneeId: assignee, createdBy: user.id, due: body.due || null, done: statusKey === 'done', estHours: est, spentHours: null, priority: prio, parentId, statusKey, transferable }
 }
 
+export async function fetchPublicGoogleSheetCsv(url: string): Promise<string> {
+  const s = String(url || '').trim()
+  const idMatch = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)
+  if (!idMatch) fail(400, 'URL Google Sheets invalide')
+  const gidMatch = s.match(/[?#&]gid=(\d+)/)
+  const gid = gidMatch ? gidMatch[1] : '0'
+  const exportUrl = `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv&gid=${gid}`
+  let res: Response
+  try {
+    res = await fetch(exportUrl, { redirect: 'follow' })
+  } catch {
+    fail(502, 'Impossible de joindre Google Sheets')
+  }
+  const text = await res!.text()
+  if (!res!.ok || text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html')) {
+    fail(400, 'Feuille inaccessible — partagez-la en « Toute personne disposant du lien »')
+  }
+  if (!text.trim()) fail(400, 'Feuille vide')
+  return text
+}
+
+export async function createTasksBulk(
+  projectId: string,
+  user: DbUser,
+  items: Array<Record<string, unknown>>,
+) {
+  const p = await ProjectModel.findById(projectId)
+  if (!p) fail(404, 'Projet introuvable')
+  const m = await ProjectModel.findMembership(p.id, user.id)
+  if (!m) fail(403, 'Non membre')
+  assertProjectOpen(p)
+  if (!Array.isArray(items) || items.length === 0) fail(400, 'au moins une tâche')
+  if (items.length > 500) fail(400, 'Maximum 500 tâches par import')
+
+  await ensureProjectStatuses(p.id)
+  const created: Record<string, unknown>[] = []
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    for (const body of items) {
+      const title = String(body.title || '').trim()
+      if (!title) continue
+      const id = uid()
+      const prio = prioOrDefault(body.priority)
+      const description = ((body.description || '') as string).trim() || null
+      const due = (body.due as string) || null
+      await client.query(
+        'INSERT INTO tasks (id,project_id,title,description,type,assignee_id,created_by,due,est_hours,priority,parent_id,status_key,done,done_at,transferable) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)',
+        [id, p.id, title, description, null, null, user.id, due, null, prio, null, 'todo', false, null, false],
+      )
+      created.push({
+        id, title, description, type: null, assigneeId: null, createdBy: user.id,
+        due, done: false, estHours: null, spentHours: null, priority: prio,
+        parentId: null, statusKey: 'todo', transferable: false,
+      })
+    }
+    if (created.length === 0) {
+      await client.query('ROLLBACK')
+      fail(400, 'Aucune tâche valide à importer')
+    }
+    await client.query('COMMIT')
+  } catch (e) {
+    try { await client.query('ROLLBACK') } catch { /* ignore */ }
+    throw e
+  } finally {
+    client.release()
+  }
+
+  await logActivity(p.id, user.id, 'task_created', `a importé ${created.length} tâche(s)`)
+  for (const t of created) {
+    await recordTaskEvent(t.id as string, p.id, user.id, 'task_created', {
+      title: t.title, assigneeId: null, due: t.due || null, priority: t.priority, statusKey: 'todo', imported: true,
+    })
+  }
+  bump(p.id)
+  return created
+}
+
 export async function updateTask(taskId: string, user: DbUser, body: Record<string, unknown>) {
   const t = await TaskModel.findById(taskId)
   if (!t) fail(404, 'Tâche introuvable')

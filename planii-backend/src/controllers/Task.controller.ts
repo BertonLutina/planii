@@ -16,6 +16,16 @@ export const create = [auth, asyncHandler(async (req, res) => {
   res.json(TaskView.created(task))
 })]
 
+export const createBulk = [auth, asyncHandler(async (req, res) => {
+  const tasks = await TaskService.createTasksBulk(req.params.id, req.user!, req.body.tasks)
+  res.json(TaskView.bulkCreated(tasks))
+})]
+
+export const fetchGoogleSheet = [auth, asyncHandler(async (req, res) => {
+  const csv = await TaskService.fetchPublicGoogleSheetCsv(String(req.body.url || ''))
+  res.json({ csv })
+})]
+
 export const update = [auth, asyncHandler(async (req, res) => {
   await TaskService.updateTask(req.params.id, req.user!, req.body)
   res.json({ ok: true })

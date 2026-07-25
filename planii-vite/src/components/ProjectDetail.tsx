@@ -12,6 +12,7 @@ import { Mic, MicInput, MicTextarea } from './Mic'
 import { Ic } from './Icon'
 import { t as tt, trTerm } from '@/lib/i18n'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
+import { TaskImportWizard } from './TaskImportWizard'
 import { useRealtime } from '@/lib/realtime'
 import { taskComparator, type TaskSort, type Dir } from '@/lib/sort'
 
@@ -162,6 +163,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
   const myTypes = taskTypesOf(me)
   const [adding, setAdding] = useState(false)
   const [voice, setVoice] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [nf, setNf] = useState<{ title: string; desc: string; type: string; assigneeId: string; due: string; est: string; priority: number; transferable: boolean }>({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6, transferable: false })
   const [editId, setEditId] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
@@ -446,10 +448,18 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
       {p.status !== 'done' && (
         <div className="sheet-actions" style={{ marginBottom: 12 }}>
           <button className="btn" style={{ flex: 1 }} onClick={() => setAdding((v) => !v)}>＋ Nouvelle tâche</button>
+          <button className="btn" onClick={() => setImportOpen(true)} title={tt('imp.title')}>{tt('imp.title')}</button>
           <button className="btn primary" onClick={() => setVoice(true)} title="Créer une tâche à la voix"><Ic name="mic" s={16} />{tt('pd.dictate')}</button>
         </div>
       )}
       {voice && <VoiceTaskWizard p={p} me={me} onClose={() => setVoice(false)} onCreated={() => { setVoice(false); reload() }} />}
+      {importOpen && (
+        <TaskImportWizard
+          projectId={p.id}
+          onClose={() => setImportOpen(false)}
+          onImported={() => { setImportOpen(false); reload() }}
+        />
+      )}
       {adding && (
         <div className="card">
           <div className="field"><label>{tt('qt.label')}</label>

@@ -1,12 +1,14 @@
 import { Router } from 'express'
 import * as TaskController from '../controllers/Task.controller'
 import { validate } from '../middleware/validate'
-import { idsSchema, taskCreateSchema, taskUpdateSchema, commentSchema } from '../schemas'
+import { idsSchema, taskCreateSchema, taskBulkCreateSchema, googleSheetImportSchema, taskUpdateSchema, commentSchema } from '../schemas'
 
 export function tasksRoutes() {
   const r = Router()
   r.get('/tasks/mine', ...TaskController.listMine)
   r.put('/projects/:id/tasks/order', validate(idsSchema), ...TaskController.reorder)
+  r.post('/projects/:id/tasks/bulk', validate(taskBulkCreateSchema), ...TaskController.createBulk)
+  r.post('/import/google-sheet', validate(googleSheetImportSchema), ...TaskController.fetchGoogleSheet)
   r.post('/projects/:id/tasks', validate(taskCreateSchema), ...TaskController.create)
   r.patch('/tasks/:id', validate(taskUpdateSchema), ...TaskController.update)
   r.post('/tasks/:id/claim', ...TaskController.claim)

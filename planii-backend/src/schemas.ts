@@ -77,6 +77,19 @@ export const taskCreateSchema = z.object({
   parentId: z.string().nullish(),
 }).passthrough()
 
+export const taskBulkCreateSchema = z.object({
+  tasks: z.array(z.object({
+    title: z.string().min(1, 'titre requis').max(300),
+    description: z.string().max(5000).nullish(),
+    due: z.string().max(40).nullish(),
+    priority: priority.nullish(),
+  }).passthrough()).min(1, 'au moins une tâche').max(500),
+}).passthrough()
+
+export const googleSheetImportSchema = z.object({
+  url: z.string().min(10).max(500),
+}).passthrough()
+
 export const taskUpdateSchema = z.object({
   title: z.string().min(1).max(300).optional(),
   description: z.string().max(5000).nullish(),

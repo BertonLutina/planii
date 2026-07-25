@@ -1,5 +1,7 @@
 export const created = (task: Record<string, unknown>) => ({ task })
 
+export const bulkCreated = (tasks: Record<string, unknown>[]) => ({ tasks })
+
 export const fromRow = (t: Record<string, unknown>) => ({
   id: t.id,
   title: t.title,
