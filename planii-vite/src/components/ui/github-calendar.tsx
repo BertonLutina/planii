@@ -29,9 +29,8 @@ export function GitHubCalendar({
     sync()
     const obs = new MutationObserver(sync)
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    mq.addEventListener('change', sync)
-    return () => { obs.disconnect(); mq.removeEventListener('change', sync) }
+    window.addEventListener('planii-theme', sync)
+    return () => { obs.disconnect(); window.removeEventListener('planii-theme', sync) }
   }, [])
   const palette = useMemo(
     () => colors ?? (dark ? DARK_COLORS : LIGHT_COLORS),

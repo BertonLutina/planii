@@ -21,20 +21,24 @@ import { useI18n, LangPicker, trTerm, t as tt } from '@/lib/i18n'
 import { Admin } from './components/Admin'
 import { StyleGuide } from './components/StyleGuide'
 import { Privacy } from './components/Privacy'
-import { applyTheme, getTheme, type Theme } from '@/lib/theme'
+import { applyTheme, effectiveTheme, getTheme, type Theme } from '@/lib/theme'
 import { useProjectSummaries } from '@/lib/useProjects'
 import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
 
 function ThemeControl() {
   const { t: tr } = useI18n()
   const [t, setT] = useState<Theme>(getTheme())
-  const opts: [Theme, string, string][] = [['light', 'sun', tr('theme.light')], ['dark', 'moon', tr('theme.dark')], ['auto', 'monitor', tr('theme.auto')]]
+  const opts: [Theme, string, string, string?][] = [
+    ['light', 'sun', tr('theme.light')],
+    ['dark', 'moon', tr('theme.dark')],
+    ['auto', 'monitor', tr('theme.auto'), tr('theme.autoHint')],
+  ]
   return (
     <>
       <div className="section-h">{tr('theme.title')}</div>
       <div className="theme-seg">
-        {opts.map(([v, icon, label]) => (
-          <button key={v} className={t === v ? 'on' : ''} onClick={() => { setT(v); applyTheme(v) }}>
+        {opts.map(([v, icon, label, title]) => (
+          <button key={v} className={t === v ? 'on' : ''} title={title} onClick={() => { setT(v); applyTheme(v) }}>
             <span className="ti"><Ic name={icon} s={18} /></span>{label}
           </button>
         ))}
@@ -45,8 +49,8 @@ function ThemeControl() {
 
 function ThemeToggleButton() {
   const [t, setT] = useState<Theme>(getTheme())
-  const dark = t === 'dark'
-  const next = dark ? 'light' : 'dark'
+  const dark = effectiveTheme(t) === 'dark'
+  const next: Theme = dark ? 'light' : 'dark'
   return (
     <button className="theme-icon-btn" aria-label="Thème" title="Thème" onClick={() => { setT(next); applyTheme(next) }}>
       {dark ? (
