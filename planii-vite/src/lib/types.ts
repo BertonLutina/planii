@@ -8,6 +8,26 @@ export type EmailNotifKey =
 
 export type EmailNotifs = Partial<Record<EmailNotifKey, boolean>>
 
+export const EMAIL_NOTIF_KEYS: EmailNotifKey[] = [
+  'tAssign', 'tAssignMgr', 'tNew', 'remind', 'late', 'lateMgr', 'relance',
+  'apptNew', 'apptUpd',
+  'invNew', 'invNewAdmin', 'welcome', 'joined',
+]
+
+/** Toutes les notifs e-mail activées (premier affichage / compte neuf). */
+export const DEFAULT_EMAIL_NOTIFS: Record<EmailNotifKey, boolean> = Object.fromEntries(
+  EMAIL_NOTIF_KEYS.map((k) => [k, true]),
+) as Record<EmailNotifKey, boolean>
+
+export function emailNotifsOf(prefs?: EmailNotifs | null): Record<EmailNotifKey, boolean> {
+  const out = { ...DEFAULT_EMAIL_NOTIFS }
+  if (!prefs) return out
+  for (const key of EMAIL_NOTIF_KEYS) {
+    if (key in prefs) out[key] = prefs[key] !== false
+  }
+  return out
+}
+
 export interface User {
   id: string
   name: string

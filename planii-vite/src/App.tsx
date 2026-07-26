@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, apiUpload, getTok, mediaUrl, setTok } from '@/lib/api'
 import { Toaster, Avatar, health, toast, toastErr, Modal } from '@/lib/ui'
 import type { EmailNotifKey, ProjectLabel, User } from '@/lib/types'
+import { DEFAULT_EMAIL_NOTIFS, emailNotifsOf } from '@/lib/types'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
 import { MicInput } from './components/Mic'
 import { Ic } from './components/Icon'
@@ -248,11 +249,26 @@ const EMAIL_NOTIF_SECTIONS: { titleKey: string; keys: EmailNotifKey[] }[] = [
 function EmailNotifsModal({ me, onClose, onUpdate }: { me: User; onClose: () => void; onUpdate: (u: User) => void }) {
   const { t: tr } = useI18n()
   const [busy, setBusy] = useState<EmailNotifKey | null>(null)
-  const prefs = me.emailNotifs || {}
+  const prefs = emailNotifsOf(me.emailNotifs)
+
+  // Premier passage : persiste toutes les notifs à ON si rien n’était encore enregistré
+  useEffect(() => {
+    const stored = me.emailNotifs
+    const hasAny = !!stored && Object.keys(stored).length > 0
+    if (hasAny) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await api<{ user: User }>('PATCH', '/me', { emailNotifs: DEFAULT_EMAIL_NOTIFS })
+        if (!cancelled) onUpdate(r.user)
+      } catch { /* ignore — l’UI affiche déjà tout à ON */ }
+    })()
+    return () => { cancelled = true }
+  }, [me.emailNotifs, onUpdate])
 
   async function toggle(key: EmailNotifKey) {
     if (busy) return
-    const next = prefs[key] !== false ? false : true
+    const next = !prefs[key]
     setBusy(key)
     try {
       const r = await api<{ user: User }>('PATCH', '/me', { emailNotifs: { [key]: next } })
@@ -269,7 +285,7 @@ function EmailNotifsModal({ me, onClose, onUpdate }: { me: User; onClose: () => 
           <div className="section-h">{tr(sec.titleKey)}</div>
           <div className="email-notif-list">
             {sec.keys.map((key) => {
-              const on = prefs[key] !== false
+              const on = prefs[key]
               return (
                 <div key={key} className="email-notif-row">
                   <span className="email-notif-label">{tr('profile.mail.' + key)}</span>
