@@ -29,10 +29,10 @@ export async function createInvite(projectId: string, user: DbUser, body: { role
     const invitedEmail = (body.email || '').trim().toLowerCase()
     const rowsFor = (l?: string | null): ([string, string] | null)[] => [[mt(l, 'r.project'), p.name], [mt(l, 'r.assignee'), role], invitedEmail ? ['Email', invitedEmail] : null, [mt(l, 'r.organizer'), user.name]]
     const owner = await UserModel.findById(p.owner_id)
-    if (owner && owner.email) await sendMail(owner.email, mt(owner.lang, 'invNew.s', { project: p.name }), { intro: mt(owner.lang, 'invNew.i', { role, project: p.name }), rows: rowsFor(owner.lang), ctaText: mt(owner.lang, 'cta'), ctaUrl: env.webUrl })
+    if (owner && owner.email) await sendMail(owner.email, mt(owner.lang, 'invNew.s', { project: p.name }), { intro: mt(owner.lang, 'invNew.i', { role, project: p.name }), rows: rowsFor(owner.lang), ctaText: mt(owner.lang, 'cta'), ctaUrl: env.webUrl }, { key: 'invNew', userId: owner.id, prefs: owner.email_notifs })
     for (const adminEmail of env.superAdminEmails) {
       if (owner && owner.email && adminEmail === owner.email.toLowerCase()) continue
-      await sendMail(adminEmail, mt('fr', 'invNew.s', { project: p.name }), { intro: mt('fr', 'invNewAdmin.i', { actor: user.name, role, project: p.name }), rows: rowsFor('fr'), ctaText: mt('fr', 'cta'), ctaUrl: env.webUrl })
+      await sendMail(adminEmail, mt('fr', 'invNew.s', { project: p.name }), { intro: mt('fr', 'invNewAdmin.i', { actor: user.name, role, project: p.name }), rows: rowsFor('fr'), ctaText: mt('fr', 'cta'), ctaUrl: env.webUrl }, { key: 'invNewAdmin' })
     }
   })().catch((e) => console.error('mail invite_created', (e as Error).message))
   return { token: t, link: `${env.appUrl}/invite/${t}`, role, expiresAt: expires, multi }
@@ -62,10 +62,10 @@ export async function acceptInvite(token: string, user: DbUser) {
   await logActivity(p.id, user.id, 'member_joined', `${user.name} a rejoint (${inv.role})`)
   ;(async () => {
     const rowsFor = (l?: string | null): ([string, string] | null)[] => [[mt(l, 'r.project'), p.name], [mt(l, 'r.assignee'), inv.role]]
-    if (user.email) await sendMail(user.email, mt(user.lang, 'welcome.s', { project: p.name }), { intro: mt(user.lang, 'welcome.i', { project: p.name, role: inv.role }), rows: rowsFor(user.lang), ctaText: mt(user.lang, 'cta'), ctaUrl: env.webUrl })
+    if (user.email) await sendMail(user.email, mt(user.lang, 'welcome.s', { project: p.name }), { intro: mt(user.lang, 'welcome.i', { project: p.name, role: inv.role }), rows: rowsFor(user.lang), ctaText: mt(user.lang, 'cta'), ctaUrl: env.webUrl }, { key: 'welcome', userId: user.id, prefs: user.email_notifs })
     const owner = await UserModel.findById(p.owner_id)
     if (owner && owner.id !== user.id) {
-      if (owner.email) await sendMail(owner.email, mt(owner.lang, 'joined.s', { actor: user.name, project: p.name }), { intro: mt(owner.lang, 'joined.i', { actor: user.name, email: user.email, project: p.name }), rows: rowsFor(owner.lang), ctaText: mt(owner.lang, 'cta'), ctaUrl: env.webUrl })
+      if (owner.email) await sendMail(owner.email, mt(owner.lang, 'joined.s', { actor: user.name, project: p.name }), { intro: mt(owner.lang, 'joined.i', { actor: user.name, email: user.email, project: p.name }), rows: rowsFor(owner.lang), ctaText: mt(owner.lang, 'cta'), ctaUrl: env.webUrl }, { key: 'joined', userId: owner.id, prefs: owner.email_notifs })
       await notify(owner.id, 'member_joined', `${user.name} a rejoint « ${p.name} »`, `Rôle : ${inv.role}`)
     }
   })().catch((e) => console.error('mail member_joined', (e as Error).message))

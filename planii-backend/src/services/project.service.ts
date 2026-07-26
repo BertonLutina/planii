@@ -258,7 +258,7 @@ export async function sendTaskAssignmentMails({
       rows: rowsFor(assignee.lang),
       ctaText: mt(assignee.lang, 'cta'),
       ctaUrl: env.webUrl,
-    })
+    }, { key: 'tAssign', userId: assignee.id, prefs: assignee.email_notifs })
     await notify(assignee.id, 'task_assigned', `Tâche attribuée : ${task.title}`, `Projet « ${project.name} »`)
   }
   for (const manager of await UserModel.projectManagers(project.id)) {
@@ -268,7 +268,7 @@ export async function sendTaskAssignmentMails({
       rows: rowsFor(manager.lang),
       ctaText: mt(manager.lang, 'cta'),
       ctaUrl: env.webUrl,
-    })
+    }, { key: 'tAssignMgr', userId: manager.id, prefs: manager.email_notifs })
   }
 }
 

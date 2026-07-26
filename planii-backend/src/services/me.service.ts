@@ -1,6 +1,6 @@
 import { q, one } from '../db/pool'
 import { uid, cleanLabels, cleanColor } from '../lib/utils'
-import { DEFAULT_TASK_TYPES, PROJECT_LABEL_COLORS } from '../lib/constants'
+import { DEFAULT_TASK_TYPES, EMAIL_NOTIF_KEYS, PROJECT_LABEL_COLORS } from '../lib/constants'
 import { fail } from '../core/http-error'
 import type { DbUser } from '../models/User.model'
 import * as UserModel from '../models/User.model'
@@ -25,6 +25,26 @@ export async function updateProfile(user: DbUser, body: Record<string, unknown>)
   const roleLibrary = Array.isArray(body.roleLibrary) ? cleanLabels(body.roleLibrary, 40, 40) : UserView.roleLibraryOf(user)
   const LANGS = ['fr', 'en', 'nl', 'es', 'pt', 'it', 'el', 'ru', 'sw']
   const lang = typeof body.lang === 'string' && LANGS.includes(body.lang) ? body.lang : undefined
+
+  if (body.emailNotifs && typeof body.emailNotifs === 'object' && !Array.isArray(body.emailNotifs)) {
+    const merged = UserView.emailNotifsOf(user)
+    const patch = body.emailNotifs as Record<string, unknown>
+    for (const key of EMAIL_NOTIF_KEYS) {
+      if (key in patch) merged[key] = patch[key] !== false
+    }
+    await UserModel.updateUser(user.id, {
+      name: user.name,
+      email_notifs: JSON.stringify(merged),
+    })
+    // Si seul emailNotifs est patché, pas besoin de réécrire le profil
+    const onlyNotifs = !('firstName' in body) && !('lastName' in body) && !('job' in body)
+      && !('taskTypes' in body) && !('roleLibrary' in body) && !('lang' in body)
+    if (onlyNotifs) {
+      const u = await UserModel.findById(user.id)
+      return u!
+    }
+  }
+
   await UserModel.updateUser(user.id, {
     first_name: first || null,
     last_name: last || null,

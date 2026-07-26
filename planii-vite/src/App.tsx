@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, apiUpload, getTok, mediaUrl, setTok } from '@/lib/api'
 import { Toaster, Avatar, health, toast, toastErr, Modal } from '@/lib/ui'
-import type { ProjectLabel, User } from '@/lib/types'
+import type { EmailNotifKey, ProjectLabel, User } from '@/lib/types'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
 import { MicInput } from './components/Mic'
 import { Ic } from './components/Icon'
@@ -239,6 +239,61 @@ function ProjectLabelEditor() {
   )
 }
 
+const EMAIL_NOTIF_SECTIONS: { titleKey: string; keys: EmailNotifKey[] }[] = [
+  { titleKey: 'profile.emailNotifsTasks', keys: ['tAssign', 'tAssignMgr', 'tNew', 'remind', 'late', 'lateMgr', 'relance'] },
+  { titleKey: 'profile.emailNotifsAppts', keys: ['apptNew', 'apptUpd'] },
+  { titleKey: 'profile.emailNotifsInvites', keys: ['invNew', 'invNewAdmin', 'welcome', 'joined'] },
+]
+
+function EmailNotifsModal({ me, onClose, onUpdate }: { me: User; onClose: () => void; onUpdate: (u: User) => void }) {
+  const { t: tr } = useI18n()
+  const [busy, setBusy] = useState<EmailNotifKey | null>(null)
+  const prefs = me.emailNotifs || {}
+
+  async function toggle(key: EmailNotifKey) {
+    if (busy) return
+    const next = prefs[key] !== false ? false : true
+    setBusy(key)
+    try {
+      const r = await api<{ user: User }>('PATCH', '/me', { emailNotifs: { [key]: next } })
+      onUpdate(r.user)
+    } catch (e: any) { toastErr(e.message) }
+    finally { setBusy(null) }
+  }
+
+  return (
+    <Modal title={tr('profile.emailNotifs')} onClose={onClose}>
+      <p className="sub" style={{ marginTop: 0 }}>{tr('profile.emailNotifsDesc')}</p>
+      {EMAIL_NOTIF_SECTIONS.map((sec) => (
+        <div key={sec.titleKey} className="email-notif-section">
+          <div className="section-h">{tr(sec.titleKey)}</div>
+          <div className="email-notif-list">
+            {sec.keys.map((key) => {
+              const on = prefs[key] !== false
+              return (
+                <div key={key} className="email-notif-row">
+                  <span className="email-notif-label">{tr('profile.mail.' + key)}</span>
+                  <button
+                    type="button"
+                    className={'mail-switch' + (on ? ' on' : '')}
+                    role="switch"
+                    aria-checked={on}
+                    aria-label={tr('profile.mail.' + key)}
+                    disabled={busy === key}
+                    onClick={() => toggle(key)}
+                  >
+                    <span className="mail-switch-knob" />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </Modal>
+  )
+}
+
 function EditInfoModal({ me, onClose, onUpdate }: { me: User; onClose: () => void; onUpdate: (u: User) => void }) {
   const { t: tr } = useI18n()
   const [first, setFirst] = useState(me.firstName || '')
@@ -276,6 +331,7 @@ function EditInfoModal({ me, onClose, onUpdate }: { me: User; onClose: () => voi
 function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void }) {
   const { t: tr } = useI18n()
   const [editInfo, setEditInfo] = useState(false)
+  const [emailNotifsOpen, setEmailNotifsOpen] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
 
   async function onPickAvatar(file: File | null) {
@@ -354,6 +410,12 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
             </div>
           </div>
           {editInfo && <EditInfoModal me={me} onClose={() => setEditInfo(false)} onUpdate={onUpdate} />}
+          {emailNotifsOpen && <EmailNotifsModal me={me} onClose={() => setEmailNotifsOpen(false)} onUpdate={onUpdate} />}
+
+          <div className="section-h" style={{ marginTop: 18 }}>{tr('profile.emailNotifs')}</div>
+          <button type="button" className="btn ghost block" onClick={() => setEmailNotifsOpen(true)}>
+            <Ic name="mail" s={16} /> {tr('profile.emailNotifs')}
+          </button>
 
           <ListEditor me={me} onUpdate={onUpdate}
             title={tr('profile.roles')} field="roleLibrary" get={roleLibraryOf}

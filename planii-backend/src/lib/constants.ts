@@ -15,3 +15,14 @@ export const DEFAULT_CUSTOM_TASK_STATUSES = [
 ]
 export const CREATOR_ROLE: Record<string, string> = { solo: 'owner', team: 'lead', group: 'owner' }
 export const REOPEN_DAYS = 30
+
+/** Clés des e-mails transactionnels (préférences utilisateur). */
+export const EMAIL_NOTIF_KEYS = [
+  'tAssign', 'tAssignMgr', 'tNew', 'remind', 'late', 'lateMgr', 'relance',
+  'apptNew', 'apptUpd',
+  'invNew', 'invNewAdmin', 'welcome', 'joined',
+] as const
+export type EmailNotifKey = (typeof EMAIL_NOTIF_KEYS)[number]
+export const DEFAULT_EMAIL_NOTIFS: Record<EmailNotifKey, boolean> = Object.fromEntries(
+  EMAIL_NOTIF_KEYS.map((k) => [k, true]),
+) as Record<EmailNotifKey, boolean>

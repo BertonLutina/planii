@@ -31,6 +31,7 @@ export const meUpdateSchema = z.object({
   taskTypes: z.array(z.any()).nullish(),
   roleLibrary: z.array(z.any()).nullish(),
   lang: z.string().max(5).nullish(),
+  emailNotifs: z.record(z.string(), z.boolean()).nullish(),
 }).passthrough()
 
 export const projectLabelSchema = z.object({

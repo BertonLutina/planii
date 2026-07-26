@@ -69,7 +69,7 @@ export async function createTask(projectId: string, user: DbUser, body: Record<s
         if (!manager.email || manager.id === user.id) continue
         const L = manager.lang
         const rows: ([string, string] | null)[] = [[mt(L, 'r.project'), p.name], [mt(L, 'r.priority'), 'P' + prio], type ? [mt(L, 'r.type'), type] : null, body.due ? [mt(L, 'r.due'), body.due as string] : null]
-        await sendMail(manager.email, mt(L, 'tNew.s', { project: p.name, title }), { intro: mt(L, 'tNew.i', { actor: user.name, project: p.name }), rows, ctaText: mt(L, 'cta'), ctaUrl: env.webUrl })
+        await sendMail(manager.email, mt(L, 'tNew.s', { project: p.name, title }), { intro: mt(L, 'tNew.i', { actor: user.name, project: p.name }), rows, ctaText: mt(L, 'cta'), ctaUrl: env.webUrl }, { key: 'tNew', userId: manager.id, prefs: manager.email_notifs })
       }
     }
   })().catch((e) => console.error('mail task_created', (e as Error).message))
@@ -284,7 +284,7 @@ export async function remindTask(taskId: string, user: DbUser) {
     rows,
     ctaText: mt(L, 'cta'),
     ctaUrl: env.webUrl,
-  })
+  }, { key: 'relance', userId: assignee.id, prefs: assignee.email_notifs })
   await notify(assignee.id, 'task_reminder', `Relance : ${t.title}`, `${user.name} vous a relancé.`)
   await logActivity(t.project_id, user.id, 'task_reminded', `a relancé « ${t.title} »`)
   await recordTaskEvent(t.id, t.project_id, user.id, 'task_reminded', { assigneeId: assignee.id })

@@ -46,8 +46,8 @@ async function assertMember(projectId: string, userId: string) {
 }
 
 async function loadParticipants(appointmentId: string) {
-  return many<{ id: string; name: string; email: string }>(
-    `SELECT u.id, u.name, u.email, u.lang FROM appointment_participants ap
+  return many<{ id: string; name: string; email: string; lang?: string | null; email_notifs?: unknown }>(
+    `SELECT u.id, u.name, u.email, u.lang, u.email_notifs FROM appointment_participants ap
      JOIN users u ON u.id = ap.user_id WHERE ap.appointment_id = $1 ORDER BY u.name`,
     [appointmentId],
   )
@@ -63,7 +63,7 @@ async function sendAppointmentMails({
   project: { id: string; name: string }
   actor: { id: string; name: string }
   appointment: { title: string; description?: string | null; date: string; timeStart: string; timeEnd: string }
-  participants: { id: string; name: string; email: string; lang?: string | null }[]
+  participants: { id: string; name: string; email: string; lang?: string | null; email_notifs?: unknown }[]
   kind: 'created' | 'updated'
 }) {
   const slot = formatSlot(appointment.date, appointment.timeStart, appointment.timeEnd)
@@ -85,7 +85,7 @@ async function sendAppointmentMails({
       rows: rowsFor(p.lang),
       ctaText: mt(p.lang, 'cta'),
       ctaUrl: env.webUrl,
-    })
+    }, { key, userId: p.id, prefs: p.email_notifs })
     if (p.id !== actor.id) {
       await notify(
         p.id,

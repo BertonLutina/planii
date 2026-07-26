@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer'
 import { env } from '../config/env'
 import { logger } from '../logger'
+import { EMAIL_NOTIF_KEYS, type EmailNotifKey } from '../lib/constants'
+import * as UserModel from '../models/User.model'
 
 const mailEsc = (s: unknown) =>
   String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!))
@@ -38,8 +40,32 @@ if (env.mailOn) {
   logger.info('Mailer désactivé (SMTP_PASS absent).')
 }
 
-export async function sendMail(to: string, subject: string, layoutOpts: MailLayoutOpts) {
+/** Pref absente ou true → envoi ; false → skip. Destinataire inconnu → envoi. */
+export function wantsEmailNotif(prefs: unknown, key: EmailNotifKey): boolean {
+  if (!EMAIL_NOTIF_KEYS.includes(key)) return true
+  if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs)) return true
+  return (prefs as Record<string, unknown>)[key] !== false
+}
+
+export type SendMailNotif = {
+  key: EmailNotifKey
+  /** Prefs déjà connues (évite un SELECT). */
+  prefs?: unknown
+  userId?: string
+}
+
+export async function sendMail(to: string, subject: string, layoutOpts: MailLayoutOpts, notif?: SendMailNotif) {
   if (!env.mailOn || !to || !mailer) return
+  if (notif) {
+    let prefs = notif.prefs
+    if (prefs === undefined) {
+      const u = notif.userId
+        ? await UserModel.findById(notif.userId)
+        : await UserModel.findByEmail(to.toLowerCase())
+      prefs = u?.email_notifs
+    }
+    if (!wantsEmailNotif(prefs, notif.key)) return
+  }
   try {
     await mailer.sendMail({
       from: env.mailFrom,

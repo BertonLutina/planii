@@ -15,6 +15,7 @@ export type DbUser = QueryResultRow & {
   project_label_colors?: string[] | null
   lang?: string | null
   avatar_url?: string | null
+  email_notifs?: Record<string, boolean> | null
 }
 
 export const findByEmail = (email: string) => one<DbUser>('SELECT * FROM users WHERE email=$1', [email])
@@ -50,10 +51,15 @@ export async function updateUser(
     role_library?: string
     project_label_colors?: string
     lang?: string
+    email_notifs?: string
   },
 ) {
   if ('project_label_colors' in data) {
     await q('UPDATE users SET project_label_colors=$1 WHERE id=$2', [data.project_label_colors, id])
+    return
+  }
+  if ('email_notifs' in data && data.email_notifs !== undefined) {
+    await q('UPDATE users SET email_notifs=$1::jsonb WHERE id=$2', [data.email_notifs, id])
     return
   }
   await q(
@@ -65,7 +71,7 @@ export async function updateUser(
 export const touchLastLogin = (id: string) => q('UPDATE users SET last_login=now() WHERE id=$1', [id])
 
 export const projectManagers = (projectId: string) => many(
-  `SELECT DISTINCT u.id, u.name, u.email, u.lang, m.role
+  `SELECT DISTINCT u.id, u.name, u.email, u.lang, u.email_notifs, m.role
     FROM memberships m JOIN users u ON u.id=m.user_id
     WHERE m.project_id=$1 AND m.role IN ('owner','lead')`,
   [projectId],

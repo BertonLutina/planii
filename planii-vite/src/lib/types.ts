@@ -1,7 +1,27 @@
 export type Role = 'owner' | 'lead' | 'provider' | 'client' | 'member'
 export type ProjectType = 'solo' | 'team' | 'group'
 
-export interface User { id: string; name: string; email: string; firstName?: string; lastName?: string; job?: string; avatarUrl?: string | null; taskTypes?: string[]; roleLibrary?: string[]; admin?: boolean; superAdmin?: boolean }
+export type EmailNotifKey =
+  | 'tAssign' | 'tAssignMgr' | 'tNew' | 'remind' | 'late' | 'lateMgr' | 'relance'
+  | 'apptNew' | 'apptUpd'
+  | 'invNew' | 'invNewAdmin' | 'welcome' | 'joined'
+
+export type EmailNotifs = Partial<Record<EmailNotifKey, boolean>>
+
+export interface User {
+  id: string
+  name: string
+  email: string
+  firstName?: string
+  lastName?: string
+  job?: string
+  avatarUrl?: string | null
+  taskTypes?: string[]
+  roleLibrary?: string[]
+  emailNotifs?: EmailNotifs
+  admin?: boolean
+  superAdmin?: boolean
+}
 
 export interface ProjectRole { id: string; name: string }
 export interface ProjectLabel { id: string; label: string; color: string; position: number; fixed: boolean }
