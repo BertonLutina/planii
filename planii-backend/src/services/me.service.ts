@@ -29,8 +29,12 @@ export async function updateProfile(user: DbUser, body: Record<string, unknown>)
   if (body.emailNotifs && typeof body.emailNotifs === 'object' && !Array.isArray(body.emailNotifs)) {
     const merged = UserView.emailNotifsOf(user)
     const patch = body.emailNotifs as Record<string, unknown>
+    const canAdminNotifs = UserView.isAdmin(user)
     for (const key of EMAIL_NOTIF_KEYS) {
-      if (key in patch) merged[key] = patch[key] !== false
+      if (!(key in patch)) continue
+      // invNewAdmin : réservé admin / super-admin
+      if (key === 'invNewAdmin' && !canAdminNotifs) continue
+      merged[key] = patch[key] !== false
     }
     await UserModel.updateUser(user.id, {
       name: user.name,

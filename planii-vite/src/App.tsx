@@ -240,6 +240,9 @@ function ProjectLabelEditor() {
   )
 }
 
+/** Clés réservées aux admin / super-admin (mails qui ne les concernent qu’eux). */
+const ADMIN_ONLY_EMAIL_NOTIFS = new Set<EmailNotifKey>(['invNewAdmin'])
+
 const EMAIL_NOTIF_SECTIONS: { titleKey: string; keys: EmailNotifKey[] }[] = [
   { titleKey: 'profile.emailNotifsTasks', keys: ['tAssign', 'tAssignMgr', 'tNew', 'remind', 'late', 'lateMgr', 'relance'] },
   { titleKey: 'profile.emailNotifsAppts', keys: ['apptNew', 'apptUpd'] },
@@ -250,6 +253,7 @@ function EmailNotifsModal({ me, onClose, onUpdate }: { me: User; onClose: () => 
   const { t: tr } = useI18n()
   const [busy, setBusy] = useState<EmailNotifKey | null>(null)
   const prefs = emailNotifsOf(me.emailNotifs)
+  const isAdmin = !!(me.admin || me.superAdmin)
 
   // Premier passage : persiste toutes les notifs à ON si rien n’était encore enregistré
   useEffect(() => {
@@ -268,6 +272,7 @@ function EmailNotifsModal({ me, onClose, onUpdate }: { me: User; onClose: () => 
 
   async function toggle(key: EmailNotifKey) {
     if (busy) return
+    if (ADMIN_ONLY_EMAIL_NOTIFS.has(key) && !isAdmin) return
     const next = !prefs[key]
     setBusy(key)
     try {
@@ -280,32 +285,36 @@ function EmailNotifsModal({ me, onClose, onUpdate }: { me: User; onClose: () => 
   return (
     <Modal title={tr('profile.emailNotifs')} onClose={onClose}>
       <p className="sub" style={{ marginTop: 0 }}>{tr('profile.emailNotifsDesc')}</p>
-      {EMAIL_NOTIF_SECTIONS.map((sec) => (
-        <div key={sec.titleKey} className="email-notif-section">
-          <div className="section-h">{tr(sec.titleKey)}</div>
-          <div className="email-notif-list">
-            {sec.keys.map((key) => {
-              const on = prefs[key]
-              return (
-                <div key={key} className="email-notif-row">
-                  <span className="email-notif-label">{tr('profile.mail.' + key)}</span>
-                  <button
-                    type="button"
-                    className={'mail-switch' + (on ? ' on' : '')}
-                    role="switch"
-                    aria-checked={on}
-                    aria-label={tr('profile.mail.' + key)}
-                    disabled={busy === key}
-                    onClick={() => toggle(key)}
-                  >
-                    <span className="mail-switch-knob" />
-                  </button>
-                </div>
-              )
-            })}
+      {EMAIL_NOTIF_SECTIONS.map((sec) => {
+        const keys = sec.keys.filter((key) => !ADMIN_ONLY_EMAIL_NOTIFS.has(key) || isAdmin)
+        if (!keys.length) return null
+        return (
+          <div key={sec.titleKey} className="email-notif-section">
+            <div className="section-h">{tr(sec.titleKey)}</div>
+            <div className="email-notif-list">
+              {keys.map((key) => {
+                const on = prefs[key]
+                return (
+                  <div key={key} className="email-notif-row">
+                    <span className="email-notif-label">{tr('profile.mail.' + key)}</span>
+                    <button
+                      type="button"
+                      className={'mail-switch' + (on ? ' on' : '')}
+                      role="switch"
+                      aria-checked={on}
+                      aria-label={tr('profile.mail.' + key)}
+                      disabled={busy === key}
+                      onClick={() => toggle(key)}
+                    >
+                      <span className="mail-switch-knob" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </Modal>
   )
 }

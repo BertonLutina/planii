@@ -31,19 +31,25 @@ export const emailNotifsOf = (u: DbUser | null | undefined): Record<EmailNotifKe
   return out
 }
 
-export const toPublic = (u: DbUser | null) => u && {
-  id: u.id,
-  name: u.name,
-  email: u.email,
-  firstName: u.first_name || '',
-  lastName: u.last_name || '',
-  job: u.job || '',
-  avatarUrl: u.avatar_url || null,
-  taskTypes: taskTypesOf(u),
-  roleLibrary: roleLibraryOf(u),
-  emailNotifs: emailNotifsOf(u),
-  admin: isAdmin(u),
-  superAdmin: isSuperAdmin(u),
+export const toPublic = (u: DbUser | null) => {
+  if (!u) return u
+  const emailNotifs = emailNotifsOf(u)
+  // Masque la préférence admin-only pour les non-admins
+  if (!isAdmin(u)) delete (emailNotifs as Partial<typeof emailNotifs>).invNewAdmin
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    firstName: u.first_name || '',
+    lastName: u.last_name || '',
+    job: u.job || '',
+    avatarUrl: u.avatar_url || null,
+    taskTypes: taskTypesOf(u),
+    roleLibrary: roleLibraryOf(u),
+    emailNotifs,
+    admin: isAdmin(u),
+    superAdmin: isSuperAdmin(u),
+  }
 }
 
 export const signToken = (u: DbUser) => jwt.sign({ sub: u.id }, env.JWT_SECRET, { expiresIn: '30d' })
