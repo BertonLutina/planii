@@ -65,6 +65,30 @@ async function updateProfile(user, body) {
     const roleLibrary = Array.isArray(body.roleLibrary) ? (0, utils_1.cleanLabels)(body.roleLibrary, 40, 40) : UserView.roleLibraryOf(user);
     const LANGS = ['fr', 'en', 'nl', 'es', 'pt', 'it', 'el', 'ru', 'sw'];
     const lang = typeof body.lang === 'string' && LANGS.includes(body.lang) ? body.lang : undefined;
+    if (body.emailNotifs && typeof body.emailNotifs === 'object' && !Array.isArray(body.emailNotifs)) {
+        const merged = UserView.emailNotifsOf(user);
+        const patch = body.emailNotifs;
+        const canAdminNotifs = UserView.isAdmin(user);
+        for (const key of constants_1.EMAIL_NOTIF_KEYS) {
+            if (!(key in patch))
+                continue;
+            // invNewAdmin : réservé admin / super-admin
+            if (key === 'invNewAdmin' && !canAdminNotifs)
+                continue;
+            merged[key] = patch[key] !== false;
+        }
+        await UserModel.updateUser(user.id, {
+            name: user.name,
+            email_notifs: JSON.stringify(merged),
+        });
+        // Si seul emailNotifs est patché, pas besoin de réécrire le profil
+        const onlyNotifs = !('firstName' in body) && !('lastName' in body) && !('job' in body)
+            && !('taskTypes' in body) && !('roleLibrary' in body) && !('lang' in body);
+        if (onlyNotifs) {
+            const u = await UserModel.findById(user.id);
+            return u;
+        }
+    }
     await UserModel.updateUser(user.id, {
         first_name: first || null,
         last_name: last || null,

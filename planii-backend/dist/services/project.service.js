@@ -214,6 +214,7 @@ async function projectDetail(p, userId, opts = {}) {
     const appointments = await (0, appointment_service_1.appointmentsForProject)(p.id);
     return {
         ...p,
+        imageUrl: p.image_url || null,
         closedAt: p.done_at || null,
         reopenUntil: ProjectModel.reopenUntil(p)?.toISOString() || null,
         canReopen: ProjectModel.canReopen(p),
@@ -276,7 +277,7 @@ async function sendTaskAssignmentMails({ project, task, actor, assigneeId, sourc
             rows: rowsFor(assignee.lang),
             ctaText: (0, mail_i18n_1.mt)(assignee.lang, 'cta'),
             ctaUrl: env_1.env.webUrl,
-        });
+        }, { key: 'tAssign', userId: assignee.id, prefs: assignee.email_notifs });
         await (0, notification_service_1.notify)(assignee.id, 'task_assigned', `Tâche attribuée : ${task.title}`, `Projet « ${project.name} »`);
     }
     for (const manager of await UserModel.projectManagers(project.id)) {
@@ -287,7 +288,7 @@ async function sendTaskAssignmentMails({ project, task, actor, assigneeId, sourc
             rows: rowsFor(manager.lang),
             ctaText: (0, mail_i18n_1.mt)(manager.lang, 'cta'),
             ctaUrl: env_1.env.webUrl,
-        });
+        }, { key: 'tAssignMgr', userId: manager.id, prefs: manager.email_notifs });
     }
 }
 async function createProject(userId, body) {
@@ -346,6 +347,7 @@ async function listProjects(userId, query = {}) {
     if (!paginate) {
         const rows = await (0, pool_1.many)(select, vals);
         for (const row of rows) {
+            row.imageUrl = row.image_url || null;
             if (!row.labelId) {
                 row.labelId = fallback.id;
                 row.labelName = fallback.label;
@@ -359,6 +361,7 @@ async function listProjects(userId, query = {}) {
     const total = Number(countRow.c) || 0;
     const rows = await (0, pool_1.many)(`${select} LIMIT ${limit} OFFSET ${offset}`, vals);
     for (const row of rows) {
+        row.imageUrl = row.image_url || null;
         if (!row.labelId) {
             row.labelId = fallback.id;
             row.labelName = fallback.label;
@@ -483,6 +486,9 @@ async function deleteProject(projectId, userId, userName) {
     finally {
         client.release();
     }
+    // Remove image from disk after DB delete
+    const { deleteProjectImageFiles } = await Promise.resolve().then(() => __importStar(require('./upload.service')));
+    deleteProjectImageFiles(p.id, p.image_url);
     return members.length - 1;
 }
 async function createRole(projectId, userId, body) {

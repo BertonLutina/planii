@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adminPrioritySchema = exports.adminMailReplySchema = exports.adminMailSendSchema = exports.adminSetAdminSchema = exports.pollVoteSchema = exports.pollCreateSchema = exports.meetingTaskSchema = exports.meetingDelegatesSchema = exports.meetingMessageSchema = exports.appointmentUpdateSchema = exports.appointmentCreateSchema = exports.inviteCreateSchema = exports.commentSchema = exports.taskUpdateSchema = exports.taskCreateSchema = exports.taskStatusSchema = exports.memberRolesSchema = exports.roleNameSchema = exports.idsSchema = exports.projectUpdateSchema = exports.projectCreateSchema = exports.labelColorsSchema = exports.projectLabelSchema = exports.meUpdateSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.adminPrioritySchema = exports.adminMailReplySchema = exports.adminMailSendSchema = exports.adminSetAdminSchema = exports.pollVoteSchema = exports.pollCreateSchema = exports.meetingTaskSchema = exports.meetingDelegatesSchema = exports.meetingMessageSchema = exports.appointmentUpdateSchema = exports.appointmentCreateSchema = exports.inviteCreateSchema = exports.commentSchema = exports.taskUpdateSchema = exports.googleSheetImportSchema = exports.taskBulkCreateSchema = exports.taskCreateSchema = exports.taskStatusSchema = exports.memberRolesSchema = exports.roleNameSchema = exports.idsSchema = exports.projectUpdateSchema = exports.projectCreateSchema = exports.labelColorsSchema = exports.projectLabelSchema = exports.meUpdateSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 /** Schémas de validation des bodies. Principe : défensif mais non cassant.
  *  - .passthrough() : les champs non listés sont conservés tels quels.
@@ -29,6 +29,7 @@ exports.meUpdateSchema = zod_1.z.object({
     taskTypes: zod_1.z.array(zod_1.z.any()).nullish(),
     roleLibrary: zod_1.z.array(zod_1.z.any()).nullish(),
     lang: zod_1.z.string().max(5).nullish(),
+    emailNotifs: zod_1.z.record(zod_1.z.string(), zod_1.z.boolean()).nullish(),
 }).passthrough();
 exports.projectLabelSchema = zod_1.z.object({
     label: zod_1.z.string().min(1, 'libellé requis').max(60),
@@ -67,6 +68,17 @@ exports.taskCreateSchema = zod_1.z.object({
     transferable: zod_1.z.boolean().nullish(),
     statusKey: zod_1.z.string().max(40).nullish(),
     parentId: zod_1.z.string().nullish(),
+}).passthrough();
+exports.taskBulkCreateSchema = zod_1.z.object({
+    tasks: zod_1.z.array(zod_1.z.object({
+        title: zod_1.z.string().min(1, 'titre requis').max(300),
+        description: zod_1.z.string().max(5000).nullish(),
+        due: zod_1.z.string().max(40).nullish(),
+        priority: priority.nullish(),
+    }).passthrough()).min(1, 'au moins une tâche').max(500),
+}).passthrough();
+exports.googleSheetImportSchema = zod_1.z.object({
+    url: zod_1.z.string().min(10).max(500),
 }).passthrough();
 exports.taskUpdateSchema = zod_1.z.object({
     title: zod_1.z.string().min(1).max(300).optional(),

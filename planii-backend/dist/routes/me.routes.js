@@ -42,6 +42,8 @@ function meRoutes() {
     const r = (0, express_1.Router)();
     r.get('/me', ...MeController.getMe);
     r.patch('/me', (0, validate_1.validate)(schemas_1.meUpdateSchema), ...MeController.patchMe);
+    r.post('/me/avatar', ...MeController.uploadAvatar);
+    r.delete('/me/avatar', ...MeController.deleteAvatar);
     r.get('/project-labels', ...MeController.getProjectLabels);
     r.post('/project-labels', (0, validate_1.validate)(schemas_1.projectLabelSchema), ...MeController.createProjectLabel);
     r.patch('/project-label-colors', (0, validate_1.validate)(schemas_1.labelColorsSchema), ...MeController.patchProjectLabelColors);

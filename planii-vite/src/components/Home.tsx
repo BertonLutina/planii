@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/api'
 import { toast, toastErr } from '@/lib/ui'
 import { formatDue, isOverdue, isoLocal } from '@/lib/dates'
@@ -9,8 +9,8 @@ import { prio, prioMeta } from '@/lib/priority'
 import { Ic } from './Icon'
 import { CalendarView } from './Calendar'
 import { TaskDrawer } from './TaskDrawer'
-import type { Project, Task, TodayPayload, TodayTask, User } from '@/lib/types'
-import { useI18n, t as tt } from '@/lib/i18n'
+import type { Project, Task, TaskStatus, TodayPayload, TodayTask, User } from '@/lib/types'
+import { useI18n, t as tt, trTerm } from '@/lib/i18n'
 
 export function LevelCard({ points, name }: { points: number; name?: string }) {
   const l = levelOf(points)
@@ -34,6 +34,8 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
   const { projects, reload } = useMyTasks()
   const [drawerId, setDrawerId] = useState<string | null>(null)
   const [today, setToday] = useState<TodayPayload | null>(null)
+  const [draggingTask, setDraggingTask] = useState<{ t: Task; p: Project } | null>(null)
+  const pressRef = useRef<{ timer: number; item: { t: Task; p: Project }; x: number; y: number } | null>(null)
   const loadToday = () => api<{ today: TodayPayload }>('GET', '/today').then((r) => setToday(r.today)).catch((e: any) => toastErr(e.message))
   useEffect(() => { if (refreshKey) reload() }, [refreshKey, reload])
   useEffect(() => { loadToday() }, [])
@@ -50,7 +52,26 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
     const pa = prio(a.t.priority), pb = prio(b.t.priority); if (pa !== pb) return pa - pb
     return (a.t.due || '9999').localeCompare(b.t.due || '9999')
   })
-  const done = mine.filter((x) => x.t.done)
+  const fallbackStatuses: TaskStatus[] = [
+    { id: 'todo', key: 'todo', label: tt('term.todo'), color: '#9a988f', position: 0, fixed: true },
+    { id: 'in_progress', key: 'in_progress', label: tt('term.doing'), color: '#3b82d6', position: 1, fixed: true },
+    { id: 'review', key: 'review', label: tt('term.reviewSt'), color: '#9b5de5', position: 2, fixed: true },
+    { id: 'transferred', key: 'transferred', label: tt('term.transferredSt'), color: '#f59f30', position: 3, fixed: false },
+    { id: 'done', key: 'done', label: tt('term.doneSt'), color: '#4caf50', position: 99, fixed: true },
+  ]
+  const statusMap = new Map<string, TaskStatus>()
+  for (const s of fallbackStatuses) statusMap.set(s.key, s)
+  for (const p of projects) for (const s of p.statuses || []) statusMap.set(s.key, s)
+  const statusOf = (t: Task) => t.statusKey || (t.done ? 'done' : 'todo')
+  const statuses = [...statusMap.values()].sort((a, b) => a.position - b.position || a.label.localeCompare(b.label))
+  const tasksByStatus = statuses
+    .map((s) => ({
+      status: s,
+      items: mine
+        .filter((x) => statusOf(x.t) === s.key)
+        .sort((a, b) => (a.t.done ? 1 : 0) - (b.t.done ? 1 : 0) || prio(a.t.priority) - prio(b.t.priority) || (a.t.due || '9999').localeCompare(b.t.due || '9999')),
+    }))
+    .filter((g) => g.items.length > 0 || ['todo', 'in_progress', 'review', 'transferred', 'done'].includes(g.status.key))
 
   async function toggle(t: Task) {
     try {
@@ -62,6 +83,59 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
       }
       reload()
     } catch (e: any) { toastErr(e.message) }
+  }
+
+  async function moveHomeTask(t: Task, p: Project, statusKey: string) {
+    if (statusKey === statusOf(t)) return
+    const body: Record<string, unknown> = { statusKey }
+    if (statusKey === 'transferred') {
+      if (!t.transferable) { toastErr(tt('pd.notTransferable')); return }
+      const other = p.members.find((m) => m.id !== (t.assigneeId || me.id))
+      body.transferredTo = t.transferredTo || other?.id || null
+    }
+    try {
+      await api('PATCH', '/tasks/' + t.id, body)
+      toast(statusKey === 'transferred' ? tt('pd.taskTransferred') : tt('pd.statusOk'))
+      reload()
+    } catch (e: any) { toastErr(e.message) }
+  }
+
+  function clearPress() {
+    if (pressRef.current) window.clearTimeout(pressRef.current.timer)
+    pressRef.current = null
+  }
+
+  function startPress(e: React.PointerEvent<HTMLElement>, item: { t: Task; p: Project }) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    const el = e.currentTarget
+    el.setPointerCapture?.(e.pointerId)
+    clearPress()
+    const timer = window.setTimeout(() => {
+      pressRef.current = null
+      setDraggingTask(item)
+    }, 450)
+    pressRef.current = { timer, item, x: e.clientX, y: e.clientY }
+  }
+
+  function movePress(e: React.PointerEvent<HTMLElement>) {
+    const press = pressRef.current
+    if (!press) return
+    if (Math.abs(e.clientX - press.x) > 10 || Math.abs(e.clientY - press.y) > 10) clearPress()
+  }
+
+  function endPress(e: React.PointerEvent<HTMLElement>, item: { t: Task; p: Project }) {
+    const press = pressRef.current
+    if (press) {
+      clearPress()
+      setDrawerId(item.t.id)
+      return
+    }
+    if (draggingTask?.t.id === item.t.id) {
+      const drop = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-home-status]')
+      const statusKey = drop?.dataset.homeStatus
+      setDraggingTask(null)
+      if (statusKey) moveHomeTask(item.t, item.p, statusKey)
+    }
   }
 
   const boardCols = projects
@@ -92,44 +166,50 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
           <span><i className="p-dot p5" />P5</span>
           <span><i className="p-dot p6" />P6</span>
         </div>
-        {todo.length === 0 && <div className="empty"><div className="big"><Ic name="circle-check" s={30} /></div>{tr('home.allDone')}</div>}
-        {todo.map(({ t, p }) => {
-          const over = isOverdue(t)
-          const pm = prioMeta(t.priority)
-          const hasHours = t.spentHours != null || t.estHours != null
-          return (
-            <div key={t.id} className={'home-task' + (over ? ' overdue' : '')}>
-              <button className={'check-big ' + pm.ringCls} onClick={(e) => { e.stopPropagation(); toggle(t) }} aria-label={tr('home.finish')} />
-              <div className="ht-body" onClick={() => setDrawerId(t.id)}>
-                <div className="ht-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
-                  <span style={{ flex: 1, minWidth: 0 }}>{t.title}</span>
-                </div>
-                {t.description && <div className="sub" style={{ marginTop: 2 }}>{t.description}</div>}
-                <div className="ht-project-name">{p.name}</div>
+        {mine.length === 0 && <div className="empty"><div className="big"><Ic name="circle-check" s={30} /></div>{tr('home.allDone')}</div>}
+        <div className={'home-status-list' + (draggingTask ? ' dragging' : '')}>
+          {tasksByStatus.map(({ status, items }) => (
+            <section key={status.key} className={'home-status-group' + (draggingTask ? ' drop-ready' : '')} data-home-status={status.key}>
+              <div className="home-status-head">
+                <span><i style={{ background: status.color }} />{trTerm(status.label)}</span>
+                <b>{items.length}</b>
               </div>
-              <div className="ht-meta" onClick={() => setDrawerId(t.id)}>
-                <span className="chip-proj">{p.name}</span>
-                {t.due && <span className={'hm' + (over ? ' red' : '')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Ic name="calendar" s={12} />{formatDue(t.due)}</span>}
-                {hasHours && <span className="hm">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? `/~${t.estHours}h` : ''}</span>}
-              </div>
-            </div>
-          )
-        })}
-        {done.length > 0 && (
-          <>
-            <div className="grp-h">{tr('home.doneGrp')} · {done.length}</div>
-            {done.map(({ t, p }) => (
-              <div key={t.id} className="home-task done">
-                <button className="check-big done" onClick={() => toggle(t)} aria-label={tr('home.reopen')}><Ic name="check" s={14} c="#fff" /></button>
-                <div className="ht-body" onClick={() => setDrawerId(t.id)}>
-                  <div className="ht-title">{t.title}</div>
-                </div>
-                <div className="ht-meta" onClick={() => setDrawerId(t.id)}><span className="chip-proj">{p.name}</span><span className="hm">+{taskPoints(t)} pts</span></div>
-              </div>
-            ))}
-          </>
-        )}
+              {items.length === 0 && <div className="home-status-empty">{draggingTask ? tt('pd.dropHere') : tr('home.noTasks')}</div>}
+              {items.map((item) => {
+                const { t, p } = item
+                const over = isOverdue(t)
+                const pm = prioMeta(t.priority)
+                const hasHours = t.spentHours != null || t.estHours != null
+                return (
+                  <div
+                    key={t.id}
+                    className={'home-task' + (t.done ? ' done' : '') + (over ? ' overdue' : '') + (draggingTask?.t.id === t.id ? ' dragging' : '')}
+                    onPointerDown={(e) => startPress(e, item)}
+                    onPointerMove={movePress}
+                    onPointerUp={(e) => endPress(e, item)}
+                    onPointerCancel={() => { clearPress(); setDraggingTask(null) }}
+                  >
+                    <button className={'check-big ' + (t.done ? 'done' : pm.ringCls)} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); toggle(t) }} aria-label={t.done ? tr('home.reopen') : tr('home.finish')}>{t.done ? <Ic name="check" s={14} c="#fff" /> : null}</button>
+                    <div className="ht-body">
+                      <div className="ht-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
+                        <span style={{ flex: 1, minWidth: 0 }}>{t.title}</span>
+                      </div>
+                      {t.description && <div className="sub" style={{ marginTop: 2 }}>{t.description}</div>}
+                      <div className="ht-project-name">{p.name}</div>
+                    </div>
+                    <div className="ht-meta">
+                      <span className="chip-proj">{p.name}</span>
+                      {t.due && <span className={'hm' + (over ? ' red' : '')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Ic name="calendar" s={12} />{formatDue(t.due)}</span>}
+                      {hasHours && <span className="hm">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? `/~${t.estHours}h` : ''}</span>}
+                      {t.done && <span className="hm">+{taskPoints(t)} pts</span>}
+                    </div>
+                  </div>
+                )
+              })}
+            </section>
+          ))}
+        </div>
       </>}
 
       {view === 'board' && (

@@ -42,6 +42,8 @@ function tasksRoutes() {
     const r = (0, express_1.Router)();
     r.get('/tasks/mine', ...TaskController.listMine);
     r.put('/projects/:id/tasks/order', (0, validate_1.validate)(schemas_1.idsSchema), ...TaskController.reorder);
+    r.post('/projects/:id/tasks/bulk', (0, validate_1.validate)(schemas_1.taskBulkCreateSchema), ...TaskController.createBulk);
+    r.post('/import/google-sheet', (0, validate_1.validate)(schemas_1.googleSheetImportSchema), ...TaskController.fetchGoogleSheet);
     r.post('/projects/:id/tasks', (0, validate_1.validate)(schemas_1.taskCreateSchema), ...TaskController.create);
     r.patch('/tasks/:id', (0, validate_1.validate)(schemas_1.taskUpdateSchema), ...TaskController.update);
     r.post('/tasks/:id/claim', ...TaskController.claim);

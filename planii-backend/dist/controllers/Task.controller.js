@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listEvents = exports.deleteComment = exports.addComment = exports.listComments = exports.remove = exports.remind = exports.claim = exports.update = exports.create = exports.reorder = exports.listMine = void 0;
+exports.listEvents = exports.deleteComment = exports.addComment = exports.listComments = exports.remove = exports.remind = exports.claim = exports.update = exports.fetchGoogleSheet = exports.createBulk = exports.create = exports.reorder = exports.listMine = void 0;
 const auth_1 = require("../middleware/auth");
 const TaskService = __importStar(require("../services/task.service"));
 const TaskView = __importStar(require("../views/Task.view"));
@@ -47,6 +47,14 @@ exports.reorder = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
 exports.create = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
         const task = await TaskService.createTask(req.params.id, req.user, req.body);
         res.json(TaskView.created(task));
+    })];
+exports.createBulk = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
+        const tasks = await TaskService.createTasksBulk(req.params.id, req.user, req.body.tasks);
+        res.json(TaskView.bulkCreated(tasks));
+    })];
+exports.fetchGoogleSheet = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
+        const csv = await TaskService.fetchPublicGoogleSheetCsv(String(req.body.url || ''));
+        res.json({ csv });
     })];
 exports.update = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
         await TaskService.updateTask(req.params.id, req.user, req.body);

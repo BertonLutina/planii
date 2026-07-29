@@ -1,8 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mine = exports.events = exports.event = exports.comments = exports.commentCreated = exports.comment = exports.meetingCreated = exports.fromRow = exports.created = void 0;
+exports.mine = exports.events = exports.event = exports.comments = exports.commentCreated = exports.comment = exports.meetingCreated = exports.fromRow = exports.bulkCreated = exports.created = void 0;
 const created = (task) => ({ task });
 exports.created = created;
+const bulkCreated = (tasks) => ({ tasks });
+exports.bulkCreated = bulkCreated;
 const fromRow = (t) => ({
     id: t.id,
     title: t.title,

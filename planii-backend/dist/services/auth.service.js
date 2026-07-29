@@ -65,7 +65,11 @@ async function register(body) {
 async function login(body) {
     const email = (body.email || '').trim().toLowerCase();
     const u = await UserModel.findByEmail(email);
-    if (!u || !(await bcryptjs_1.default.compare(body.password || '', u.pass_hash)))
+    if (!u)
+        (0, http_error_1.fail)(401, 'Identifiants incorrects');
+    if (!u.pass_hash)
+        (0, http_error_1.fail)(401, 'Ce compte utilise une connexion sociale — choisissez Google, Outlook, etc.');
+    if (!(await bcryptjs_1.default.compare(body.password || '', u.pass_hash)))
         (0, http_error_1.fail)(401, 'Identifiants incorrects');
     await UserModel.touchLastLogin(u.id);
     return { token: UserView.signToken(u), user: u };

@@ -46,7 +46,8 @@ const env_1 = require("../config/env");
 async function runDeadlineReminders() {
     const tomorrow = (0, utils_1.parisDate)(1);
     const today = (0, utils_1.parisDate)(0);
-    const tasks = await (0, pool_1.many)(`SELECT t.id, t.title, t.due, t.priority, t.assignee_id, p.name AS project_name, u.email AS email, u.lang AS lang
+    const tasks = await (0, pool_1.many)(`SELECT t.id, t.title, t.due, t.priority, t.assignee_id, p.name AS project_name,
+        u.email AS email, u.lang AS lang, u.email_notifs AS email_notifs
       FROM tasks t JOIN projects p ON p.id=t.project_id JOIN users u ON u.id=t.assignee_id
       WHERE NOT t.done AND t.due=$1 AND t.assignee_id IS NOT NULL`, [tomorrow]);
     let sent = 0;
@@ -60,12 +61,12 @@ async function runDeadlineReminders() {
             rows: [[(0, mail_i18n_1.mt)(t.lang, 'r.project'), t.project_name], [(0, mail_i18n_1.mt)(t.lang, 'r.due'), t.due], [(0, mail_i18n_1.mt)(t.lang, 'r.priority'), 'P' + (t.priority || 6)]],
             ctaText: (0, mail_i18n_1.mt)(t.lang, 'cta'),
             ctaUrl: env_1.env.webUrl,
-        });
+        }, { key: 'remind', userId: t.assignee_id, prefs: t.email_notifs });
         await (0, notification_service_1.notify)(t.assignee_id, 'deadline', `Échéance demain : ${t.title}`, `Projet « ${t.project_name} »`);
         sent++;
     }
     const overdue = await (0, pool_1.many)(`SELECT t.id, t.title, t.due, t.priority, t.assignee_id, p.id AS project_id, p.name AS project_name,
-        u.name AS assignee_name, u.email AS assignee_email, u.lang AS assignee_lang
+        u.name AS assignee_name, u.email AS assignee_email, u.lang AS assignee_lang, u.email_notifs AS assignee_notifs
       FROM tasks t
       JOIN projects p ON p.id=t.project_id
       JOIN users u ON u.id=t.assignee_id
@@ -88,7 +89,7 @@ async function runDeadlineReminders() {
             rows: rowsFor(t.assignee_lang),
             ctaText: (0, mail_i18n_1.mt)(t.assignee_lang, 'cta'),
             ctaUrl: env_1.env.webUrl,
-        });
+        }, { key: 'late', userId: t.assignee_id, prefs: t.assignee_notifs });
         await (0, notification_service_1.notify)(t.assignee_id, 'task_overdue', `Tâche en retard : ${t.title}`, `Projet « ${t.project_name} »`);
         for (const manager of await UserModel.projectManagers(t.project_id)) {
             if (!manager.email || manager.id === t.assignee_id)
@@ -98,7 +99,7 @@ async function runDeadlineReminders() {
                 rows: rowsFor(manager.lang),
                 ctaText: (0, mail_i18n_1.mt)(manager.lang, 'cta'),
                 ctaUrl: env_1.env.webUrl,
-            });
+            }, { key: 'lateMgr', userId: manager.id, prefs: manager.email_notifs });
         }
         sent++;
     }

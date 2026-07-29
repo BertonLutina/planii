@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authSession = exports.signToken = exports.toPublic = exports.projectLabelColorsOf = exports.roleLibraryOf = exports.taskTypesOf = exports.isAdmin = exports.isSuperAdmin = void 0;
+exports.authSession = exports.signToken = exports.toPublic = exports.emailNotifsOf = exports.projectLabelColorsOf = exports.roleLibraryOf = exports.taskTypesOf = exports.isAdmin = exports.isSuperAdmin = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../config/env");
 const constants_1 = require("../lib/constants");
@@ -23,17 +23,39 @@ const projectLabelColorsOf = (u) => {
     return (0, utils_1.cleanLabels)([...constants_1.PROJECT_LABEL_COLORS, ...custom], 7, 40);
 };
 exports.projectLabelColorsOf = projectLabelColorsOf;
-const toPublic = (u) => u && {
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    firstName: u.first_name || '',
-    lastName: u.last_name || '',
-    job: u.job || '',
-    taskTypes: (0, exports.taskTypesOf)(u),
-    roleLibrary: (0, exports.roleLibraryOf)(u),
-    admin: (0, exports.isAdmin)(u),
-    superAdmin: (0, exports.isSuperAdmin)(u),
+const emailNotifsOf = (u) => {
+    const raw = u?.email_notifs && typeof u.email_notifs === 'object' && !Array.isArray(u.email_notifs)
+        ? u.email_notifs
+        : {};
+    const out = { ...constants_1.DEFAULT_EMAIL_NOTIFS };
+    for (const key of constants_1.EMAIL_NOTIF_KEYS) {
+        if (key in raw)
+            out[key] = raw[key] !== false;
+    }
+    return out;
+};
+exports.emailNotifsOf = emailNotifsOf;
+const toPublic = (u) => {
+    if (!u)
+        return u;
+    const emailNotifs = (0, exports.emailNotifsOf)(u);
+    // Masque la préférence admin-only pour les non-admins
+    if (!(0, exports.isAdmin)(u))
+        delete emailNotifs.invNewAdmin;
+    return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        firstName: u.first_name || '',
+        lastName: u.last_name || '',
+        job: u.job || '',
+        avatarUrl: u.avatar_url || null,
+        taskTypes: (0, exports.taskTypesOf)(u),
+        roleLibrary: (0, exports.roleLibraryOf)(u),
+        emailNotifs,
+        admin: (0, exports.isAdmin)(u),
+        superAdmin: (0, exports.isSuperAdmin)(u),
+    };
 };
 exports.toPublic = toPublic;
 const signToken = (u) => jsonwebtoken_1.default.sign({ sub: u.id }, env_1.env.JWT_SECRET, { expiresIn: '30d' });

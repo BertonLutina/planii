@@ -1,14 +1,50 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mailLayout = mailLayout;
+exports.wantsEmailNotif = wantsEmailNotif;
 exports.sendMail = sendMail;
 exports.sendRaw = sendRaw;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const env_1 = require("../config/env");
 const logger_1 = require("../logger");
+const constants_1 = require("../lib/constants");
+const UserModel = __importStar(require("../models/User.model"));
 const mailEsc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function mailLayout({ title, intro, rows = [], ctaText, ctaUrl, footer }) {
     const rowsHtml = rows.filter(Boolean).map((r) => `<tr><td style="padding:6px 0;color:#6b6a63;font-size:13px;width:130px;vertical-align:top">${mailEsc(r[0])}</td><td style="padding:6px 0;color:#26251f;font-size:14px;font-weight:600">${mailEsc(r[1])}</td></tr>`).join('');
@@ -31,9 +67,28 @@ if (env_1.env.mailOn) {
 else {
     logger_1.logger.info('Mailer désactivé (SMTP_PASS absent).');
 }
-async function sendMail(to, subject, layoutOpts) {
+/** Pref absente ou true → envoi ; false → skip. Destinataire inconnu → envoi. */
+function wantsEmailNotif(prefs, key) {
+    if (!constants_1.EMAIL_NOTIF_KEYS.includes(key))
+        return true;
+    if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs))
+        return true;
+    return prefs[key] !== false;
+}
+async function sendMail(to, subject, layoutOpts, notif) {
     if (!env_1.env.mailOn || !to || !mailer)
         return;
+    if (notif) {
+        let prefs = notif.prefs;
+        if (prefs === undefined) {
+            const u = notif.userId
+                ? await UserModel.findById(notif.userId)
+                : await UserModel.findByEmail(to.toLowerCase());
+            prefs = u?.email_notifs;
+        }
+        if (!wantsEmailNotif(prefs, notif.key))
+            return;
+    }
     try {
         await mailer.sendMail({
             from: env_1.env.mailFrom,

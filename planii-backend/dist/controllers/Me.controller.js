@@ -33,14 +33,30 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteProjectLabel = exports.deleteProjectLabelColor = exports.patchProjectLabelColors = exports.createProjectLabel = exports.getProjectLabels = exports.patchMe = exports.getMe = void 0;
+exports.deleteProjectLabel = exports.deleteProjectLabelColor = exports.patchProjectLabelColors = exports.createProjectLabel = exports.getProjectLabels = exports.deleteAvatar = exports.uploadAvatar = exports.patchMe = exports.getMe = void 0;
 const auth_1 = require("../middleware/auth");
 const MeService = __importStar(require("../services/me.service"));
+const UploadService = __importStar(require("../services/upload.service"));
+const UserModel = __importStar(require("../models/User.model"));
 const UserView = __importStar(require("../views/User.view"));
 exports.getMe = [auth_1.auth, (req, res) => res.json({ user: UserView.toPublic(req.user) })];
 exports.patchMe = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
         const user = await MeService.updateProfile(req.user, req.body);
         res.json({ user: UserView.toPublic(user) });
+    })];
+exports.uploadAvatar = [
+    auth_1.auth,
+    UploadService.imageUpload.single('file'),
+    (0, auth_1.asyncHandler)(async (req, res) => {
+        const avatarUrl = await UploadService.setUserAvatar(req.user.id, req.file);
+        const user = await UserModel.findById(req.user.id);
+        res.json({ avatarUrl, user: UserView.toPublic(user) });
+    }),
+];
+exports.deleteAvatar = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
+        await UploadService.clearUserAvatar(req.user.id);
+        const user = await UserModel.findById(req.user.id);
+        res.json({ ok: true, user: UserView.toPublic(user) });
     })];
 exports.getProjectLabels = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
         res.json(await MeService.listProjectLabels(req.user.id));

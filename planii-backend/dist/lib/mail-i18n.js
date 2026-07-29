@@ -8,10 +8,13 @@ exports.mt = mt;
 exports.M_LANGS = ['fr', 'en', 'nl', 'es', 'pt', 'it', 'el', 'ru', 'sw'];
 const fr = {
     cta: 'Ouvrir Planii',
-    'r.project': 'Projet', 'r.task': 'Tâche', 'r.assignee': 'Responsable', 'r.due': 'Échéance', 'r.priority': 'Priorité', 'r.type': 'Type', 'r.origin': 'Origine', 'r.meeting': 'Meeting', 'r.title': 'Intitulé', 'r.slot': 'Date et créneau', 'r.desc': 'Description', 'r.organizer': 'Organisateur',
+    'r.project': 'Projet', 'r.task': 'Tâche', 'r.assignee': 'Responsable', 'r.status': 'Statut', 'r.due': 'Échéance', 'r.priority': 'Priorité', 'r.type': 'Type', 'r.origin': 'Origine', 'r.meeting': 'Meeting', 'r.title': 'Intitulé', 'r.slot': 'Date et créneau', 'r.desc': 'Description', 'r.organizer': 'Organisateur',
     'tAssign.s': 'Tâche attribuée : {title}', 'tAssign.i': 'La tâche « {title} » vous a été attribuée dans le projet « {project} ».',
     'tAssignMgr.s': 'Tâche attribuée dans « {project} »', 'tAssignMgr.i': '{actor} a attribué la tâche « {title} » à {assignee}.',
     'tNew.s': 'Nouvelle tâche dans « {project} » : {title}', 'tNew.i': '{actor} a ajouté une tâche non assignée au projet « {project} ».',
+    'tStatus.s': 'Statut modifié : {title}', 'tStatus.i': '{actor} a déplacé la tâche « {title} » vers « {status} » dans le projet « {project} ».',
+    'tTransferReceived.s': 'Tâche transférée : {title}', 'tTransferReceived.i': '{actor} vous a transféré la tâche « {title} » dans le projet « {project} ».',
+    'tTransferConfirmed.s': 'Transfert confirmé : {title}', 'tTransferConfirmed.i': 'La tâche « {title} » a bien été transférée à {assignee} dans le projet « {project} ».',
     'remind.s': 'Rappel : « {title} » à rendre demain', 'remind.i': 'La tâche « {title} » du projet « {project} » arrive à échéance demain.',
     'late.s': 'En retard : « {title} »', 'late.i': 'Vous êtes en retard sur la tâche « {title} » du projet « {project} ».',
     'lateMgr.s': 'Retard dans « {project} »', 'lateMgr.i': '{assignee} est en retard sur la tâche « {title} ».',
@@ -25,10 +28,13 @@ const fr = {
 };
 const en = {
     cta: 'Open Planii',
-    'r.project': 'Project', 'r.task': 'Task', 'r.assignee': 'Assignee', 'r.due': 'Due date', 'r.priority': 'Priority', 'r.type': 'Type', 'r.origin': 'Origin', 'r.meeting': 'Meeting', 'r.title': 'Title', 'r.slot': 'Date and time', 'r.desc': 'Description', 'r.organizer': 'Organizer',
+    'r.project': 'Project', 'r.task': 'Task', 'r.assignee': 'Assignee', 'r.status': 'Status', 'r.due': 'Due date', 'r.priority': 'Priority', 'r.type': 'Type', 'r.origin': 'Origin', 'r.meeting': 'Meeting', 'r.title': 'Title', 'r.slot': 'Date and time', 'r.desc': 'Description', 'r.organizer': 'Organizer',
     'tAssign.s': 'Task assigned: {title}', 'tAssign.i': 'The task “{title}” was assigned to you in the project “{project}”.',
     'tAssignMgr.s': 'Task assigned in “{project}”', 'tAssignMgr.i': '{actor} assigned the task “{title}” to {assignee}.',
     'tNew.s': 'New task in “{project}”: {title}', 'tNew.i': '{actor} added an unassigned task to the project “{project}”.',
+    'tStatus.s': 'Status changed: {title}', 'tStatus.i': '{actor} moved the task “{title}” to “{status}” in the project “{project}”.',
+    'tTransferReceived.s': 'Task transferred: {title}', 'tTransferReceived.i': '{actor} transferred the task “{title}” to you in the project “{project}”.',
+    'tTransferConfirmed.s': 'Transfer confirmed: {title}', 'tTransferConfirmed.i': 'The task “{title}” was transferred to {assignee} in the project “{project}”.',
     'remind.s': 'Reminder: “{title}” due tomorrow', 'remind.i': 'The task “{title}” of project “{project}” is due tomorrow.',
     'late.s': 'Overdue: “{title}”', 'late.i': 'You are late on the task “{title}” of project “{project}”.',
     'lateMgr.s': 'Delay in “{project}”', 'lateMgr.i': '{assignee} is late on the task “{title}”.',

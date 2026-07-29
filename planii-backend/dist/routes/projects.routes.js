@@ -48,6 +48,8 @@ function projectsRoutes() {
     r.post('/projects/:id/close', ...ProjectController.close);
     r.post('/projects/:id/reopen', ...ProjectController.reopen);
     r.patch('/projects/:id', (0, validate_1.validate)(schemas_1.projectUpdateSchema), ...ProjectController.update);
+    r.post('/projects/:id/image', ...ProjectController.uploadImage);
+    r.delete('/projects/:id/image', ...ProjectController.deleteImage);
     r.delete('/projects/:id', ...ProjectController.remove);
     r.post('/projects/:id/roles', (0, validate_1.validate)(schemas_1.roleNameSchema), ...ProjectController.createRole);
     r.delete('/projects/:id/roles/:roleId', ...ProjectController.deleteRole);

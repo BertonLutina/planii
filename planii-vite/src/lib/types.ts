@@ -2,14 +2,14 @@ export type Role = 'owner' | 'lead' | 'provider' | 'client' | 'member'
 export type ProjectType = 'solo' | 'team' | 'group'
 
 export type EmailNotifKey =
-  | 'tAssign' | 'tAssignMgr' | 'tNew' | 'remind' | 'late' | 'lateMgr' | 'relance'
+  | 'tAssign' | 'tAssignMgr' | 'tNew' | 'tStatus' | 'tTransferReceived' | 'tTransferConfirmed' | 'remind' | 'late' | 'lateMgr' | 'relance'
   | 'apptNew' | 'apptUpd'
   | 'invNew' | 'invNewAdmin' | 'welcome' | 'joined'
 
 export type EmailNotifs = Partial<Record<EmailNotifKey, boolean>>
 
 export const EMAIL_NOTIF_KEYS: EmailNotifKey[] = [
-  'tAssign', 'tAssignMgr', 'tNew', 'remind', 'late', 'lateMgr', 'relance',
+  'tAssign', 'tAssignMgr', 'tNew', 'tStatus', 'tTransferReceived', 'tTransferConfirmed', 'remind', 'late', 'lateMgr', 'relance',
   'apptNew', 'apptUpd',
   'invNew', 'invNewAdmin', 'welcome', 'joined',
 ]

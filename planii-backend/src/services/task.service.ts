@@ -12,6 +12,75 @@ import { logActivity, recordTaskEvent, notify, notifyProject, bump } from './not
 import { mt } from '../lib/mail-i18n'
 import { sendMail } from './mail.service'
 
+type TaskMailProject = { id: string; name: string }
+type TaskMailTask = { id: string; title: string; priority?: number | null; due?: string | null }
+type TaskMailActor = { id: string; name: string; email?: string | null; lang?: string | null; email_notifs?: unknown }
+
+function taskMailRows(lang: string | null | undefined, project: TaskMailProject, task: TaskMailTask, extra: ([string, string] | null)[] = []) {
+  return [
+    [mt(lang, 'r.project'), project.name],
+    [mt(lang, 'r.task'), task.title],
+    task.priority ? [mt(lang, 'r.priority'), 'P' + task.priority] : null,
+    task.due ? [mt(lang, 'r.due'), task.due] : null,
+    ...extra,
+  ] as ([string, string] | null)[]
+}
+
+async function sendTaskStatusMail({
+  project,
+  task,
+  actor,
+  assigneeId,
+  statusLabel,
+}: {
+  project: TaskMailProject
+  task: TaskMailTask
+  actor: TaskMailActor
+  assigneeId: string | null
+  statusLabel: string
+}) {
+  if (!assigneeId) return
+  const assignee = await UserModel.findById(assigneeId)
+  if (!assignee?.email) return
+  await sendMail(assignee.email, mt(assignee.lang, 'tStatus.s', { title: task.title }), {
+    intro: mt(assignee.lang, 'tStatus.i', { actor: actor.name, title: task.title, status: statusLabel, project: project.name }),
+    rows: taskMailRows(assignee.lang, project, task, [[mt(assignee.lang, 'r.status'), statusLabel]]),
+    ctaText: mt(assignee.lang, 'cta'),
+    ctaUrl: env.webUrl,
+  }, { key: 'tStatus', userId: assignee.id, prefs: assignee.email_notifs })
+}
+
+async function sendTaskTransferMails({
+  project,
+  task,
+  actor,
+  toUserId,
+}: {
+  project: TaskMailProject
+  task: TaskMailTask
+  actor: TaskMailActor
+  toUserId: string
+}) {
+  const toUser = await UserModel.findById(toUserId)
+  if (!toUser) return
+  if (toUser.email) {
+    await sendMail(toUser.email, mt(toUser.lang, 'tTransferReceived.s', { title: task.title }), {
+      intro: mt(toUser.lang, 'tTransferReceived.i', { actor: actor.name, title: task.title, project: project.name }),
+      rows: taskMailRows(toUser.lang, project, task, [[mt(toUser.lang, 'r.assignee'), toUser.name]]),
+      ctaText: mt(toUser.lang, 'cta'),
+      ctaUrl: env.webUrl,
+    }, { key: 'tTransferReceived', userId: toUser.id, prefs: toUser.email_notifs })
+  }
+  if (actor.email) {
+    await sendMail(actor.email, mt(actor.lang, 'tTransferConfirmed.s', { title: task.title }), {
+      intro: mt(actor.lang, 'tTransferConfirmed.i', { title: task.title, assignee: toUser.name, project: project.name }),
+      rows: taskMailRows(actor.lang, project, task, [[mt(actor.lang, 'r.assignee'), toUser.name]]),
+      ctaText: mt(actor.lang, 'cta'),
+      ctaUrl: env.webUrl,
+    }, { key: 'tTransferConfirmed', userId: actor.id, prefs: actor.email_notifs })
+  }
+}
+
 export async function reorderTasks(projectId: string, userId: string, ids: string[]) {
   const p = await ProjectModel.findById(projectId)
   if (!p) fail(404, 'Projet introuvable')
@@ -192,8 +261,10 @@ export async function updateTask(taskId: string, user: DbUser, body: Record<stri
       await q('INSERT INTO task_transfers (id,task_id,project_id,from_user_id,to_user_id,created_by) VALUES ($1,$2,$3,$4,$5,$6)',
         [uid(), t.id, t.project_id, t.assignee_id || user.id, transferredTo, user.id])
       if (transferredTo !== user.id) await notify(transferredTo, 'task_transferred', `Tâche transférée : ${t.title}`, `${user.name} vous a transféré une tâche.`)
-      const proj = await ProjectModel.findById(t.project_id)
-      await sendTaskAssignmentMails({ project: proj!, task: { id: t.id, title: t.title, priority: t.priority, due: t.due }, actor: user, assigneeId: transferredTo })
+      await sendTaskTransferMails({ project: p!, task: { id: t.id, title: t.title, priority: t.priority, due: t.due }, actor: user, toUserId: transferredTo })
+    } else if (nextStatus !== (t.status_key || 'todo')) {
+      const label = String((statuses.find((s) => s.key === nextStatus) || {}).label || nextStatus)
+      await sendTaskStatusMail({ project: p!, task: { id: t.id, title: t.title, priority: t.priority, due: t.due }, actor: user, assigneeId: t.assignee_id, statusLabel: label })
     }
   }
 
@@ -386,6 +457,7 @@ export async function listMyTasks(userId: string) {
         FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.project_id=$1 ORDER BY m.joined_at`,
       [pid],
     )).map((m) => ({ id: m.id, role: m.role, name: m.name, email: m.email, job: m.job || '' }))
+    const statuses = await many('SELECT id,key,label,color,position,fixed FROM task_statuses WHERE project_id=$1 ORDER BY position ASC, label ASC', [pid])
     const projectTasks = taskRows.filter((r) => r.project_id === pid).map((t) => TaskView.fromRow(t))
     projects.push({
       id: pid,
@@ -401,7 +473,7 @@ export async function listMyTasks(userId: string) {
       appointments: [],
       activity: [],
       roles: [],
-      statuses: [],
+      statuses,
       taskCount: projectTasks.length,
       doneCount: projectTasks.filter((t) => t.done).length,
     })

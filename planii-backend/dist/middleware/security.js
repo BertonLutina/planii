@@ -32,6 +32,14 @@ const errorHandler = (err, _req, res, _next) => {
             res.status(err.status).json({ error: err.message });
         return;
     }
+    if (err?.name === 'MulterError' || (err instanceof Error && /Format invalide|File too large/i.test(err.message))) {
+        const msg = err.code === 'LIMIT_FILE_SIZE' || /File too large/i.test(err.message)
+            ? 'Image trop lourde (max 2 Mo)'
+            : (err.message || 'Fichier invalide');
+        if (!res.headersSent)
+            res.status(400).json({ error: msg });
+        return;
+    }
     logger_1.logger.error({ err }, 'Erreur serveur');
     if (!res.headersSent)
         res.status(500).json({ error: 'Erreur serveur' });

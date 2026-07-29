@@ -40,6 +40,17 @@ const envSchema = zod_1.z.object({
     RATE_LIMIT_WINDOW_MS: zod_1.z.coerce.number().int().positive().default(900_000),
     RATE_LIMIT_MAX: zod_1.z.coerce.number().int().positive().default(300),
     AUTH_RATE_LIMIT_MAX: zod_1.z.coerce.number().int().positive().default(20),
+    UPLOAD_DIR: zod_1.z.string().min(1).default(path_1.default.join(process.cwd(), 'uploads')),
+    GOOGLE_CLIENT_ID: zod_1.z.string().optional().default(''),
+    GOOGLE_CLIENT_SECRET: zod_1.z.string().optional().default(''),
+    MICROSOFT_CLIENT_ID: zod_1.z.string().optional().default(''),
+    MICROSOFT_CLIENT_SECRET: zod_1.z.string().optional().default(''),
+    LINKEDIN_CLIENT_ID: zod_1.z.string().optional().default(''),
+    LINKEDIN_CLIENT_SECRET: zod_1.z.string().optional().default(''),
+    YAHOO_CLIENT_ID: zod_1.z.string().optional().default(''),
+    YAHOO_CLIENT_SECRET: zod_1.z.string().optional().default(''),
+    OAUTH_CALLBACK_BASE: zod_1.z.string().optional().default(''),
+    SESSION_SECRET: zod_1.z.string().optional().default(''),
 });
 const parsed = envSchema.safeParse({
     ...process.env,
@@ -73,6 +84,16 @@ exports.env = {
     pgSsl: raw.PGSSL === 'true',
     isProd: raw.NODE_ENV === 'production',
     isTest: raw.NODE_ENV === 'test',
+    UPLOAD_DIR: path_1.default.resolve(raw.UPLOAD_DIR),
+    googleClientId: raw.GOOGLE_CLIENT_ID || '',
+    googleClientSecret: raw.GOOGLE_CLIENT_SECRET || '',
+    microsoftClientId: raw.MICROSOFT_CLIENT_ID || '',
+    microsoftClientSecret: raw.MICROSOFT_CLIENT_SECRET || '',
+    linkedinClientId: raw.LINKEDIN_CLIENT_ID || '',
+    linkedinClientSecret: raw.LINKEDIN_CLIENT_SECRET || '',
+    yahooClientId: raw.YAHOO_CLIENT_ID || '',
+    yahooClientSecret: raw.YAHOO_CLIENT_SECRET || '',
+    sessionSecret: raw.SESSION_SECRET || raw.JWT_SECRET,
 };
 if (exports.env.isProd && exports.env.JWT_SECRET === 'dev-secret-change-me') {
     console.error('JWT_SECRET doit être défini en production.');

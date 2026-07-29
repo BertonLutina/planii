@@ -18,7 +18,7 @@ export const REOPEN_DAYS = 30
 
 /** Clés des e-mails transactionnels (préférences utilisateur). */
 export const EMAIL_NOTIF_KEYS = [
-  'tAssign', 'tAssignMgr', 'tNew', 'remind', 'late', 'lateMgr', 'relance',
+  'tAssign', 'tAssignMgr', 'tNew', 'tStatus', 'tTransferReceived', 'tTransferConfirmed', 'remind', 'late', 'lateMgr', 'relance',
   'apptNew', 'apptUpd',
   'invNew', 'invNewAdmin', 'welcome', 'joined',
 ] as const

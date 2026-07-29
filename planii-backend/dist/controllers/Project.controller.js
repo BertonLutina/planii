@@ -33,9 +33,10 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTaskStatus = exports.createTaskStatus = exports.setMemberRoles = exports.deleteRole = exports.createRole = exports.remove = exports.update = exports.reopen = exports.close = exports.get = exports.listTasks = exports.reorder = exports.list = exports.create = void 0;
+exports.deleteTaskStatus = exports.createTaskStatus = exports.setMemberRoles = exports.deleteRole = exports.createRole = exports.deleteImage = exports.uploadImage = exports.remove = exports.update = exports.reopen = exports.close = exports.get = exports.listTasks = exports.reorder = exports.list = exports.create = void 0;
 const auth_1 = require("../middleware/auth");
 const ProjectService = __importStar(require("../services/project.service"));
+const UploadService = __importStar(require("../services/upload.service"));
 const ProjectView = __importStar(require("../views/Project.view"));
 exports.create = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
         const { project, role } = await ProjectService.createProject(req.user.id, req.body);
@@ -77,6 +78,18 @@ exports.update = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
 exports.remove = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
         const notified = await ProjectService.deleteProject(req.params.id, req.user.id, req.user.name);
         res.json({ ok: true, notified });
+    })];
+exports.uploadImage = [
+    auth_1.auth,
+    UploadService.imageUpload.single('file'),
+    (0, auth_1.asyncHandler)(async (req, res) => {
+        const imageUrl = await UploadService.setProjectImage(req.params.id, req.user.id, req.file);
+        res.json({ imageUrl });
+    }),
+];
+exports.deleteImage = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
+        await UploadService.clearProjectImage(req.params.id, req.user.id);
+        res.json({ ok: true });
     })];
 exports.createRole = [auth_1.auth, (0, auth_1.asyncHandler)(async (req, res) => {
         const role = await ProjectService.createRole(req.params.id, req.user.id, req.body);

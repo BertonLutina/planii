@@ -35,6 +35,8 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.reorderTasks = reorderTasks;
 exports.createTask = createTask;
+exports.fetchPublicGoogleSheetCsv = fetchPublicGoogleSheetCsv;
+exports.createTasksBulk = createTasksBulk;
 exports.updateTask = updateTask;
 exports.claimTask = claimTask;
 exports.remindTask = remindTask;
@@ -56,6 +58,49 @@ const project_service_1 = require("./project.service");
 const notification_service_1 = require("./notification.service");
 const mail_i18n_1 = require("../lib/mail-i18n");
 const mail_service_1 = require("./mail.service");
+function taskMailRows(lang, project, task, extra = []) {
+    return [
+        [(0, mail_i18n_1.mt)(lang, 'r.project'), project.name],
+        [(0, mail_i18n_1.mt)(lang, 'r.task'), task.title],
+        task.priority ? [(0, mail_i18n_1.mt)(lang, 'r.priority'), 'P' + task.priority] : null,
+        task.due ? [(0, mail_i18n_1.mt)(lang, 'r.due'), task.due] : null,
+        ...extra,
+    ];
+}
+async function sendTaskStatusMail({ project, task, actor, assigneeId, statusLabel, }) {
+    if (!assigneeId)
+        return;
+    const assignee = await UserModel.findById(assigneeId);
+    if (!assignee?.email)
+        return;
+    await (0, mail_service_1.sendMail)(assignee.email, (0, mail_i18n_1.mt)(assignee.lang, 'tStatus.s', { title: task.title }), {
+        intro: (0, mail_i18n_1.mt)(assignee.lang, 'tStatus.i', { actor: actor.name, title: task.title, status: statusLabel, project: project.name }),
+        rows: taskMailRows(assignee.lang, project, task, [[(0, mail_i18n_1.mt)(assignee.lang, 'r.status'), statusLabel]]),
+        ctaText: (0, mail_i18n_1.mt)(assignee.lang, 'cta'),
+        ctaUrl: env_1.env.webUrl,
+    }, { key: 'tStatus', userId: assignee.id, prefs: assignee.email_notifs });
+}
+async function sendTaskTransferMails({ project, task, actor, toUserId, }) {
+    const toUser = await UserModel.findById(toUserId);
+    if (!toUser)
+        return;
+    if (toUser.email) {
+        await (0, mail_service_1.sendMail)(toUser.email, (0, mail_i18n_1.mt)(toUser.lang, 'tTransferReceived.s', { title: task.title }), {
+            intro: (0, mail_i18n_1.mt)(toUser.lang, 'tTransferReceived.i', { actor: actor.name, title: task.title, project: project.name }),
+            rows: taskMailRows(toUser.lang, project, task, [[(0, mail_i18n_1.mt)(toUser.lang, 'r.assignee'), toUser.name]]),
+            ctaText: (0, mail_i18n_1.mt)(toUser.lang, 'cta'),
+            ctaUrl: env_1.env.webUrl,
+        }, { key: 'tTransferReceived', userId: toUser.id, prefs: toUser.email_notifs });
+    }
+    if (actor.email) {
+        await (0, mail_service_1.sendMail)(actor.email, (0, mail_i18n_1.mt)(actor.lang, 'tTransferConfirmed.s', { title: task.title }), {
+            intro: (0, mail_i18n_1.mt)(actor.lang, 'tTransferConfirmed.i', { title: task.title, assignee: toUser.name, project: project.name }),
+            rows: taskMailRows(actor.lang, project, task, [[(0, mail_i18n_1.mt)(actor.lang, 'r.assignee'), toUser.name]]),
+            ctaText: (0, mail_i18n_1.mt)(actor.lang, 'cta'),
+            ctaUrl: env_1.env.webUrl,
+        }, { key: 'tTransferConfirmed', userId: actor.id, prefs: actor.email_notifs });
+    }
+}
 async function reorderTasks(projectId, userId, ids) {
     const p = await ProjectModel.findById(projectId);
     if (!p)
@@ -125,11 +170,91 @@ async function createTask(projectId, user, body) {
                     continue;
                 const L = manager.lang;
                 const rows = [[(0, mail_i18n_1.mt)(L, 'r.project'), p.name], [(0, mail_i18n_1.mt)(L, 'r.priority'), 'P' + prio], type ? [(0, mail_i18n_1.mt)(L, 'r.type'), type] : null, body.due ? [(0, mail_i18n_1.mt)(L, 'r.due'), body.due] : null];
-                await (0, mail_service_1.sendMail)(manager.email, (0, mail_i18n_1.mt)(L, 'tNew.s', { project: p.name, title }), { intro: (0, mail_i18n_1.mt)(L, 'tNew.i', { actor: user.name, project: p.name }), rows, ctaText: (0, mail_i18n_1.mt)(L, 'cta'), ctaUrl: env_1.env.webUrl });
+                await (0, mail_service_1.sendMail)(manager.email, (0, mail_i18n_1.mt)(L, 'tNew.s', { project: p.name, title }), { intro: (0, mail_i18n_1.mt)(L, 'tNew.i', { actor: user.name, project: p.name }), rows, ctaText: (0, mail_i18n_1.mt)(L, 'cta'), ctaUrl: env_1.env.webUrl }, { key: 'tNew', userId: manager.id, prefs: manager.email_notifs });
             }
         }
     })().catch((e) => console.error('mail task_created', e.message));
     return { id, title, description, type, assigneeId: assignee, createdBy: user.id, due: body.due || null, done: statusKey === 'done', estHours: est, spentHours: null, priority: prio, parentId, statusKey, transferable };
+}
+async function fetchPublicGoogleSheetCsv(url) {
+    const s = String(url || '').trim();
+    const idMatch = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (!idMatch)
+        (0, http_error_1.fail)(400, 'URL Google Sheets invalide');
+    const gidMatch = s.match(/[?#&]gid=(\d+)/);
+    const gid = gidMatch ? gidMatch[1] : '0';
+    const exportUrl = `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv&gid=${gid}`;
+    let res;
+    try {
+        res = await fetch(exportUrl, { redirect: 'follow' });
+    }
+    catch {
+        (0, http_error_1.fail)(502, 'Impossible de joindre Google Sheets');
+    }
+    const text = await res.text();
+    if (!res.ok || text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html')) {
+        (0, http_error_1.fail)(400, 'Feuille inaccessible — partagez-la en « Toute personne disposant du lien »');
+    }
+    if (!text.trim())
+        (0, http_error_1.fail)(400, 'Feuille vide');
+    return text;
+}
+async function createTasksBulk(projectId, user, items) {
+    const p = await ProjectModel.findById(projectId);
+    if (!p)
+        (0, http_error_1.fail)(404, 'Projet introuvable');
+    const m = await ProjectModel.findMembership(p.id, user.id);
+    if (!m)
+        (0, http_error_1.fail)(403, 'Non membre');
+    (0, project_service_1.assertProjectOpen)(p);
+    if (!Array.isArray(items) || items.length === 0)
+        (0, http_error_1.fail)(400, 'au moins une tâche');
+    if (items.length > 500)
+        (0, http_error_1.fail)(400, 'Maximum 500 tâches par import');
+    await (0, project_service_1.ensureProjectStatuses)(p.id);
+    const created = [];
+    const client = await pool_1.pool.connect();
+    try {
+        await client.query('BEGIN');
+        for (const body of items) {
+            const title = String(body.title || '').trim();
+            if (!title)
+                continue;
+            const id = (0, utils_1.uid)();
+            const prio = (0, utils_1.prioOrDefault)(body.priority);
+            const description = (body.description || '').trim() || null;
+            const due = body.due || null;
+            await client.query('INSERT INTO tasks (id,project_id,title,description,type,assignee_id,created_by,due,est_hours,priority,parent_id,status_key,done,done_at,transferable) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)', [id, p.id, title, description, null, null, user.id, due, null, prio, null, 'todo', false, null, false]);
+            created.push({
+                id, title, description, type: null, assigneeId: null, createdBy: user.id,
+                due, done: false, estHours: null, spentHours: null, priority: prio,
+                parentId: null, statusKey: 'todo', transferable: false,
+            });
+        }
+        if (created.length === 0) {
+            await client.query('ROLLBACK');
+            (0, http_error_1.fail)(400, 'Aucune tâche valide à importer');
+        }
+        await client.query('COMMIT');
+    }
+    catch (e) {
+        try {
+            await client.query('ROLLBACK');
+        }
+        catch { /* ignore */ }
+        throw e;
+    }
+    finally {
+        client.release();
+    }
+    await (0, notification_service_1.logActivity)(p.id, user.id, 'task_created', `a importé ${created.length} tâche(s)`);
+    for (const t of created) {
+        await (0, notification_service_1.recordTaskEvent)(t.id, p.id, user.id, 'task_created', {
+            title: t.title, assigneeId: null, due: t.due || null, priority: t.priority, statusKey: 'todo', imported: true,
+        });
+    }
+    (0, notification_service_1.bump)(p.id);
+    return created;
 }
 async function updateTask(taskId, user, body) {
     const t = await TaskModel.findById(taskId);
@@ -175,8 +300,11 @@ async function updateTask(taskId, user, body) {
             await (0, pool_1.q)('INSERT INTO task_transfers (id,task_id,project_id,from_user_id,to_user_id,created_by) VALUES ($1,$2,$3,$4,$5,$6)', [(0, utils_1.uid)(), t.id, t.project_id, t.assignee_id || user.id, transferredTo, user.id]);
             if (transferredTo !== user.id)
                 await (0, notification_service_1.notify)(transferredTo, 'task_transferred', `Tâche transférée : ${t.title}`, `${user.name} vous a transféré une tâche.`);
-            const proj = await ProjectModel.findById(t.project_id);
-            await (0, project_service_1.sendTaskAssignmentMails)({ project: proj, task: { id: t.id, title: t.title, priority: t.priority, due: t.due }, actor: user, assigneeId: transferredTo });
+            await sendTaskTransferMails({ project: p, task: { id: t.id, title: t.title, priority: t.priority, due: t.due }, actor: user, toUserId: transferredTo });
+        }
+        else if (nextStatus !== (t.status_key || 'todo')) {
+            const label = String((statuses.find((s) => s.key === nextStatus) || {}).label || nextStatus);
+            await sendTaskStatusMail({ project: p, task: { id: t.id, title: t.title, priority: t.priority, due: t.due }, actor: user, assigneeId: t.assignee_id, statusLabel: label });
         }
     }
     if ('estHours' in b || 'spentHours' in b) {
@@ -300,7 +428,7 @@ async function remindTask(taskId, user) {
         rows,
         ctaText: (0, mail_i18n_1.mt)(L, 'cta'),
         ctaUrl: env_1.env.webUrl,
-    });
+    }, { key: 'relance', userId: assignee.id, prefs: assignee.email_notifs });
     await (0, notification_service_1.notify)(assignee.id, 'task_reminder', `Relance : ${t.title}`, `${user.name} vous a relancé.`);
     await (0, notification_service_1.logActivity)(t.project_id, user.id, 'task_reminded', `a relancé « ${t.title} »`);
     await (0, notification_service_1.recordTaskEvent)(t.id, t.project_id, user.id, 'task_reminded', { assigneeId: assignee.id });
@@ -402,6 +530,7 @@ async function listMyTasks(userId) {
         const sample = taskRows.find((r) => r.project_id === pid);
         const members = (await (0, pool_1.many)(`SELECT m.user_id AS id, m.role, u.name, u.email, u.job
         FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.project_id=$1 ORDER BY m.joined_at`, [pid])).map((m) => ({ id: m.id, role: m.role, name: m.name, email: m.email, job: m.job || '' }));
+        const statuses = await (0, pool_1.many)('SELECT id,key,label,color,position,fixed FROM task_statuses WHERE project_id=$1 ORDER BY position ASC, label ASC', [pid]);
         const projectTasks = taskRows.filter((r) => r.project_id === pid).map((t) => TaskView.fromRow(t));
         projects.push({
             id: pid,
@@ -417,7 +546,7 @@ async function listMyTasks(userId) {
             appointments: [],
             activity: [],
             roles: [],
-            statuses: [],
+            statuses,
             taskCount: projectTasks.length,
             doneCount: projectTasks.filter((t) => t.done).length,
         });

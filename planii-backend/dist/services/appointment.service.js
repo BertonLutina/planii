@@ -73,7 +73,7 @@ async function assertMember(projectId, userId) {
     return m;
 }
 async function loadParticipants(appointmentId) {
-    return (0, pool_1.many)(`SELECT u.id, u.name, u.email, u.lang FROM appointment_participants ap
+    return (0, pool_1.many)(`SELECT u.id, u.name, u.email, u.lang, u.email_notifs FROM appointment_participants ap
      JOIN users u ON u.id = ap.user_id WHERE ap.appointment_id = $1 ORDER BY u.name`, [appointmentId]);
 }
 async function sendAppointmentMails({ project, actor, appointment, participants, kind, }) {
@@ -97,7 +97,7 @@ async function sendAppointmentMails({ project, actor, appointment, participants,
             rows: rowsFor(p.lang),
             ctaText: (0, mail_i18n_1.mt)(p.lang, 'cta'),
             ctaUrl: env_1.env.webUrl,
-        });
+        }, { key, userId: p.id, prefs: p.email_notifs });
         if (p.id !== actor.id) {
             await (0, notification_service_1.notify)(p.id, kind === 'created' ? 'appointment_created' : 'appointment_updated', subject, `Projet « ${project.name} » · ${slot}`);
         }

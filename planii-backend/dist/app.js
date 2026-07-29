@@ -7,12 +7,18 @@ exports.createApp = createApp;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
+const express_session_1 = __importDefault(require("express-session"));
+const passport_1 = __importDefault(require("passport"));
 const pino_http_1 = __importDefault(require("pino-http"));
 const env_1 = require("./config/env");
 const logger_1 = require("./logger");
 const security_1 = require("./middleware/security");
 const routes_1 = require("./routes");
+const upload_service_1 = require("./services/upload.service");
+const passport_2 = require("./auth/passport");
 function createApp() {
+    (0, upload_service_1.ensureUploadDirs)();
+    (0, passport_2.configurePassport)();
     const app = (0, express_1.default)();
     // Derrière Traefik : faire confiance au 1er proxy pour lire l'IP client réelle
     // (X-Forwarded-For). Sans ça, express-rate-limit voit tous les visiteurs comme
@@ -37,7 +43,21 @@ function createApp() {
     app.use((0, cors_1.default)(corsOptions));
     app.options('*', (0, cors_1.default)(corsOptions));
     app.use(express_1.default.json());
+    app.use((0, express_session_1.default)({
+        secret: env_1.env.sessionSecret,
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            secure: env_1.env.isProd,
+            httpOnly: true,
+            sameSite: 'lax',
+            maxAge: 10 * 60 * 1000,
+        },
+    }));
+    app.use(passport_1.default.initialize());
+    app.use(passport_1.default.session());
     app.use((0, pino_http_1.default)({ logger: logger_1.logger }));
+    app.use('/api/uploads', express_1.default.static(upload_service_1.uploadDir, { maxAge: '7d', fallthrough: false }));
     app.use('/api', security_1.apiRateLimit);
     app.use('/api', (0, routes_1.apiRoutes)());
     app.use(security_1.errorHandler);
