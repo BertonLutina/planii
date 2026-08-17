@@ -15,6 +15,24 @@ import { VoiceTaskWizard } from './VoiceTaskWizard'
 import { TaskImportWizard } from './TaskImportWizard'
 import { useRealtime } from '@/lib/realtime'
 import { taskComparator, type TaskSort, type Dir } from '@/lib/sort'
+import { TaskGrid, type GridGroup } from './TaskGrid'
+
+/** Vue de l'onglet Tâches. `columns` = colonnes par personne (historique), `grid` = tableau. */
+type TaskView = 'columns' | 'grid'
+const TVIEW_KEY = 'planii.taskView'
+
+/** Vrai sous 900px — la grille demande trop de largeur, on retombe sur les colonnes. */
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px)')
+    const on = (e: MediaQueryListEvent) => setNarrow(e.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return narrow
+}
 
 export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack: () => void }) {
   const [p, setP] = useState<Project | null>(null)
@@ -184,6 +202,17 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [newStatus, setNewStatus] = useState('')
   const [statusBusy, setStatusBusy] = useState(false)
+  const [statusId, setStatusId] = useState<string | null>(null)
+  const narrow = useNarrow()
+  const [taskView, setTaskView] = useState<TaskView>(() => {
+    try { return localStorage.getItem(TVIEW_KEY) === 'grid' ? 'grid' : 'columns' } catch { return 'columns' }
+  })
+  const setTaskViewP = (v: TaskView) => {
+    setTaskView(v)
+    try { localStorage.setItem(TVIEW_KEY, v) } catch { /* stockage indisponible */ }
+  }
+  // sous 900px la grille est illisible : on force les colonnes sans effacer la préférence
+  const effView: TaskView = narrow ? 'columns' : taskView
   const member = (id: string | null) => p.members.find((x) => x.id === id)
   const statuses = (p.statuses && p.statuses.length ? p.statuses : [
     { id: 'todo', key: 'todo', label: tt('term.todo'), color: '#9a988f', position: 0, fixed: true },
@@ -445,6 +474,16 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
     )
   })
 
+  // --- vue Grille : mêmes sections que la vue Colonnes, mêmes filtres, même tri ---
+  const gridGroups = (): GridGroup[] => sectionMembers().map((u) => ({
+    id: u.id,
+    name: u.name,
+    tasks: tasksForPerson(u.id)
+      .filter((t) => statusFilter === 'all' || statusOf(t) === statusFilter)
+      .slice().sort(cmp),
+  })).filter((g) => g.tasks.length > 0 || filterUser === g.id)
+  const taskById = (id: string | null) => (id ? p.tasks.find((t) => t.id === id) || null : null)
+
   return (
     <div>
       {overdue.length > 0 && <div className="banner" style={{ background: 'var(--danger-bg)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>⚠ {overdue.length} tâche(s) en retard.</div>}
@@ -504,7 +543,15 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
           )}
         </aside>
         <section className="status-main">
-          <div className="status-hint">{closed ? tt('pd.closedRO') : 'Glissez une tâche d’un statut à un autre. Les tâches se créent avec le bouton principal, puis se déplacent ici.'}</div>
+          {!narrow && (
+            <div className="tview" role="tablist" aria-label={tt('pd.viewLabel')}>
+              <button role="tab" aria-selected={effView === 'columns'} className={effView === 'columns' ? 'on' : ''}
+                onClick={() => setTaskViewP('columns')}><Ic name="board" s={15} />{tt('pd.viewColumns')}</button>
+              <button role="tab" aria-selected={effView === 'grid'} className={effView === 'grid' ? 'on' : ''}
+                onClick={() => setTaskViewP('grid')}><Ic name="tasks" s={15} />{tt('pd.viewGrid')}</button>
+            </div>
+          )}
+          <div className="status-hint">{closed ? tt('pd.closedRO') : effView === 'grid' ? tt('pd.gridHint') : 'Glissez une tâche d’un statut à un autre. Les tâches se créent avec le bouton principal, puis se déplacent ici.'}</div>
           {p.tasks.length > 0 && (
             <div className="list-tools status-sort">
               <label className="lt-lbl">{tt('projects.sort')}</label>
@@ -519,7 +566,61 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
           )}
           <div className="section-h">{tt('ad.tasks')}</div>
       {p.tasks.length === 0 && !loadingMore && <div className="empty"><div className="big">✓</div>{tt('pd.noTasks')}</div>}
-          {renderUserStatusBoard()}
+          {effView === 'columns' ? renderUserStatusBoard() : (
+            <TaskGrid
+              groups={gridGroups()}
+              statuses={statuses}
+              statusOf={statusOf}
+              me={me}
+              closed={closed}
+              memberName={memberName}
+              subsOf={(id) => p.tasks.filter((s) => s.parentId === id).slice().sort(cmp)}
+              onToggle={toggle}
+              onStatus={(t) => setStatusId(t.id)}
+              onPrio={(t) => setPrioId(t.id)}
+              onEdit={(t) => setEditId(t.id)}
+            />
+          )}
+          {/* En vue Colonnes ces fenêtres sont rendues par renderTask ; en Grille il faut les monter ici. */}
+          {effView === 'grid' && (() => {
+            const st = taskById(statusId), pt = taskById(prioId), et = taskById(editId)
+            const manage = canManage(p.my_role)
+            return (
+              <>
+                {st && (
+                  <Modal title={tt('pd.evStatus')} onClose={() => setStatusId(null)}>
+                    {statuses.map((s) => (
+                      <button key={s.key} className="prow" onClick={() => { moveTask(st, s.key); setStatusId(null) }}>
+                        <span style={{ width: 11, height: 11, borderRadius: 3, background: s.color, flex: 'none', display: 'block' }} />
+                        <span style={{ flex: 1 }}>{trTerm(s.label)}</span>
+                        {statusOf(st) === s.key ? '✓' : ''}
+                      </button>
+                    ))}
+                  </Modal>
+                )}
+                {pt && (
+                  <Modal title={tt('td.priority')} onClose={() => setPrioId(null)}>
+                    {PRIORITIES.map((n) => (
+                      <button key={n} className="prow" onClick={() => setPriority(pt, n)}>
+                        <span className={'pflag ' + prioMeta(n).flagCls} style={{ width: 30, textAlign: 'center' }}>{prioMeta(n).tag}</span>
+                        <span style={{ flex: 1 }}>{tt('td.priority')} {n}{n === 1 ? tt('pd.mostUrgent') : n === 6 ? tt('pd.lowest') : ''}</span>
+                        {prio(pt.priority) === n ? '✓' : ''}
+                      </button>
+                    ))}
+                  </Modal>
+                )}
+                {et && (
+                  <EditTask
+                    p={p} t={et} types={myTypes}
+                    canEditMeta={!closed && (et.createdBy === me.id || manage)}
+                    canLogHours={!closed && (et.assigneeId === me.id || manage)}
+                    onClose={() => setEditId(null)}
+                    onSaved={() => { setEditId(null); reload() }}
+                  />
+                )}
+              </>
+            )
+          })()}
           {hasMore && loadMore && (
             <div className="sheet-actions" style={{ marginTop: 12 }}>
               <button className="btn ghost" disabled={loadingMore} onClick={loadMore}>
@@ -1063,8 +1164,16 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
       body.estHours = f.est === '' ? null : Number(f.est)
       body.spentHours = f.spent === '' ? null : Number(f.spent)
     }
-    body.statusKey = f.statusKey
-    body.transferredTo = f.statusKey === 'transferred' ? (f.transferredTo || null) : null
+    // N'envoyer le statut que s'il a bougé. Sur une tâche déjà « transférée »,
+    // le renvoyer relance la branche transfert du serveur, qui compare la cible
+    // à `assignee_id` — or le premier transfert les a rendus égaux : toute
+    // sauvegarde échouait en « Choisissez une autre personne », et celles qui
+    // passaient rejouaient les e-mails de transfert.
+    const currentStatus = t.statusKey || (t.done ? 'done' : 'todo')
+    if (f.statusKey !== currentStatus) {
+      body.statusKey = f.statusKey
+      body.transferredTo = f.statusKey === 'transferred' ? (f.transferredTo || null) : null
+    }
     setBusy(true)
     try { await api('PATCH', '/tasks/' + t.id, body); toast(tt('pd.taskUpd')); onSaved() }
     catch (e: any) { toastErr(e.message); setBusy(false) }

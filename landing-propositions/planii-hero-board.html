@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Planii — Visuel héros « tableau de projet » (clair &amp; sombre)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   Jetons — identiques à planii-landing.html / planii-vite/src/index.css
+   ========================================================================== */
+:root[data-theme="dark"]{
+  --bg:#08060f; --surface:#141024; --surface-2:#1b1630;
+  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.14);
+  --text:#f5f3fc; --muted:#a9a3c6; --hint:#7d7799;
+  --accent:#6d5cff; --accent-2:#8b7bff; --accent-3:#b3a5ff;
+  --ok:#3ce0ab; --warn:#ffc44d; --danger:#ff8189; --blue:#5cb0ff; --gold:#ffc44d;
+  --surf-grad:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));
+  --surf-soft:rgba(255,255,255,.028); --surf-sunk:rgba(255,255,255,.022); --surf-raise:rgba(255,255,255,.045);
+  --ring:inset 0 1px 0 rgba(255,255,255,.09);
+  --sh-1:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.28);
+  --sh-2:0 2px 6px rgba(0,0,0,.45), 0 30px 80px rgba(0,0,0,.55);
+  --sh-float:0 2px 8px rgba(0,0,0,.5), 0 18px 44px rgba(0,0,0,.5);
+  --glass:rgba(8,6,15,.72);
+  --hairline:linear-gradient(90deg,transparent,rgba(255,255,255,.13) 20%,rgba(255,255,255,.13) 80%,transparent);
+  --g1:rgba(109,92,255,.42); --g2:rgba(60,224,171,.13);
+  --grad-title:linear-gradient(100deg,#cfc4ff,#8b7bff 42%,#6ee8c8);
+  --grad-kicker:linear-gradient(90deg,#b3a5ff,#6ee8c8);
+  --acc-bg:rgba(139,123,255,.15); --acc-fg:#b3a5ff; --acc-rg:rgba(139,123,255,.22);
+  --ok-bg:rgba(60,224,171,.12);  --ok-fg:#3ce0ab;  --ok-rg:rgba(60,224,171,.2);
+  --wn-bg:rgba(255,196,77,.13);  --wn-fg:#ffc44d;  --wn-rg:rgba(255,196,77,.19);
+  --dg-bg:rgba(255,129,137,.15); --dg-fg:#ff8189;  --dg-rg:rgba(255,129,137,.2);
+  --bl-bg:rgba(92,176,255,.14);  --bl-fg:#5cb0ff;  --bl-rg:rgba(92,176,255,.2);
+  --gd-bg:rgba(255,196,77,.15);  --gd-fg:#ffc44d;
+  /* colonnes de statut pleines */
+  --cell-blue:#3f6bd8; --cell-blue-2:#4f7ee6; --cell-ok:#128f68; --cell-ok-2:#17a077;
+  --cell-fg:#ffffff;
+  --skel:rgba(255,255,255,.10); --skel-2:rgba(255,255,255,.06);
+  --ck-off:rgba(255,255,255,.22); --ck-grad:linear-gradient(180deg,#4ae9b8,#2fd39d); --ck-tick:#06251c;
+  --btn-2:rgba(255,255,255,.035); --btn-2-h:rgba(255,255,255,.07);
+  --float-bg:#1a1530; --float-line:rgba(255,255,255,.16);
+  --logo-a:#a08fff; --logo-b:#6d5cff;
+  --grain:.035;
+}
+:root[data-theme="light"]{
+  --bg:#fafafb; --surface:#ffffff; --surface-2:#f4f4f6;
+  --line:#eaeaee; --line-2:#dcdce3;
+  --text:#0b0a12; --muted:#63637a; --hint:#8a8a9e;
+  --accent:#6d5cff; --accent-2:#8b7bff; --accent-3:#5a48e8;
+  --ok:#0f8f6a; --warn:#a5680a; --danger:#c8362f; --blue:#1f6fc9; --gold:#c98a12;
+  --surf-grad:linear-gradient(180deg,#ffffff,#fdfdfe);
+  --surf-soft:#ffffff; --surf-sunk:#fafafb; --surf-raise:#ffffff;
+  --ring:inset 0 1px 0 rgba(255,255,255,.9);
+  --sh-1:0 1px 2px rgba(11,10,18,.04), 0 4px 14px rgba(11,10,18,.045);
+  --sh-2:0 1px 2px rgba(11,10,18,.05), 0 12px 30px rgba(11,10,18,.07), 0 40px 90px rgba(11,10,18,.06);
+  --sh-float:0 1px 2px rgba(11,10,18,.08), 0 12px 30px rgba(11,10,18,.14);
+  --glass:rgba(255,255,255,.78);
+  --hairline:linear-gradient(90deg,transparent,#dcdce3 20%,#dcdce3 80%,transparent);
+  --g1:rgba(139,123,255,.30); --g2:rgba(60,224,171,.13);
+  --grad-title:linear-gradient(100deg,#8b7bff,#5a48e8 55%,#0f8f6a);
+  --grad-kicker:linear-gradient(90deg,#5a48e8,#0f8f6a);
+  --acc-bg:#f1edff; --acc-fg:#5a48e8; --acc-rg:rgba(109,92,255,.15);
+  --ok-bg:#e6f7f0;  --ok-fg:#0b7a5a;  --ok-rg:rgba(15,143,106,.14);
+  --wn-bg:#fdf4e3;  --wn-fg:#8a5608;  --wn-rg:rgba(165,104,10,.14);
+  --dg-bg:#fdefee;  --dg-fg:#c8362f;  --dg-rg:rgba(200,54,47,.14);
+  --bl-bg:#ebf3fd;  --bl-fg:#1a5da8;  --bl-rg:rgba(31,111,201,.14);
+  --gd-bg:#fdf4e3;  --gd-fg:#c98a12;
+  --cell-blue:#4a7ce8; --cell-blue-2:#5d8bee; --cell-ok:#17a077; --cell-ok-2:#1fb083;
+  --cell-fg:#ffffff;
+  --skel:#e4e4ea; --skel-2:#eeeef2;
+  --ck-off:#dcdce3; --ck-grad:linear-gradient(180deg,#17a37b,#0f8f6a); --ck-tick:#ffffff;
+  --btn-2:#ffffff; --btn-2-h:#f4f4f6;
+  --float-bg:#ffffff; --float-line:#e4e4ea;
+  --logo-a:#8b7bff; --logo-b:#6d5cff;
+  --grain:.02;
+}
+:root{--radius:16px;--wrap:1240px}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--text);font-size:16px;line-height:1.5;letter-spacing:-.011em;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  font-feature-settings:"cv02","cv03","cv04","ss01";overflow-x:hidden;transition:background .28s,color .28s}
+body:before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;opacity:var(--grain);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 32px;position:relative;z-index:2}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---------- entête de démo ---------- */
+.demo-bar{position:sticky;top:0;z-index:60;background:var(--glass);backdrop-filter:blur(20px) saturate(1.6);
+  -webkit-backdrop-filter:blur(20px) saturate(1.6)}
+.demo-bar:after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--hairline)}
+.demo-in{max-width:var(--wrap);margin:0 auto;padding:15px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:inline-flex;align-items:center;gap:11px}
+.brand svg{width:30px;height:30px;display:block;flex:none}
+.brand .wm{font-size:20.5px;font-weight:700;letter-spacing:-.028em}
+.theme-btn{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;cursor:pointer;
+  background:var(--btn-2);border:1px solid var(--line-2);color:var(--muted);box-shadow:var(--ring);transition:.18s}
+.theme-btn:hover{color:var(--text);background:var(--btn-2-h);transform:translateY(-1px)}
+:root[data-theme="dark"] .theme-btn .i-sun{display:block}
+:root[data-theme="dark"] .theme-btn .i-moon{display:none}
+:root[data-theme="light"] .theme-btn .i-sun{display:none}
+:root[data-theme="light"] .theme-btn .i-moon{display:block}
+
+/* ---------- section héros ---------- */
+.hero{position:relative;padding:78px 0 120px;overflow:hidden}
+.hero .glow{position:absolute;inset:0;z-index:0;pointer-events:none}
+.hero .glow i{position:absolute;border-radius:50%;filter:blur(110px);display:block}
+.hero .ga{width:940px;height:540px;left:50%;top:-280px;transform:translateX(-50%);background:var(--g1)}
+.hero .gb{width:520px;height:400px;right:-80px;top:220px;background:var(--g2)}
+.kicker{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  background:var(--grad-kicker);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1{font-size:60px;line-height:1.04;font-weight:800;letter-spacing:-.042em;margin:16px 0 0;max-width:17ch}
+h1 em{font-style:normal;background:var(--grad-title);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:19px;line-height:1.58;color:var(--muted);max-width:58ch;margin-top:22px;letter-spacing:-.012em}
+
+/* ==========================================================================
+   LE VISUEL — écran d'app + cartes flottantes + curseurs
+   ========================================================================== */
+.stage{position:relative;z-index:2;margin-top:62px}
+
+.screen{position:relative;border-radius:20px;overflow:hidden;background:var(--surface);
+  border:1px solid var(--line);box-shadow:var(--ring),var(--sh-2);
+  display:grid;grid-template-columns:58px 86px 1fr 372px;min-height:648px}
+
+/* rail d'icônes */
+.rail{border-right:1px solid var(--line);background:var(--surf-sunk);padding:18px 0;display:flex;flex-direction:column;align-items:center;gap:20px}
+.rail .lg{width:26px;height:26px;display:block;margin-bottom:6px}
+.rail .ri{width:22px;height:22px;color:var(--hint);display:grid;place-items:center}
+.rail .ri.on{color:var(--accent-2)}
+.rail hr{width:22px;border:0;border-top:1px solid var(--line)}
+
+/* colonne d'avatars de projets */
+.projcol{border-right:1px solid var(--line);background:var(--surf-sunk);padding:18px 0;display:flex;flex-direction:column;align-items:center;gap:13px}
+.ptile{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;font-size:15px;font-weight:800;
+  letter-spacing:-.03em;color:#fff;position:relative;box-shadow:var(--ring),0 4px 12px rgba(0,0,0,.18)}
+.ptile.sel:after{content:'';position:absolute;inset:-4px;border-radius:19px;border:2px solid var(--accent-2)}
+.projcol hr{width:26px;border:0;border-top:1px solid var(--line);margin:3px 0}
+.projcol .more{color:var(--hint);font-size:18px;font-weight:700;letter-spacing:.1em}
+
+/* zone tableau */
+.board{padding:26px 28px;min-width:0;position:relative;overflow:hidden}
+.board h2{font-size:31px;font-weight:800;letter-spacing:-.036em}
+.btabs{display:flex;align-items:center;gap:26px;margin-top:20px;border-bottom:1px solid var(--line);padding-bottom:0}
+.btabs a{font-size:14px;font-weight:600;color:var(--muted);padding:0 0 12px;position:relative;letter-spacing:-.012em}
+.btabs a.on{color:var(--accent-3)}
+.btabs a.on:after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent);border-radius:2px}
+.btabs .plus{color:var(--hint);font-size:17px;font-weight:600;padding-bottom:12px}
+.btabs .spacer{flex:1}
+.btabs .tool{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--muted);padding-bottom:12px}
+.stack{display:flex;align-items:center}
+.stack s{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;font-size:9px;font-weight:800;color:#fff;
+  border:2px solid var(--surface);margin-left:-6px;text-decoration:none}
+.stack s:first-child{margin-left:0}
+
+.grp{margin-top:26px}
+.grp-h{display:grid;grid-template-columns:1fr 148px 132px 118px;gap:0;align-items:end;padding:0 0 9px}
+.grp-h .gname{font-size:16px;font-weight:750;letter-spacing:-.026em}
+.grp-h .col{font-size:12.5px;font-weight:600;color:var(--hint);text-align:center}
+.tbl{border-radius:10px;overflow:hidden;position:relative}
+.tr{display:grid;grid-template-columns:1fr 148px 132px 118px;align-items:stretch;
+  border-bottom:1px solid var(--line);min-height:44px}
+.tr:last-child{border-bottom:0}
+.td{display:flex;align-items:center;gap:9px;padding:0 12px;min-width:0}
+.td.c{justify-content:center}
+.lead-edge{width:4px;border-radius:3px;align-self:stretch;margin:4px 0}
+/* barres « squelette » : on lit la structure, pas la donnée */
+.sk{height:8px;border-radius:99px;background:linear-gradient(90deg,var(--skel),var(--skel-2));display:block}
+.cell{display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:var(--cell-fg);
+  letter-spacing:-.008em}
+.cell.b{background:var(--cell-blue)} .cell.b2{background:var(--cell-blue-2)}
+.cell.g{background:var(--cell-ok)}  .cell.g2{background:var(--cell-ok-2)}
+.tel{font-size:12.5px;font-weight:600;color:var(--bl-fg);display:flex;align-items:center;gap:7px}
+.flag{width:15px;height:11px;border-radius:2px;display:block;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.nm{font-size:13px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.av{width:23px;height:23px;border-radius:50%;background:var(--acc-bg);color:var(--acc-fg);
+  display:grid;place-items:center;font-size:9.5px;font-weight:700;flex:none;box-shadow:inset 0 0 0 1px var(--acc-rg)}
+.av.ok{background:var(--ok-bg);color:var(--ok-fg);box-shadow:inset 0 0 0 1px var(--ok-rg)}
+.av.bl{background:var(--bl-bg);color:var(--bl-fg);box-shadow:inset 0 0 0 1px var(--bl-rg)}
+.av.wn{background:var(--wn-bg);color:var(--wn-fg);box-shadow:inset 0 0 0 1px var(--wn-rg)}
+.pflag{font-size:9.5px;font-weight:800;padding:3px 6px;border-radius:5px;flex:none}
+.pf1{background:var(--dg-bg);color:var(--dg-fg)} .pf2{background:var(--wn-bg);color:var(--wn-fg)}
+.pf3{background:var(--acc-bg);color:var(--acc-fg)} .pf4{background:var(--bl-bg);color:var(--bl-fg)}
+
+/* ---------- panneau latéral : dictée vocale guidée ---------- */
+.panel{border-left:1px solid var(--line);background:var(--surf-sunk);display:flex;flex-direction:column;min-width:0}
+.panel-h{display:flex;gap:13px;align-items:flex-start;padding:24px 24px 20px}
+.panel-h .pic{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;flex:none;
+  background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--ring),0 6px 16px rgba(109,92,255,.32)}
+.panel-h h3{font-size:18px;font-weight:750;letter-spacing:-.028em;line-height:1.25}
+.panel-h h3 span{font-weight:500;color:var(--muted)}
+.panel-h p{font-size:13.5px;color:var(--hint);margin-top:3px}
+.panel-b{flex:1;padding:0 24px;overflow:hidden}
+.bubble{display:flex;gap:12px;align-items:flex-start}
+.bubble .txt{flex:1;background:var(--acc-bg);border:1px solid var(--acc-rg);border-radius:14px;
+  padding:13px 15px;font-size:14px;font-weight:550;color:var(--text);letter-spacing:-.01em}
+.bubble .me{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;
+  font-size:12px;font-weight:700;background:var(--surface-2);color:var(--muted);box-shadow:inset 0 0 0 1px var(--line-2)}
+.steps{margin-top:22px;display:flex;gap:13px;align-items:flex-start}
+.steps .pic-sm{width:36px;height:36px;border-radius:11px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(150deg,var(--accent-2),var(--accent));box-shadow:var(--ring)}
+.steps .list{flex:1;min-width:0}
+.steps .sh{font-size:14px;font-weight:600;color:var(--hint);letter-spacing:-.012em}
+.steps ol{list-style:none;margin-top:14px;padding-left:17px;border-left:1.5px solid var(--line-2);
+  display:flex;flex-direction:column;gap:17px}
+.steps li{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:550;letter-spacing:-.012em}
+.steps li .si{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;flex:none}
+.steps li em{font-style:normal;color:var(--muted);font-weight:500}
+.steps li .done{margin-left:auto;color:var(--ok-fg);font-size:12px;font-weight:700}
+.panel-f{padding:18px 24px 24px}
+.compose{border:1px solid var(--line-2);border-radius:15px;background:var(--surface);padding:14px 15px;box-shadow:var(--ring)}
+.compose .ph{font-size:14px;color:var(--hint)}
+.compose .cbar{display:flex;align-items:center;gap:12px;margin-top:22px}
+.compose .cbar .ic{color:var(--hint);display:grid;place-items:center}
+.compose .cbar .sp{flex:1}
+.compose .send{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(180deg,#8471ff,#6d5cff);box-shadow:0 4px 12px rgba(109,92,255,.4),inset 0 1px 0 rgba(255,255,255,.28)}
+
+/* ---------- cartes flottantes + curseurs ---------- */
+.float{position:absolute;z-index:5;display:flex;align-items:center;gap:11px;padding:9px 14px 9px 9px;border-radius:14px;
+  background:var(--float-bg);border:1.5px solid var(--acc-rg);box-shadow:var(--sh-float);white-space:nowrap}
+.float .fav{position:relative;width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;
+  font-size:12px;font-weight:800;color:#fff;letter-spacing:-.03em}
+.float .fav i{position:absolute;right:-5px;bottom:-5px;width:19px;height:19px;border-radius:6px;display:grid;place-items:center;
+  background:var(--float-bg);box-shadow:0 1px 4px rgba(0,0,0,.3);font-style:normal}
+.float b{font-size:14.5px;font-weight:650;letter-spacing:-.02em}
+.float .st{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:8px}
+.st.ok{background:var(--ok-bg);color:var(--ok-fg)}
+.st.wn{background:var(--wn-bg);color:var(--wn-fg)}
+.st.ac{background:var(--acc-bg);color:var(--acc-fg)}
+.f1{top:118px;left:26px}
+.f2{top:300px;left:186px}
+.f3{bottom:78px;left:118px}
+.tag{position:absolute;z-index:6;display:flex;align-items:center;gap:8px;padding:9px 20px;border-radius:9px;
+  background:linear-gradient(100deg,var(--accent),var(--accent-2));color:#fff;font-size:14.5px;font-weight:700;
+  letter-spacing:-.02em;box-shadow:0 10px 26px rgba(109,92,255,.45);white-space:nowrap}
+.t1{top:472px;left:452px}
+.cur{position:absolute;z-index:7;width:26px;height:26px;display:block}
+.c1{top:196px;left:388px;transform:rotate(-6deg)}
+.c2{top:330px;left:512px;transform:rotate(-6deg)}
+.c3{top:508px;left:520px;transform:rotate(-6deg)}
+
+/* légende sous le visuel */
+.legend{display:flex;gap:34px;flex-wrap:wrap;margin-top:32px;padding-top:26px;border-top:1px solid var(--line)}
+.legend div{max-width:270px}
+.legend b{display:block;font-size:14px;font-weight:650;letter-spacing:-.018em}
+.legend span{display:block;font-size:13.5px;color:var(--muted);margin-top:5px;line-height:1.55;letter-spacing:-.008em}
+.legend .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;margin-bottom:8px;
+  background:var(--acc-bg);color:var(--acc-fg);font-size:11px;font-weight:800}
+
+/* ---------- responsive : le visuel se dégrade proprement ---------- */
+@media (max-width:1180px){
+  .screen{grid-template-columns:58px 1fr 340px}
+  .projcol{display:none}
+}
+@media (max-width:1000px){
+  h1{font-size:40px} .lead{font-size:17px}
+  .hero{padding:48px 0 70px}
+  .screen{grid-template-columns:1fr;min-height:0}
+  .rail{display:none}
+  .panel{border-left:0;border-top:1px solid var(--line)}
+  .float,.tag,.cur{display:none}          /* annotations retirées : illisibles à cette taille */
+  .grp-h,.tr{grid-template-columns:1fr 108px 96px}
+  .grp-h .col:nth-child(4),.td:nth-child(5),.cell.tel-col{display:none}
+  .board{padding:20px}
+  .board h2{font-size:23px}
+}
+@media (max-width:560px){
+  .wrap{padding:0 18px}
+  h1{font-size:32px}
+  .btabs{gap:16px;overflow-x:auto}
+  .btabs .tool,.btabs .spacer{display:none}
+  .grp-h,.tr{grid-template-columns:1fr 92px}
+  .grp-h .col:nth-child(3),.td:nth-child(4){display:none}
+  .legend{gap:22px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ===================== barre de démo ===================== -->
+<header class="demo-bar">
+  <div class="demo-in">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 100 100" aria-label="Planii">
+        <defs><linearGradient id="lgd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--logo-a)"/><stop offset="1" stop-color="var(--logo-b)"/></linearGradient></defs>
+        <rect x="12" y="10" width="58" height="21" rx="10.5" fill="url(#lgd)"/>
+        <rect x="15.5" y="43" width="69" height="14" rx="7" fill="none" stroke="url(#lgd)" stroke-width="7"/>
+        <rect x="12" y="69" width="40" height="21" rx="10.5" fill="url(#lgd)"/>
+      </svg>
+      <span class="wm">Planii</span>
+    </a>
+    <button class="theme-btn" id="themeBtn" aria-label="Changer de thème" title="Changer de thème">
+      <svg class="i-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+      <svg class="i-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ===================== héros ===================== -->
+<section class="hero">
+  <div class="glow"><i class="ga"></i><i class="gb"></i></div>
+  <div class="wrap">
+    <span class="kicker">Visuel héros · tableau de projet</span>
+    <h1>Un projet, une équipe, <em>et tout ce qui avance dessus.</em></h1>
+    <p class="lead">Le tableau montre l'état réel du projet ; les cartes qui en sortent racontent ce qui vient de se passer. Aucune donnée sensible affichée — la structure suffit à comprendre.</p>
+
+    <div class="stage">
+      <div class="screen">
+
+        <!-- rail d'icônes -->
+        <nav class="rail">
+          <svg class="lg" viewBox="0 0 100 100" aria-label="Planii">
+            <defs><linearGradient id="lgr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--logo-a)"/><stop offset="1" stop-color="var(--logo-b)"/></linearGradient></defs>
+            <rect x="12" y="10" width="58" height="21" rx="10.5" fill="url(#lgr)"/>
+            <rect x="15.5" y="43" width="69" height="14" rx="7" fill="none" stroke="url(#lgr)" stroke-width="7"/>
+            <rect x="12" y="69" width="40" height="21" rx="10.5" fill="url(#lgr)"/>
+          </svg>
+          <span class="ri"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span>
+          <span class="ri on"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 9h8M8 14h5"/></svg></span>
+          <hr>
+          <span class="ri"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg></span>
+          <span class="ri"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21v-7M12 21V5M18 21v-10"/></svg></span>
+          <span class="ri"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></span>
+          <hr>
+          <span class="ri"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg></span>
+        </nav>
+
+        <!-- colonne des projets -->
+        <aside class="projcol">
+          <span class="ptile" style="background:linear-gradient(150deg,#5cb0ff,#2f7fd6)">CQ</span>
+          <span class="ptile sel" style="background:linear-gradient(150deg,#a08fff,#6d5cff)">RS</span>
+          <span class="ptile" style="background:linear-gradient(150deg,#4ae9b8,#0f8f6a)">AM</span>
+          <span class="ptile" style="background:linear-gradient(150deg,#ffd27a,#c98a12)">AV</span>
+          <hr>
+          <span class="ptile" style="background:linear-gradient(150deg,#ff9fa5,#c8362f)">DF</span>
+          <span class="more">···</span>
+        </aside>
+
+        <!-- tableau -->
+        <main class="board">
+          <h2>Refonte site vitrine</h2>
+
+          <div class="btabs">
+            <a class="on" href="#">Tableau principal</a>
+            <a href="#">Kanban</a>
+            <a href="#">Agenda</a>
+            <span class="plus">＋</span>
+            <span class="spacer"></span>
+            <span class="tool">
+              Équipe
+              <span class="stack">
+                <s style="background:linear-gradient(150deg,#a08fff,#6d5cff)">AM</s>
+                <s style="background:linear-gradient(150deg,#4ae9b8,#0f8f6a)">LK</s>
+                <s style="background:linear-gradient(150deg,#5cb0ff,#2f7fd6)">SD</s>
+                <s style="background:var(--surface-2);color:var(--muted)">+3</s>
+              </span>
+            </span>
+          </div>
+
+          <!-- groupe 1 : tâches, colonne de statut bleue -->
+          <div class="grp">
+            <div class="grp-h">
+              <span class="gname" style="color:var(--bl-fg)">Tâches en cours</span>
+              <span class="col">Responsable</span>
+              <span class="col">Statut</span>
+              <span class="col">Échéance</span>
+            </div>
+            <div class="tbl">
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--blue)"></span><span class="sk" style="width:56%"></span></div>
+                <div class="td c"><span class="av">AM</span><span class="pflag pf1">P1</span></div>
+                <div class="cell b">En cours</div>
+                <div class="td c"><span class="tel">Demain</span></div>
+              </div>
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--blue)"></span><span class="sk" style="width:44%"></span></div>
+                <div class="td c"><span class="av ok">LK</span><span class="pflag pf2">P2</span></div>
+                <div class="cell b2">En cours</div>
+                <div class="td c"><span class="tel">Jeu. 6 mars</span></div>
+              </div>
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--blue)"></span><span class="sk" style="width:62%"></span></div>
+                <div class="td c"><span class="av bl">SD</span><span class="pflag pf3">P3</span></div>
+                <div class="cell b">En cours</div>
+                <div class="td c"><span class="tel">Ven. 7 mars</span></div>
+              </div>
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--blue)"></span><span class="sk" style="width:38%"></span></div>
+                <div class="td c"><span class="av wn">MT</span><span class="pflag pf2">P2</span></div>
+                <div class="cell b2">En cours</div>
+                <div class="td c"><span class="tel">Lun. 10 mars</span></div>
+              </div>
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--blue)"></span><span class="sk" style="width:52%"></span></div>
+                <div class="td c"><span class="av">AM</span><span class="pflag pf4">P4</span></div>
+                <div class="cell b">En cours</div>
+                <div class="td c"><span class="tel">Mer. 12 mars</span></div>
+              </div>
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--blue)"></span><span class="sk" style="width:47%"></span></div>
+                <div class="td c"><span class="av ok">LK</span><span class="pflag pf3">P3</span></div>
+                <div class="cell b2">En cours</div>
+                <div class="td c"><span class="tel">Ven. 14 mars</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- groupe 2 : membres, colonne verte -->
+          <div class="grp" style="margin-top:34px">
+            <div class="grp-h">
+              <span class="gname" style="color:var(--acc-fg)">Membres du projet</span>
+              <span class="col">Rôle</span>
+              <span class="col">Invitation</span>
+              <span class="col">Tâches</span>
+            </div>
+            <div class="tbl">
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--accent)"></span><span class="nm">Céline Thomas</span></div>
+                <div class="td c"><span class="tel">Cheffe de projet</span></div>
+                <div class="cell g">Acceptée</div>
+                <div class="td c"><span class="tel tnum">12</span></div>
+              </div>
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--accent)"></span><span class="nm">Édouard Collins</span></div>
+                <div class="td c"><span class="tel">Développeur</span></div>
+                <div class="cell g2">Acceptée</div>
+                <div class="td c"><span class="tel tnum">8</span></div>
+              </div>
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--accent)"></span><span class="nm">Laura Müller</span></div>
+                <div class="td c"><span class="tel">Rédactrice</span></div>
+                <div class="cell g">Acceptée</div>
+                <div class="td c"><span class="tel tnum">6</span></div>
+              </div>
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--accent)"></span><span class="nm">Carmen Rodríguez</span></div>
+                <div class="td c"><span class="tel">Cliente</span></div>
+                <div class="cell g2">Acceptée</div>
+                <div class="td c"><span class="tel tnum">3</span></div>
+              </div>
+              <div class="tr">
+                <div class="td"><span class="lead-edge" style="background:var(--accent)"></span><span class="nm">Jamal Benali</span></div>
+                <div class="td c"><span class="tel">Designer</span></div>
+                <div class="cell g">Acceptée</div>
+                <div class="td c"><span class="tel tnum">9</span></div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- panneau : dictée vocale guidée -->
+        <aside class="panel">
+          <div class="panel-h">
+            <span class="pic">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+            </span>
+            <div>
+              <h3>Dictée guidée, <span>nouvelle tâche</span></h3>
+              <p>4 champs reconnus</p>
+            </div>
+          </div>
+
+          <div class="panel-b">
+            <div class="bubble">
+              <span class="txt">« Relancer le fournisseur avant vendredi, priorité 2, pour Lucas »</span>
+              <span class="me">AM</span>
+            </div>
+
+            <div class="steps">
+              <span class="pic-sm">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+              </span>
+              <div class="list">
+                <div class="sh">Analyse de la dictée</div>
+                <ol>
+                  <li>
+                    <span class="si" style="background:var(--acc-bg);color:var(--acc-fg)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7"/></svg></span>
+                    Intitulé <em>— Relancer le fournisseur</em>
+                    <span class="done">✓</span>
+                  </li>
+                  <li>
+                    <span class="si" style="background:var(--wn-bg);color:var(--wn-fg)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h11l-1.5 3L16 10H5"/></svg></span>
+                    Priorité <em>— P2</em>
+                    <span class="done">✓</span>
+                  </li>
+                  <li>
+                    <span class="si" style="background:var(--ok-bg);color:var(--ok-fg)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                    Responsable <em>— Lucas K.</em>
+                    <span class="done">✓</span>
+                  </li>
+                  <li>
+                    <span class="si" style="background:var(--bl-bg);color:var(--bl-fg)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg></span>
+                    Échéance <em>— vendredi 7</em>
+                    <span class="done">✓</span>
+                  </li>
+                  <li>
+                    <span class="si" style="background:var(--acc-bg);color:var(--acc-fg)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg></span>
+                    Créer la tâche
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-f">
+            <div class="compose">
+              <div class="ph">Parlez ou écrivez votre tâche…</div>
+              <div class="cbar">
+                <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 12a3.5 3.5 0 1 0-3.5 3.5H16"/></svg></span>
+                <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg></span>
+                <span class="sp"></span>
+                <span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg></span>
+                <span class="send"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- ============ annotations flottantes ============ -->
+        <div class="float f1">
+          <span class="fav" style="background:linear-gradient(150deg,#4ae9b8,#0f8f6a)">XL
+            <i><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3ce0ab" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></i>
+          </span>
+          <b>42 tâches importées</b>
+          <span class="st ok">Terminé</span>
+        </div>
+
+        <div class="float f2">
+          <span class="fav" style="background:linear-gradient(150deg,#ffd27a,#c98a12)">✉
+            <i><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ffc44d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></i>
+          </span>
+          <b>6 relances envoyées</b>
+          <span class="st wn">En cours</span>
+        </div>
+
+        <div class="float f3">
+          <span class="fav" style="background:linear-gradient(150deg,#a08fff,#6d5cff)">CR
+            <i><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8b7bff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg></i>
+          </span>
+          <b>Rendez-vous du 12 mars</b>
+          <span class="st ac">Confirmé</span>
+        </div>
+
+        <div class="tag t1">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+          Transférée à Lucas
+        </div>
+
+        <!-- curseurs -->
+        <svg class="cur c1" viewBox="0 0 24 24"><path d="M5 2l14 9-6.2 1.6L9.4 19 5 2z" fill="#ff7bc8" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <svg class="cur c2" viewBox="0 0 24 24"><path d="M5 2l14 9-6.2 1.6L9.4 19 5 2z" fill="#ff7bc8" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <svg class="cur c3" viewBox="0 0 24 24"><path d="M5 2l14 9-6.2 1.6L9.4 19 5 2z" fill="#8b7bff" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      </div>
+
+      <!-- légende : les 3 mécaniques reprises -->
+      <div class="legend">
+        <div><span class="n">1</span><b>Barres à la place du texte</b><span>Les intitulés de tâches sont remplacés par des barres : on lit la structure du tableau sans lire de données client.</span></div>
+        <div><span class="n">2</span><b>Colonne de statut pleine</b><span>Un aplat de couleur sur toute la cellule — c'est ce qui rend un tableau lisible d'un seul coup d'œil, de loin.</span></div>
+        <div><span class="n">3</span><b>Cartes qui débordent</b><span>Chaque carte porte un verbe au passé et une pastille de statut : elle raconte une action faite, pas une fonctionnalité.</span></div>
+        <div><span class="n">4</span><b>Panneau latéral honnête</b><span>Pas d'agent IA — la dictée guidée de Planii, qui existe vraiment et se démontre de la même façon.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var mq = window.matchMedia('(prefers-color-scheme: light)');
+  var manual = false;
+  function apply(t) { root.setAttribute('data-theme', t); }
+  apply(mq.matches ? 'light' : 'dark');
+  mq.addEventListener('change', function (e) { if (!manual) apply(e.matches ? 'light' : 'dark'); });
+  document.getElementById('themeBtn').addEventListener('click', function () {
+    manual = true;
+    apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+})();
+</script>
+
+</body>
+</html>

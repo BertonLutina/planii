@@ -3,7 +3,7 @@ import { api, setTok } from '@/lib/api'
 import { toastErr } from '@/lib/ui'
 import { MicInput } from './Mic'
 import type { User } from '@/lib/types'
-import { useI18n, LangFlags, getLang } from '@/lib/i18n'
+import { useI18n, LangFlags, getLang, t as tt } from '@/lib/i18n'
 
 const API = (import.meta.env.VITE_API_URL as string) || 'https://api.planii.app/api'
 
@@ -54,9 +54,15 @@ function ProviderIcon({ provider }: { provider: ProviderKey }) {
   )
 }
 
-export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
+export function Auth({ onAuth, initialMode = 'login', onBack }: {
+  onAuth: (u: User) => void
+  /** Ouvre directement sur l'inscription — utilisé par « Commencer gratuitement » de la landing. */
+  initialMode?: 'login' | 'signup'
+  /** Retour à la page d'accueil publique. Absent = pas de bouton retour. */
+  onBack?: () => void
+}) {
   const { t: tr } = useI18n()
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode)
   const [f, setF] = useState({ name: '', email: '', password: '', job: '' })
   const [busy, setBusy] = useState(false)
   const [providers, setProviders] = useState<Providers>({})
@@ -92,6 +98,12 @@ export function Auth({ onAuth }: { onAuth: (u: User) => void }) {
         <h1>Planii</h1>
         {/* Tagline kept in i18n as auth.tagline — not shown on auth screen */}
         <LangFlags />
+
+        {onBack && (
+          <button type="button" className="btn-link" style={{ marginBottom: 12 }} onClick={onBack}>
+            {tt('pd.back')}
+          </button>
+        )}
 
         {enabled.length > 0 && (
           <div className="auth-social">

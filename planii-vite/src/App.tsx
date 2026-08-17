@@ -7,6 +7,7 @@ import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
 import { MicInput } from './components/Mic'
 import { Ic } from './components/Icon'
 import { Auth } from './components/Auth'
+import { Landing } from './components/Landing'
 import { ProjectsList, JoinModal } from './components/Projects'
 import { ProjectDetail } from './components/ProjectDetail'
 import { CalendarView } from './components/Calendar'
@@ -609,7 +610,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
 
       <CommandPalette open={cmd} onClose={() => setCmd(false)} setTab={setTab} openProject={setOpenId} newProject={newProject} />
       {quick && <QuickTask me={me} onClose={() => setQuick(false)} onCreated={() => { setQuick(false); setRefresh((k) => k + 1) }} />}
-      {quickAppt && <QuickAppointment onClose={() => setQuickAppt(false)} onCreated={() => { setQuickAppt(false); setRefresh((k) => k + 1) }} />}
+      {quickAppt && <QuickAppointment me={me} onClose={() => setQuickAppt(false)} onCreated={() => { setQuickAppt(false); setRefresh((k) => k + 1) }} />}
       {agendaPick && (
         <Modal title={tr('qa.pick')} onClose={() => setAgendaPick(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -651,6 +652,8 @@ export default function App() {
   const styleGuide = isStyleGuideRoute()
   const privacy = isPrivacyRoute()
   const [me, setMe] = useState<User | null | undefined>(undefined)
+  /** Visiteur non connecté : landing publique, puis connexion ou inscription. */
+  const [gate, setGate] = useState<'landing' | 'login' | 'signup'>('landing')
   useEffect(() => {
     if (styleGuide || privacy) return
     try {
@@ -674,7 +677,7 @@ export default function App() {
     return () => disconnectRealtime()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const onLogout = () => { disconnectRealtime(); setTok(null); setMe(null) }
+  const onLogout = () => { disconnectRealtime(); setTok(null); setMe(null); setGate('landing') }
   if (styleGuide) return <StyleGuide />
   if (privacy) return <Privacy />
   return (
@@ -682,7 +685,15 @@ export default function App() {
       <Toaster />
       {me === undefined ? <div className="boot">Connexion…</div>
         : me ? <Shell me={me} onLogout={onLogout} onUpdate={setMe} />
-        : <Auth onAuth={(u) => { setMe(u); connectRealtime() }} />}
+        : gate === 'landing'
+          ? <Landing onLogin={() => setGate('login')} onStart={() => setGate('signup')} />
+          : (
+            <Auth
+              initialMode={gate}
+              onBack={() => setGate('landing')}
+              onAuth={(u) => { setMe(u); connectRealtime() }}
+            />
+          )}
     </>
   )
 }

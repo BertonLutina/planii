@@ -1,0 +1,57 @@
+{
+  "cli": {
+    "version": ">= 22.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "node": "22.14.0",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.planii.app/api"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "ios": { "simulator": true },
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:4000/api"
+      }
+    },
+    "development-device": {
+      "extends": "development",
+      "ios": { "simulator": false },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.planii.app/api"
+      }
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "preview",
+      "android": { "buildType": "apk" }
+    },
+    "production": {
+      "extends": "base",
+      "channel": "production",
+      "autoIncrement": true,
+      "android": { "buildType": "app-bundle" }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "REMPLIR — l'e-mail de ton compte Apple Developer",
+        "ascAppId": "REMPLIR — l'App Store Connect App ID (chiffres)",
+        "appleTeamId": "REMPLIR — le Team ID (10 caractères)"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./credentials/google-play-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

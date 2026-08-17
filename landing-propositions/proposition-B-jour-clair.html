@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Planii — Proposition B · Jour clair (premium)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fafafb; --surface:#ffffff; --surface-2:#f4f4f6;
+  --line:#eaeaee; --line-2:#dcdce3;
+  --text:#0b0a12; --muted:#63637a; --hint:#8a8a9e;
+  --accent:#6d5cff; --accent-2:#8b7bff; --accent-bg:#f1edff; --accent-on:#5a48e8;
+  --ok:#0f8f6a; --ok-bg:#e6f7f0; --ok-on:#0b7a5a;
+  --warn:#a5680a; --warn-bg:#fdf4e3; --warn-on:#8a5608;
+  --danger:#c8362f; --danger-bg:#fdefee;
+  --blue:#1f6fc9; --blue-bg:#ebf3fd; --blue-on:#1a5da8;
+  --gold:#c98a12;
+  --radius:16px;
+  --ring:inset 0 1px 0 rgba(255,255,255,.9);
+  --sh-1:0 1px 2px rgba(11,10,18,.04), 0 4px 14px rgba(11,10,18,.045);
+  --sh-2:0 1px 2px rgba(11,10,18,.05), 0 12px 30px rgba(11,10,18,.07), 0 40px 90px rgba(11,10,18,.06);
+  --wrap:1180px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--surface);color:var(--text);font-size:16px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  letter-spacing:-.011em;font-feature-settings:"cv02","cv03","cv04","ss01";overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 32px;position:relative;z-index:2}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* logo */
+.brand{display:inline-flex;align-items:center;gap:11px}
+.brand svg{width:30px;height:30px;display:block;flex:none}
+.brand .wm{font-size:20.5px;font-weight:700;letter-spacing:-.028em;color:var(--text)}
+
+/* boutons */
+.btn{position:relative;display:inline-flex;align-items:center;gap:9px;border-radius:13px;
+  font-weight:650;font-size:14.5px;letter-spacing:-.012em;padding:13px 22px;border:1px solid transparent;
+  transition:transform .18s cubic-bezier(.2,.7,.3,1),box-shadow .18s,background .18s;white-space:nowrap;cursor:pointer}
+.btn.primary{background:linear-gradient(180deg,#8471ff,#6d5cff 62%,#5f4df2);color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 1px 2px rgba(90,72,232,.3),0 10px 26px rgba(109,92,255,.32)}
+.btn.primary:hover{transform:translateY(-1.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 1px 2px rgba(90,72,232,.3),0 16px 38px rgba(109,92,255,.42)}
+.btn.sec{background:var(--surface);color:var(--text);border-color:var(--line-2);box-shadow:0 1px 2px rgba(11,10,18,.05)}
+.btn.sec:hover{background:var(--surface-2);transform:translateY(-1.5px)}
+.btn.sm{padding:10px 17px;font-size:13.5px;border-radius:11px}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.78);
+  backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8)}
+.nav:after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--line-2) 20%,var(--line-2) 80%,transparent)}
+.nav-in{max-width:var(--wrap);margin:0 auto;padding:15px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.nav-links{display:flex;gap:30px;font-size:14.5px;font-weight:550;color:var(--muted);letter-spacing:-.01em}
+.nav-links a{position:relative;padding:4px 0;transition:color .16s}
+.nav-links a:after{content:'';position:absolute;left:0;right:0;bottom:-2px;height:1.5px;background:var(--accent);
+  transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(.2,.7,.3,1)}
+.nav-links a:hover{color:var(--text)}
+.nav-links a:hover:after{transform:scaleX(1)}
+.nav-act{display:flex;align-items:center;gap:16px}
+.nav-act .login{font-size:14.5px;font-weight:550;color:var(--muted);transition:color .16s}
+.nav-act .login:hover{color:var(--text)}
+
+/* hero */
+.hero{text-align:center;padding:104px 0 0;position:relative;overflow:hidden}
+.hero .glow{position:absolute;inset:0;z-index:0;pointer-events:none}
+.hero .glow i{position:absolute;border-radius:50%;filter:blur(100px);display:block}
+.hero .g1{width:820px;height:460px;left:50%;top:-260px;transform:translateX(-50%);background:rgba(139,123,255,.30)}
+.hero .g2{width:420px;height:340px;right:-40px;top:120px;background:rgba(60,224,171,.13)}
+.hero .g3{width:420px;height:340px;left:-60px;top:180px;background:rgba(109,92,255,.10)}
+.eyebrow{position:relative;display:inline-flex;align-items:center;gap:10px;padding:7px 8px 7px 14px;border-radius:99px;
+  background:rgba(255,255,255,.82);border:1px solid var(--line-2);
+  box-shadow:0 1px 2px rgba(11,10,18,.05),0 8px 22px rgba(11,10,18,.05);
+  font-size:12.5px;font-weight:600;color:var(--accent-on);letter-spacing:-.005em}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(15,143,106,.14)}
+.eyebrow .chev{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:99px;
+  background:var(--accent-bg);font-size:11px;color:var(--accent-on)}
+h1{font-size:70px;line-height:1.03;font-weight:800;letter-spacing:-.042em;margin:26px auto 0;max-width:16ch}
+h1 em{font-style:normal;background:linear-gradient(100deg,#8b7bff,#5a48e8 55%,#0f8f6a);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:19.5px;line-height:1.6;color:var(--muted);max-width:60ch;margin:24px auto 0;letter-spacing:-.012em}
+.hero-cta{display:flex;gap:14px;justify-content:center;margin-top:36px;flex-wrap:wrap}
+.hero-note{margin-top:20px;font-size:13px;color:var(--hint);display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.hero-note b{color:var(--muted);font-weight:550}
+.hero-note s{width:3px;height:3px;border-radius:50%;background:var(--line-2);display:block;text-decoration:none}
+
+/* écran produit */
+.screen{position:relative;z-index:2;margin:64px auto 0;max-width:1060px;border-radius:20px;overflow:hidden;
+  border:1px solid var(--line);background:var(--surface);box-shadow:var(--ring),var(--sh-2)}
+.screen-bar{display:flex;align-items:center;gap:7px;padding:13px 17px;background:var(--bg);border-bottom:1px solid var(--line)}
+.screen-bar s{width:9px;height:9px;border-radius:50%;background:var(--line-2);display:block}
+.screen-bar .url{margin-left:12px;font-size:11.5px;font-weight:550;color:var(--hint);background:var(--surface);
+  border:1px solid var(--line);border-radius:8px;padding:5px 14px;letter-spacing:-.005em}
+.app{display:grid;grid-template-columns:212px 1fr;min-height:480px;text-align:left}
+.side{border-right:1px solid var(--line);padding:16px 12px;background:var(--bg)}
+.side .sb{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;font-size:13.5px;font-weight:550;color:var(--muted);letter-spacing:-.01em}
+.side .sb.on{background:var(--accent-bg);color:var(--accent-on);font-weight:650;box-shadow:inset 0 0 0 1px rgba(109,92,255,.13)}
+.side .grp{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--hint);padding:20px 11px 9px}
+.main{padding:24px 26px}
+.main-h{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.main-h h4{font-size:22px;font-weight:750;letter-spacing:-.032em}
+.tabs{display:inline-flex;background:var(--surface-2);border-radius:12px;padding:3px}
+.tabs b{font-size:12.5px;font-weight:600;padding:7px 15px;border-radius:9px;color:var(--muted);letter-spacing:-.01em}
+.tabs b.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(11,10,18,.09)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.tile{border:1px solid var(--line);border-radius:13px;padding:15px;background:var(--surface);box-shadow:var(--sh-1)}
+.tile b{display:block;font-size:25px;font-weight:800;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
+.tile span{font-size:12px;color:var(--hint);font-weight:550;letter-spacing:-.005em}
+.grp-h{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--hint);margin:0 0 11px}
+.row{display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--surface);transition:.16s}
+.row + .row{margin-top:8px}
+.row:hover{border-color:var(--line-2);box-shadow:var(--sh-1)}
+.ck{width:18px;height:18px;border-radius:6px;border:1.6px solid var(--line-2);flex:none}
+.ck.on{background:linear-gradient(180deg,#17a37b,#0f8f6a);border-color:transparent;position:relative;box-shadow:0 2px 6px rgba(15,143,106,.28)}
+.ck.on:after{content:'';position:absolute;left:5.2px;top:2.2px;width:4.6px;height:9px;border:2px solid #fff;border-top:0;border-left:0;transform:rotate(42deg)}
+.tt{font-size:13.5px;font-weight:550;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.008em}
+.tt.done{color:var(--hint);text-decoration:line-through;text-decoration-color:var(--line-2)}
+.sub{font-size:12px;color:var(--hint);flex:none}
+.pflag{font-size:10px;font-weight:700;padding:3.5px 7px;border-radius:6px;flex:none}
+.pf1{background:var(--danger-bg);color:var(--danger);box-shadow:inset 0 0 0 1px rgba(200,54,47,.14)}
+.pf2{background:var(--warn-bg);color:var(--warn-on);box-shadow:inset 0 0 0 1px rgba(165,104,10,.14)}
+.pf3{background:var(--accent-bg);color:var(--accent-on);box-shadow:inset 0 0 0 1px rgba(109,92,255,.16)}
+.pf4{background:var(--blue-bg);color:var(--blue-on);box-shadow:inset 0 0 0 1px rgba(31,111,201,.14)}
+.pf5{background:var(--ok-bg);color:var(--ok-on);box-shadow:inset 0 0 0 1px rgba(15,143,106,.14)}
+.av{width:24px;height:24px;border-radius:50%;background:var(--accent-bg);color:var(--accent-on);
+  display:grid;place-items:center;font-size:10px;font-weight:700;flex:none;box-shadow:inset 0 0 0 1px rgba(11,10,18,.05)}
+.pill{font-size:11px;font-weight:600;padding:4.5px 11px;border-radius:99px;letter-spacing:-.005em}
+.pill.acc{background:var(--accent-bg);color:var(--accent-on);box-shadow:inset 0 0 0 1px rgba(109,92,255,.15)}
+.pill.ok{background:var(--ok-bg);color:var(--ok-on);box-shadow:inset 0 0 0 1px rgba(15,143,106,.14)}
+.pill.warn{background:var(--warn-bg);color:var(--warn-on);box-shadow:inset 0 0 0 1px rgba(165,104,10,.14)}
+
+/* bandeau confiance */
+.trust{padding:52px 0;border-top:1px solid var(--line);margin-top:96px;background:var(--bg);position:relative;z-index:2}
+.trust p{text-align:center;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--hint)}
+.trust .logos{display:flex;justify-content:center;gap:60px;margin-top:28px;flex-wrap:wrap;align-items:center}
+.trust .logos span{font-size:19px;font-weight:750;color:#c9c9d4;letter-spacing:-.03em}
+
+/* sections */
+.sec{padding:118px 0;position:relative}
+.sec.alt{background:var(--bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.sec-head{max-width:730px;margin:0 auto;text-align:center}
+.kicker{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  background:linear-gradient(90deg,var(--accent-on),#0f8f6a);-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font-size:47px;line-height:1.08;font-weight:800;letter-spacing:-.038em;margin-top:16px}
+.sec-head p{font-size:18px;color:var(--muted);margin-top:20px;line-height:1.62;letter-spacing:-.012em}
+
+/* types */
+.types{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:58px}
+.type{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:30px;
+  box-shadow:var(--ring),var(--sh-1);transition:transform .3s cubic-bezier(.2,.7,.3,1),box-shadow .3s,border-color .3s}
+.type:hover{transform:translateY(-5px);box-shadow:var(--ring),var(--sh-2);border-color:var(--line-2)}
+.type .ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;margin-bottom:20px;box-shadow:var(--ring)}
+.type h3{font-size:20px;font-weight:700;letter-spacing:-.025em}
+.type p{font-size:14.5px;color:var(--muted);margin-top:11px;line-height:1.62;letter-spacing:-.008em}
+.type ul{list-style:none;margin-top:20px;padding-top:18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.type li{font-size:13.5px;color:var(--muted);display:flex;gap:10px;letter-spacing:-.008em}
+.type li s{color:var(--ok-on);font-weight:700;text-decoration:none;flex:none;font-size:12px;margin-top:1px}
+
+/* rangées */
+.frow{display:grid;grid-template-columns:1fr 1.06fr;gap:80px;align-items:center;margin-top:100px}
+.frow.rev .ftxt{order:2}
+.frow h3{font-size:34px;font-weight:800;letter-spacing:-.033em;line-height:1.14;margin-top:16px}
+.frow p{font-size:16.5px;color:var(--muted);margin-top:18px;line-height:1.68;letter-spacing:-.012em}
+.flist{list-style:none;margin-top:26px;display:flex;flex-direction:column}
+.flist li{display:flex;gap:12px;font-size:14.5px;color:var(--muted);align-items:flex-start;
+  padding:12px 0;border-bottom:1px solid var(--line);letter-spacing:-.008em}
+.flist li:last-child{border-bottom:0}
+.flist li b{color:var(--text);font-weight:600}
+.flist .tick{width:19px;height:19px;border-radius:50%;background:var(--ok-bg);color:var(--ok-on);
+  display:grid;place-items:center;font-size:10px;font-weight:700;flex:none;margin-top:2px;box-shadow:inset 0 0 0 1px rgba(15,143,106,.15)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--ring),var(--sh-2);overflow:hidden;transition:transform .3s cubic-bezier(.2,.7,.3,1)}
+.panel:hover{transform:translateY(-4px)}
+.panel-h{padding:13px 17px;border-bottom:1px solid var(--line);background:var(--bg);font-size:11.5px;font-weight:600;color:var(--hint);
+  display:flex;align-items:center;gap:7px;letter-spacing:-.005em}
+.panel-h s{width:8px;height:8px;border-radius:50%;background:var(--line-2);display:block}
+.panel-b{padding:19px}
+
+/* kanban */
+.kb{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kb .cl{background:var(--bg);border:1px solid var(--line);border-radius:13px;padding:12px}
+.kb .clh{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--hint);margin-bottom:11px;display:flex;align-items:center;gap:6px}
+.kb .clh s{width:6px;height:6px;border-radius:50%;display:block}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;
+  font-size:11.5px;font-weight:550;line-height:1.4;box-shadow:0 1px 2px rgba(11,10,18,.05);letter-spacing:-.008em}
+.card + .card{margin-top:8px}
+.card .meta{display:flex;align-items:center;gap:6px;margin-top:8px}
+
+/* grille 6 */
+.grid6{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:58px}
+.cell{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;
+  box-shadow:var(--ring);transition:transform .28s,box-shadow .28s,border-color .28s}
+.cell:hover{transform:translateY(-3px);box-shadow:var(--ring),var(--sh-1);border-color:var(--line-2)}
+.cell .ico{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;margin-bottom:18px;box-shadow:var(--ring)}
+.cell h4{font-size:16px;font-weight:650;letter-spacing:-.018em}
+.cell p{font-size:14px;color:var(--muted);margin-top:9px;line-height:1.62;letter-spacing:-.008em}
+
+/* classement */
+.rank{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center;margin-top:58px}
+.scale{display:flex;gap:12px;flex-wrap:wrap}
+.sc{flex:1;min-width:118px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--ring),var(--sh-1)}
+.sc b{display:block;font-size:28px;font-weight:800;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
+.sc span{font-size:12.5px;color:var(--hint);letter-spacing:-.005em}
+.lb-row{display:flex;align-items:center;gap:14px;padding:15px 17px;border-radius:14px;background:var(--surface);
+  border:1px solid var(--line);box-shadow:var(--ring),var(--sh-1)}
+.lb-row + .lb-row{margin-top:10px}
+.lb-row.top{background:linear-gradient(100deg,var(--accent-bg),#eafaf4);border-color:rgba(109,92,255,.24);
+  box-shadow:var(--ring),0 10px 28px rgba(109,92,255,.12)}
+.rk{width:24px;font-size:14px;font-weight:700;color:var(--hint);text-align:center;flex:none;font-variant-numeric:tabular-nums}
+.lb-row.top .rk{color:var(--gold)}
+.lb-name{flex:1;min-width:0}
+.lb-name b{font-size:14.5px;font-weight:650;display:block;letter-spacing:-.018em}
+.lb-name span{font-size:12px;color:var(--hint)}
+.lb-pts{font-size:16px;font-weight:750;color:var(--accent-on);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+/* témoignage */
+.quote{max-width:800px;margin:0 auto;text-align:center}
+.quote p{font-size:28px;line-height:1.42;font-weight:600;letter-spacing:-.032em}
+.quote .who{display:flex;align-items:center;justify-content:center;gap:13px;margin-top:32px}
+.quote .who b{font-size:14.5px;font-weight:650;letter-spacing:-.018em}
+.quote .who span{font-size:13px;color:var(--hint)}
+
+/* CTA */
+.cta{position:relative;overflow:hidden;border-radius:28px;padding:84px 40px;text-align:center;color:#fff;
+  background:linear-gradient(135deg,#5343e0,#6d5cff 44%,#9b8bff);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 36px 80px rgba(109,92,255,.28)}
+.cta:before{content:'';position:absolute;inset:0;background:radial-gradient(680px 340px at 20% -10%,rgba(255,255,255,.3),transparent 62%)}
+.cta:after{content:'';position:absolute;inset:0;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23m)'/%3E%3C/svg%3E")}
+.cta > *{position:relative;z-index:2}
+.cta h2{font-size:48px;letter-spacing:-.04em}
+.cta p{font-size:18px;color:rgba(255,255,255,.88);margin-top:18px;max-width:50ch;margin-inline:auto;line-height:1.6}
+.cta .row-cta{display:flex;gap:14px;justify-content:center;margin-top:34px;flex-wrap:wrap}
+.cta .btn.wht{background:linear-gradient(180deg,#fff,#f2effe);color:#241d3c;box-shadow:0 1px 2px rgba(0,0,0,.15),0 12px 32px rgba(0,0,0,.2)}
+.cta .btn.out{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.42)}
+.cta small{display:block;margin-top:20px;font-size:13px;color:rgba(255,255,255,.74)}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:70px 0 44px;background:var(--bg);margin-top:118px}
+.fgrid{display:grid;grid-template-columns:1.7fr repeat(4,1fr);gap:44px}
+.fcol h5{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--hint);margin-bottom:18px}
+.fcol a{display:block;font-size:14px;color:var(--muted);margin-bottom:12px;transition:color .16s;letter-spacing:-.008em}
+.fcol a:hover{color:var(--text)}
+.fbot{margin-top:56px;padding-top:28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;
+  gap:20px;flex-wrap:wrap;font-size:13px;color:var(--hint)}
+.fbrand p{font-size:14px;color:var(--muted);margin-top:16px;max-width:33ch;line-height:1.65;letter-spacing:-.008em}
+
+@media (max-width:1080px){
+  h1{font-size:44px} h2{font-size:33px} .cta h2{font-size:34px} .quote p{font-size:21px}
+  .sec{padding:78px 0}
+  .app{grid-template-columns:1fr} .side{display:none}
+  .tiles{grid-template-columns:1fr 1fr}
+  .frow,.frow.rev,.rank{grid-template-columns:1fr;gap:36px}
+  .frow{margin-top:64px}
+  .frow.rev .ftxt{order:0}
+  .types,.grid6{grid-template-columns:1fr}
+  .nav-links{display:none}
+  .fgrid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 100 100" aria-label="Planii">
+        <defs><linearGradient id="pgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b7bff"/><stop offset="1" stop-color="#6d5cff"/></linearGradient></defs>
+        <rect x="12" y="10" width="58" height="21" rx="10.5" fill="url(#pgB)"/>
+        <rect x="15.5" y="43" width="69" height="14" rx="7" fill="none" stroke="url(#pgB)" stroke-width="7"/>
+        <rect x="12" y="69" width="40" height="21" rx="10.5" fill="url(#pgB)"/>
+      </svg>
+      <span class="wm">Planii</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#plateforme">Plateforme</a>
+      <a href="#fonctions">Fonctionnalités</a>
+      <a href="#classement">Classement</a>
+      <a href="#">Tarifs</a>
+    </nav>
+    <div class="nav-act">
+      <a class="login" href="#">Se connecter</a>
+      <a class="btn primary sm" href="#">Commencer gratuitement</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="glow"><i class="g1"></i><i class="g2"></i><i class="g3"></i></div>
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span> Mise à jour en temps réel · Clair &amp; sombre <span class="chev">→</span></span>
+    <h1>Le travail partagé, <em>enfin sous contrôle.</em></h1>
+    <p class="lead">Projets, tâches, agenda et réunions dans un seul espace — pour vos clients, vos prestataires et vos équipes. Chaque échéance suivie, chaque responsable identifié, chaque décision tracée.</p>
+    <div class="hero-cta">
+      <a class="btn primary" href="#">Commencer gratuitement →</a>
+      <a class="btn sec" href="#">Voir une démo</a>
+    </div>
+    <p class="hero-note"><b>Aucune carte bancaire</b> <s></s> <b>Forfait gratuit illimité</b> <s></s> <b>Données hébergées en Europe</b></p>
+
+    <div class="screen">
+      <div class="screen-bar"><s></s><s></s><s></s><span class="url">planii.app / accueil</span></div>
+      <div class="app">
+        <aside class="side">
+          <div class="sb on"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg> Accueil</div>
+          <div class="sb"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 9h8M8 14h5"/></svg> Projets</div>
+          <div class="sb"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg> Agenda</div>
+          <div class="sb"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21v-7M12 21V5M18 21v-10"/></svg> Classement</div>
+          <div class="grp">Mes projets</div>
+          <div class="sb"><span style="width:8px;height:8px;border-radius:3px;background:#6d5cff;display:block"></span> Refonte site vitrine</div>
+          <div class="sb"><span style="width:8px;height:8px;border-radius:3px;background:#1f6fc9;display:block"></span> Campagne Q2</div>
+          <div class="sb"><span style="width:8px;height:8px;border-radius:3px;background:#0f8f6a;display:block"></span> Dupont &amp; Fils</div>
+        </aside>
+
+        <div class="main">
+          <div class="main-h">
+            <h4>Accueil — mes tâches</h4>
+            <div class="tabs"><b class="on">Liste</b><b>Tableau</b><b>Agenda</b></div>
+          </div>
+          <div class="tiles">
+            <div class="tile"><b style="color:var(--danger)">3</b><span>En retard</span></div>
+            <div class="tile"><b style="color:var(--warn-on)">5</b><span>Aujourd'hui</span></div>
+            <div class="tile"><b style="color:var(--accent-on)">8</b><span>Priorités fortes</span></div>
+            <div class="tile"><b style="color:var(--ok-on)">12</b><span>Terminées</span></div>
+          </div>
+          <div class="grp-h">À faire</div>
+          <div class="row"><span class="ck"></span><span class="tt">Livrer la maquette du site vitrine</span><span class="sub">Demain</span><span class="pflag pf1">P1</span><span class="av">AM</span></div>
+          <div class="row"><span class="ck"></span><span class="tt">Valider le devis fournisseur</span><span class="sub">Jeu. 6</span><span class="pflag pf2">P2</span><span class="av">LK</span></div>
+          <div class="row"><span class="ck"></span><span class="tt">Relire le contrat de prestation</span><span class="sub">Ven. 7</span><span class="pflag pf3">P3</span><span class="av">MT</span></div>
+          <div class="row"><span class="ck"></span><span class="tt">Envoyer le rapport hebdomadaire</span><span class="sub">Lun. 10</span><span class="pflag pf4">P4</span><span class="av">SD</span></div>
+          <div class="grp-h" style="margin-top:22px">Terminées</div>
+          <div class="row"><span class="ck on"></span><span class="tt done">Préparer la réunion de lancement</span><span class="pill ok">+20 pts</span><span class="av">AM</span></div>
+          <div class="row"><span class="ck on"></span><span class="tt done">Arborescence validée</span><span class="pill ok">+15 pts</span><span class="av">LK</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="trust">
+    <div class="wrap">
+      <p>Pensé pour les indépendants, les agences et les équipes internes</p>
+      <div class="logos"><span>Agences</span><span>Studios</span><span>Freelances</span><span>Associations</span><span>PME</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TYPES ============ -->
+<section class="sec" id="plateforme">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">Une plateforme, tous vos modes de travail</span>
+      <h2>Choisissez la bonne structure dès le départ</h2>
+      <p>Un client seul, une équipe de prestataires ou un collectif : Planii adapte les rôles, les droits et les invitations au type de relation que vous gérez.</p>
+    </div>
+    <div class="types">
+      <div class="type">
+        <div class="ico" style="background:var(--accent-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a48e8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <h3>1-à-1</h3>
+        <p>Un client, un prestataire. La relation la plus simple, avec un fil de tâches clair et un historique complet.</p>
+        <ul><li><s>✓</s> Lien d'invitation à usage unique</li><li><s>✓</s> Validation des livrables</li><li><s>✓</s> Historique de chaque échange</li></ul>
+      </div>
+      <div class="type">
+        <div class="ico" style="background:var(--blue-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a5da8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Équipe</h3>
+        <p>Un client, plusieurs prestataires, un chef de projet. Chacun voit ce qui le concerne, vous voyez l'ensemble.</p>
+        <ul><li><s>✓</s> Rôles réutilisables et personnalisés</li><li><s>✓</s> Transfert de tâches entre membres</li><li><s>✓</s> Relances automatiques sur les retards</li></ul>
+      </div>
+      <div class="type">
+        <div class="ico" style="background:var(--ok-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b7a5a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></div>
+        <h3>Groupe</h3>
+        <p>Communauté, association, famille. Tout le monde propose, tout le monde vote, personne ne perd le fil.</p>
+        <ul><li><s>✓</s> Sondages intégrés</li><li><s>✓</s> Tâches « à prendre »</li><li><s>✓</s> Journal d'activité partagé</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FONCTIONNALITÉS ============ -->
+<section class="sec alt" id="fonctions">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">Le cœur du produit</span>
+      <h2>Trois façons de garder le contrôle</h2>
+    </div>
+
+    <div class="frow">
+      <div class="ftxt">
+        <span class="kicker">Tâches &amp; priorités</span>
+        <h3>Six niveaux de priorité. Zéro ambiguïté.</h3>
+        <p>De P1 (critique) à P6 (quand il y aura le temps), chaque tâche porte son niveau, son échéance, son responsable et ses heures estimées. La couleur n'est jamais seule : le niveau est toujours écrit.</p>
+        <ul class="flist">
+          <li><span class="tick">✓</span><span><b>Sous-tâches</b> — découpez sans perdre le lien avec la tâche mère.</span></li>
+          <li><span class="tick">✓</span><span><b>Statuts personnalisables</b> — à faire, en cours, en revue, transféré, terminé.</span></li>
+          <li><span class="tick">✓</span><span><b>Heures estimées et passées</b> — l'écart est visible avant qu'il devienne un problème.</span></li>
+          <li><span class="tick">✓</span><span><b>Transfert de tâche</b> — le parcours reste tracé, du premier au dernier responsable.</span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><s></s><s></s><s></s> Refonte site — tableau</div>
+        <div class="panel-b">
+          <div class="kb">
+            <div class="cl"><div class="clh"><s style="background:#9a988f"></s>À faire</div>
+              <div class="card">Rédiger les contenus<div class="meta"><span class="pflag pf2">P2</span><span class="av">LK</span></div></div>
+              <div class="card">Choisir les photos<div class="meta"><span class="pflag pf4">P4</span><span class="av">SD</span></div></div>
+              <div class="card">Brief rédactionnel<div class="meta"><span class="pflag pf5">P5</span><span class="av">MT</span></div></div>
+            </div>
+            <div class="cl"><div class="clh"><s style="background:#1f6fc9"></s>En cours</div>
+              <div class="card">Intégration desktop<div class="meta"><span class="pflag pf1">P1</span><span class="av">MT</span></div></div>
+              <div class="card">Écrans mobiles<div class="meta"><span class="pflag pf2">P2</span><span class="av">AM</span></div></div>
+            </div>
+            <div class="cl"><div class="clh"><s style="background:#0f8f6a"></s>Terminé</div>
+              <div class="card">Charte graphique<div class="meta"><span class="pflag pf3">P3</span><span class="av">AM</span></div></div>
+              <div class="card">Arborescence<div class="meta"><span class="pflag pf5">P5</span><span class="av">LK</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="frow rev">
+      <div class="panel">
+        <div class="panel-h"><s></s><s></s><s></s> Agenda — semaine du 3 mars</div>
+        <div class="panel-b">
+          <svg viewBox="0 0 360 218" width="100%" style="display:block">
+            <g font-family="Inter" font-size="9.5" font-weight="700" fill="#8a8a9e">
+              <text x="4" y="12">Lun 3</text><text x="76" y="12">Mar 4</text><text x="148" y="12">Mer 5</text><text x="220" y="12">Jeu 6</text><text x="292" y="12">Ven 7</text>
+            </g>
+            <g stroke="#eaeaee" stroke-width="1">
+              <line x1="0" y1="22" x2="360" y2="22"/><line x1="0" y1="62" x2="360" y2="62"/><line x1="0" y1="102" x2="360" y2="102"/><line x1="0" y1="142" x2="360" y2="142"/><line x1="0" y1="182" x2="360" y2="182"/>
+            </g>
+            <g>
+              <rect x="2" y="26" width="64" height="32" rx="9" fill="#f1edff" stroke="#6d5cff"/>
+              <rect x="74" y="66" width="64" height="48" rx="9" fill="#ebf3fd" stroke="#1f6fc9"/>
+              <rect x="146" y="26" width="64" height="30" rx="9" fill="#e6f7f0" stroke="#0f8f6a"/>
+              <rect x="146" y="106" width="64" height="36" rx="9" fill="#fdf4e3" stroke="#a5680a"/>
+              <rect x="218" y="146" width="64" height="32" rx="9" fill="#f1edff" stroke="#6d5cff"/>
+              <rect x="290" y="66" width="64" height="44" rx="9" fill="#fdefee" stroke="#c8362f"/>
+            </g>
+            <g font-family="Inter" font-size="8.5" font-weight="650" fill="#0b0a12">
+              <text x="9" y="45">Point client</text>
+              <text x="81" y="85">Atelier UX</text><text x="81" y="98" fill="#63637a" font-weight="500">10 h – 12 h</text>
+              <text x="153" y="45">Livraison v1</text>
+              <text x="153" y="126">Revue devis</text>
+              <text x="225" y="166">Rétro sprint</text>
+              <text x="297" y="85">Échéance</text><text x="297" y="98" fill="#63637a" font-weight="500">Contrat</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="ftxt">
+        <span class="kicker">Agenda &amp; rendez-vous</span>
+        <h3>Toutes vos échéances, tous projets confondus.</h3>
+        <p>Mois, semaine, agenda ou année : Planii réunit les dates de vos tâches et vos rendez-vous dans une seule vue. Créez un rendez-vous rattaché à un projet, sélectionnez les participants — ils sont prévenus par e-mail.</p>
+        <ul class="flist">
+          <li><span class="tick">✓</span><span><b>Quatre vues</b> — mois, semaine, agenda, année.</span></li>
+          <li><span class="tick">✓</span><span><b>Rendez-vous par projet</b> — créneau, description, participants.</span></li>
+          <li><span class="tick">✓</span><span><b>Rappel la veille</b> — par e-mail, activable notification par notification.</span></li>
+          <li><span class="tick">✓</span><span><b>Retards remontés</b> — les échéances dépassées apparaissent d'elles-mêmes en tête.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="frow">
+      <div class="ftxt">
+        <span class="kicker">Réunions &amp; décisions</span>
+        <h3>La réunion produit des tâches, pas des notes perdues.</h3>
+        <p>Lancez une visioconférence depuis n'importe quel projet — tous les membres sont automatiquement invités. Le chat reste attaché au projet, et chaque message peut devenir une tâche assignée en un clic.</p>
+        <ul class="flist">
+          <li><span class="tick">✓</span><span><b>Visio intégrée</b> — aucun logiciel à installer, aucun compte tiers.</span></li>
+          <li><span class="tick">✓</span><span><b>Chat persistant</b> — la discussion reste dans le projet après la réunion.</span></li>
+          <li><span class="tick">✓</span><span><b>Message → tâche</b> — titre, statut, responsable et priorité en un clic.</span></li>
+          <li><span class="tick">✓</span><span><b>Droits maîtrisés</b> — le chef de projet choisit qui peut créer des tâches.</span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><s></s><s></s><s></s> Meeting — Refonte site vitrine</div>
+        <div class="panel-b">
+          <div style="display:flex;gap:10px">
+            <div style="flex:1;aspect-ratio:16/10;border-radius:12px;background:linear-gradient(135deg,#f1edff,#e2dbff);display:grid;place-items:center;border:1px solid var(--line)">
+              <span class="av" style="width:38px;height:38px;font-size:13px">AM</span></div>
+            <div style="flex:1;aspect-ratio:16/10;border-radius:12px;background:linear-gradient(135deg,#e6f7f0,#d2f0e4);display:grid;place-items:center;border:1px solid var(--line)">
+              <span class="av" style="width:38px;height:38px;font-size:13px;background:var(--ok-bg);color:var(--ok-on)">LK</span></div>
+            <div style="flex:1;aspect-ratio:16/10;border-radius:12px;background:linear-gradient(135deg,#ebf3fd,#d8e7fb);display:grid;place-items:center;border:1px solid var(--line)">
+              <span class="av" style="width:38px;height:38px;font-size:13px;background:var(--blue-bg);color:var(--blue-on)">SD</span></div>
+          </div>
+          <div style="margin-top:16px">
+            <div class="row" style="align-items:flex-start"><span class="av">LK</span>
+              <span style="flex:1"><b style="font-size:12.5px;letter-spacing:-.015em">Lucas K.</b>
+                <div style="font-size:13.5px;color:var(--muted);margin-top:4px;letter-spacing:-.008em">Il faut relancer le fournisseur avant vendredi.</div></span></div>
+            <div class="row" style="align-items:flex-start"><span class="av" style="background:var(--ok-bg);color:var(--ok-on)">SD</span>
+              <span style="flex:1"><b style="font-size:12.5px;letter-spacing:-.015em">Sarah D.</b>
+                <div style="font-size:13.5px;color:var(--muted);margin-top:4px;letter-spacing:-.008em">Je m'en charge — revue lundi ?</div>
+                <span class="pill ok" style="margin-top:9px;display:inline-block">✓ Tâche créée</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GRILLE 6 ============ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">Et tout ce qui fait gagner du temps</span>
+      <h2>Les détails qui font qu'on reste</h2>
+    </div>
+    <div class="grid6">
+      <div class="cell">
+        <div class="ico" style="background:var(--accent-bg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a48e8" stroke-width="1.7" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg></div>
+        <h4>Dictée vocale</h4>
+        <p>Créez une tâche en parlant : intitulé, priorité, responsable. Planii vous guide question par question.</p>
+      </div>
+      <div class="cell">
+        <div class="ico" style="background:var(--ok-bg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b7a5a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h3"/></svg></div>
+        <h4>Import Excel &amp; Google Sheets</h4>
+        <p>Trois modes d'import — par cellule, par colonnes ou en vrac. Jusqu'à 500 tâches d'un coup.</p>
+      </div>
+      <div class="cell">
+        <div class="ico" style="background:var(--blue-bg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a5da8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+        <h4>Notifications maîtrisées</h4>
+        <p>Seize types d'e-mails, activables un par un. La cloche in-app reste à jour en temps réel.</p>
+      </div>
+      <div class="cell">
+        <div class="ico" style="background:var(--warn-bg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a5608" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+        <h4>Clair, sombre, automatique</h4>
+        <p>Le thème suit vos préférences ou l'heure de la journée. Chaque paire de couleurs est mesurée, jamais estimée.</p>
+      </div>
+      <div class="cell">
+        <div class="ico" style="background:var(--accent-bg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a48e8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
+        <h4>Installable sur mobile</h4>
+        <p>Application progressive : installez Planii sur iPhone ou Android, elle reste consultable hors ligne.</p>
+      </div>
+      <div class="cell">
+        <div class="ico" style="background:var(--danger-bg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8362f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h4>Administration &amp; audit</h4>
+        <p>Tableau de bord, gestion des membres, journal d'audit horodaté et anonymisation des données client.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CLASSEMENT ============ -->
+<section class="sec alt" id="classement">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">Classement &amp; points</span>
+      <h2>Livrer en avance, ça se voit.</h2>
+      <p>Chaque tâche cochée rapporte des points selon le moment où elle est terminée. Les projets grimpent dans le classement — et vous voyez enfin qui tient ses délais.</p>
+    </div>
+    <div class="rank">
+      <div>
+        <div class="scale">
+          <div class="sc"><b style="color:var(--ok-on)">20</b><span>terminée en avance</span></div>
+          <div class="sc"><b style="color:var(--accent-on)">15</b><span>le jour même</span></div>
+          <div class="sc"><b style="color:var(--warn-on)">5</b><span>en retard</span></div>
+        </div>
+        <div style="margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--ring),var(--sh-1)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><div style="font-size:12px;color:var(--hint);font-weight:550">Mon score</div>
+              <div class="tnum" style="font-size:32px;font-weight:800;letter-spacing:-.045em;margin-top:3px">1 240 <span style="font-size:14px;color:var(--hint);font-weight:550;letter-spacing:-.01em">pts</span></div></div>
+            <span class="pill acc">Niveau 7</span>
+          </div>
+          <div style="height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:16px">
+            <i style="display:block;height:100%;width:68%;border-radius:99px;background:linear-gradient(90deg,#8b7bff,#6d5cff)"></i></div>
+          <div style="font-size:12px;color:var(--hint);margin-top:10px">Plus que 160 pts pour le niveau 8</div>
+        </div>
+      </div>
+      <div>
+        <div class="lb-row top"><span class="rk">1</span><span class="av" style="background:var(--warn-bg);color:var(--gold)">RS</span>
+          <span class="lb-name"><b>Refonte site vitrine</b><span>Équipe · 6 membres</span></span><span class="lb-pts">1 240</span></div>
+        <div class="lb-row"><span class="rk">2</span><span class="av">CM</span>
+          <span class="lb-name"><b>Campagne marketing Q2</b><span>Équipe · 4 membres</span></span><span class="lb-pts">985</span></div>
+        <div class="lb-row"><span class="rk">3</span><span class="av" style="background:var(--ok-bg);color:var(--ok-on)">AB</span>
+          <span class="lb-name"><b>Application mobile</b><span>Équipe · 5 membres</span></span><span class="lb-pts">870</span></div>
+        <div class="lb-row"><span class="rk">4</span><span class="av" style="background:var(--blue-bg);color:var(--blue-on)">CL</span>
+          <span class="lb-name"><b>Client — Dupont &amp; Fils</b><span>1-à-1</span></span><span class="lb-pts">615</span></div>
+        <div style="font-size:12.5px;color:var(--hint);margin-top:16px;text-align:center">Mise à jour en temps réel à chaque tâche terminée.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TÉMOIGNAGE ============ -->
+<section class="sec">
+  <div class="wrap quote">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="#e6dfff" style="margin:0 auto 22px;display:block"><path d="M7 7h5v5a5 5 0 0 1-5 5V7zm10 0h5v5a5 5 0 0 1-5 5V7z"/></svg>
+    <p>« On a arrêté de chercher où en était chaque prestataire. Tout est dans le projet : la tâche, l'échéance, le responsable et la discussion qui va avec. »</p>
+    <div class="who">
+      <span class="av" style="width:42px;height:42px;font-size:13px">AM</span>
+      <span style="text-align:left"><b>Amina Mbaye</b><br><span>Directrice de studio · 12 personnes</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<div class="wrap">
+  <div class="cta">
+    <h2>Prêt à voir clair dans vos projets ?</h2>
+    <p>Créez votre premier projet en moins de deux minutes. Invitez votre client ou votre équipe avec un lien. C'est tout.</p>
+    <div class="row-cta">
+      <a class="btn wht" href="#">Commencer gratuitement →</a>
+      <a class="btn out" href="#">Parler à l'équipe</a>
+    </div>
+    <small>Aucune carte bancaire requise · Forfait gratuit à durée illimitée</small>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div class="fcol fbrand">
+        <a class="brand" href="#">
+          <svg viewBox="0 0 100 100" aria-label="Planii">
+            <defs><linearGradient id="pgBf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b7bff"/><stop offset="1" stop-color="#6d5cff"/></linearGradient></defs>
+            <rect x="12" y="10" width="58" height="21" rx="10.5" fill="url(#pgBf)"/>
+            <rect x="15.5" y="43" width="69" height="14" rx="7" fill="none" stroke="url(#pgBf)" stroke-width="7"/>
+            <rect x="12" y="69" width="40" height="21" rx="10.5" fill="url(#pgBf)"/>
+          </svg>
+          <span class="wm">Planii</span>
+        </a>
+        <p>Projets partagés pour clients, prestataires et équipes. Tâches, agenda, réunions et classement — au même endroit.</p>
+      </div>
+      <div class="fcol"><h5>Produit</h5><a href="#">Projets</a><a href="#">Tâches</a><a href="#">Agenda</a><a href="#">Réunions</a><a href="#">Classement</a></div>
+      <div class="fcol"><h5>Ressources</h5><a href="#">Visite guidée</a><a href="#">Centre d'aide</a><a href="#">Nouveautés</a><a href="#">Statut</a></div>
+      <div class="fcol"><h5>Entreprise</h5><a href="#">À propos</a><a href="#">Contact</a><a href="#">Support</a></div>
+      <div class="fcol"><h5>Légal</h5><a href="#">Confidentialité</a><a href="#">Conditions</a><a href="#">Cookies</a></div>
+    </div>
+    <div class="fbot">
+      <span>© 2026 Planii. Tous droits réservés.</span>
+      <span>Français · Hébergé en Europe</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

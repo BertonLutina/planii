@@ -2,6 +2,8 @@
 
 Référence du système de design de Planii : couleurs, typographie, espacements, composants, icônes, états d'interaction et mise en page. Tout est piloté par des **variables CSS** (`planii-vite/src/index.css`) et s'adapte automatiquement aux thèmes **clair / sombre / auto**.
 
+L'app mobile (`planii-mobile`) reprend les mêmes jetons dans `src/theme/tokens.ts`, sous forme d'objets `light` / `dark` : `--accent-bg` y devient `c.accentBg`. Les deux plateformes doivent bouger ensemble.
+
 > Règle d'or : ne jamais coder une couleur en dur. Toujours passer par une variable (`var(--accent)`), sinon le mode sombre casse.
 
 ---
@@ -10,64 +12,77 @@ Référence du système de design de Planii : couleurs, typographie, espacements
 
 - **Logo** : deux points blancs (une tâche cochée) sur un carré violet accent, rayon 25–30 %.
 - **Nom** : « Planii », graisse 600.
-- **Couleur principale** : violet accent `#534AB7`.
+- **Couleur principale** : violet accent `#6d5cff`.
 
 ---
 
 ## 2. Couleurs
 
-Chaque couleur d'état possède une variante `-bg` (fond pâle) utilisée pour les pastilles, bannières et surfaces d'accent.
+Chaque couleur d'état possède deux compagnons :
+
+- une variante `-bg` — le **fond pâle** des pastilles, bannières et surfaces d'accent ;
+- une variante `-on` — la **couleur du texte posé sur ce fond pâle**.
+
+La teinte de marque ne tient pas le rapport 4.5:1 sur son propre fond pâle en thème clair (`--accent` sur `--accent-bg` : 3.87:1). `--accent` reste donc la couleur des aplats — un bouton principal, le logo — et `--accent-on` prend le relais dès qu'il s'agit de texte sur fond pâle. En thème sombre les deux sont identiques : les paires d'origine y passent déjà largement.
 
 ### Thème clair
 
 | Rôle | Variable | Hex |
 |------|----------|-----|
-| Fond page | `--bg` | `#faf9f5` |
+| Fond page | `--bg` | `#f7f7f8` |
 | Surface (carte) | `--surface` | `#ffffff` |
-| Surface secondaire | `--surface-2` | `#f1efe8` |
-| Ligne (hairline) | `--line` | `#e6e3da` |
-| Ligne forte | `--line-strong` | `#d3d1c7` |
-| Texte | `--text` | `#26251f` |
-| Texte discret | `--muted` | `#6b6a63` |
-| Indice | `--hint` | `#93918a` |
-| **Accent** | `--accent` | `#534AB7` |
-| Accent fond | `--accent-bg` | `#eeedfe` |
-| Accent clair | `--accent-2` | `#7f77dd` |
-| Danger | `--danger` / `--danger-bg` | `#a32d2d` / `#fcebeb` |
-| Attention | `--warn` / `--warn-bg` | `#854f0b` / `#faeeda` |
-| Succès | `--ok` / `--ok-bg` | `#0f6e56` / `#e1f5ee` |
-| Info | `--blue` / `--blue-bg` | `#185fa5` / `#eaf2fb` |
-| Or | `--gold` | `#ba7517` |
+| Surface secondaire | `--surface-2` | `#f0f0f2` |
+| Ligne (hairline) | `--line` | `#e5e5e7` |
+| Ligne forte | `--line-strong` | `#d6d6da` |
+| Texte | `--text` | `#0d0d0d` |
+| Texte discret | `--muted` | `#68687a` |
+| Indice | `--hint` | `#6a6a76` |
+| **Accent** | `--accent` | `#6d5cff` |
+| Accent fond | `--accent-bg` | `#efeaff` |
+| Accent texte | `--accent-on` | `#5a48e8` |
+| Accent clair | `--accent-2` | `#8b7bff` |
+| Danger | `--danger` / `--danger-bg` / `--danger-on` | `#c8362f` / `#fdeceb` / `#c8362f` |
+| Attention | `--warn` / `--warn-bg` / `--warn-on` | `#a5680a` / `#fdf2df` / `#8a5608` |
+| Succès | `--ok` / `--ok-bg` / `--ok-on` | `#0f8f6a` / `#e2f6ef` / `#0b7a5a` |
+| Info | `--blue` / `--blue-bg` / `--blue-on` | `#1f6fc9` / `#e7f0fc` / `#1a5da8` |
+| Or | `--gold` | `#c98a12` |
 | Texte sur accent | `--on-accent` | `#ffffff` |
 
 ### Thème sombre
 
 | Rôle | Variable | Hex |
 |------|----------|-----|
-| Fond page | `--bg` | `#1b1a17` |
-| Surface | `--surface` | `#26251f` |
-| Surface secondaire | `--surface-2` | `#302e27` |
-| Ligne | `--line` | `#3a382f` |
-| Ligne forte | `--line-strong` | `#4a473c` |
-| Texte | `--text` | `#f1efe8` |
-| Texte discret | `--muted` | `#b4b2a9` |
-| Indice | `--hint` | `#9a988f` |
-| **Accent** | `--accent` | `#afa9ec` |
-| Accent fond | `--accent-bg` | `#2b2758` |
-| Danger | `--danger` / `--danger-bg` | `#f09595` / `#3a1a1a` |
-| Attention | `--warn` / `--warn-bg` | `#efa927` / `#3a2a10` |
-| Succès | `--ok` / `--ok-bg` | `#5dcaa5` / `#123027` |
-| Info | `--blue` / `--blue-bg` | `#85b7eb` / `#12233a` |
-| Or | `--gold` | `#ef9f27` |
-| Texte sur accent | `--on-accent` | `#1b1a17` |
+| Fond page | `--bg` | `#100e1a` |
+| Surface | `--surface` | `#191426` |
+| Surface secondaire | `--surface-2` | `#231d3a` |
+| Ligne | `--line` | `#2a2442` |
+| Ligne forte | `--line-strong` | `#382f59` |
+| Texte | `--text` | `#f3f1fb` |
+| Texte discret | `--muted` | `#a29dbf` |
+| Indice | `--hint` | `#8b86aa` |
+| **Accent** | `--accent` / `--accent-on` | `#8b7bff` |
+| Accent fond | `--accent-bg` | `#231d44` |
+| Accent clair | `--accent-2` | `#a78bff` |
+| Danger | `--danger` / `--danger-bg` | `#ff8189` / `#2a1418` |
+| Attention | `--warn` / `--warn-bg` | `#ffc44d` / `#2a2010` |
+| Succès | `--ok` / `--ok-bg` | `#3ce0ab` / `#0f2a21` |
+| Info | `--blue` / `--blue-bg` | `#5cb0ff` / `#12233a` |
+| Or | `--gold` | `#ffc44d` |
+| Texte sur accent | `--on-accent` | `#12101c` |
 
-**Sur fond coloré**, utiliser toujours la teinte foncée de la même famille comme couleur de texte (ex. texte `--accent` sur fond `--accent-bg`), jamais du noir pur.
+**Sur fond coloré**, utiliser toujours la variante `-on` de la même famille comme couleur de texte (texte `--accent-on` sur fond `--accent-bg`), jamais du noir pur ni la teinte pleine.
+
+### Contraste — le seuil à tenir
+
+Petit corps : **4.5:1** minimum. Grand corps (≥ 18.66 px, ou ≥ 24 px en 400) : 3:1. Les bordures, icônes décoratives et séparateurs relèvent du seuil non textuel de **3:1** — c'est pourquoi `border-color` garde la teinte de marque là où `color` passe en `-on`.
+
+Les 30 paires texte/fond des deux thèmes sont vérifiées. Toute nouvelle paire doit l'être aussi : la mesure, jamais l'œil. Une teinte lisible sur `--surface` peut échouer sur `--surface-2`, qui est plus sombre en clair.
 
 ---
 
 ## 3. Typographie
 
-- **Police** : pile système — `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`.
+- **Police** : `Inter Variable`, avec repli sur la pile système — `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`. Le mobile s'en tient à la pile système.
 - **Interlignage corps** : 1.5.
 - **Graisses utilisées** : 400 (normal), 600, 700, 800.
 - **Casse** : phrase (« sentence case ») partout. Les en-têtes de groupe sont en MAJUSCULES + `letter-spacing: .05em`.
@@ -96,7 +111,7 @@ Chaque couleur d'état possède une variante `-bg` (fond pâle) utilisée pour l
 | Padding carte | 16 px |
 | Padding contenu (`.wrap`) | 18 px |
 | Gouttière de grille | 12 px |
-| Ombre (`--shadow`) | `0 1px 3px rgba(0,0,0,.06), 0 6px 20px rgba(0,0,0,.05)` |
+| Ombre (`--shadow`) | `0 1px 3px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05)` |
 
 Espacements verticaux courants : 6 · 8 · 10 · 12 · 14 · 18 px.
 
@@ -169,9 +184,9 @@ Grille `repeat(auto-fit, minmax(140px, 1fr))`. Icône 20 px, valeur 26 px / 800,
 | Survol (éléments cliquables) | fond → `var(--surface-2)` |
 | Survol (cartes) | bordure → `var(--line-strong)` |
 | Survol (carte projet) | légère élévation `translateY(-1px)` + ombre douce |
-| Actif / sélectionné | classe `.on` (fond accent pâle + couleur accent, ou surface + ombre pour les segments) |
+| Actif / sélectionné | classe `.on` (fond accent pâle + couleur `--accent-on`, ou surface + ombre pour les segments) |
 | Désactivé | `opacity: .5` |
-| Focus | anneau natif du navigateur (pas de style custom global) |
+| Focus | anneau natif du navigateur (pas de style custom global) — ne jamais poser `outline:none` sans remplacement visible |
 | Glisser-déposer | poignée `⠿`, opacité .45 sur l'élément déplacé, zone de dépôt surlignée accent |
 
 ---
@@ -185,17 +200,26 @@ Grille `repeat(auto-fit, minmax(140px, 1fr))`. Icône 20 px, valeur 26 px / 800,
 
 Points de rupture : **900 px** (bascule mobile/desktop), **700 px** (grille projets), **640 / 560 px** (ajustements mobiles).
 
+### App native
+
+`planii-mobile` ne reprend pas les points de rupture : il n'y a qu'une largeur, et elle descend à **320 pt**. Tout doit rester lisible là. Deux règles s'y ajoutent :
+
+- **Cible tactile 44 pt minimum**, y compris les croix de suppression et les chevrons de réordonnancement.
+- **`auto` suit le réglage système** de l'appareil, là où le web bascule sur l'heure (19 h → 7 h). C'est la convention native : l'utilisateur s'attend à retrouver son choix iOS/Android.
+
 ---
 
 ## 9. Règles d'usage
 
-1. **Toujours** utiliser les variables CSS — jamais de hex en dur.
-2. Vérifier chaque écran en **clair ET sombre** (test mental : sur fond quasi noir, tout le texte reste-t-il lisible ?).
+1. **Toujours** utiliser les variables CSS — jamais de hex en dur. Seule exception : les couleurs choisies par l'utilisateur (libellés de projet, statuts de tâche), qui sont de la donnée. Ne jamais les poser derrière du texte : pastille ou bordure uniquement.
+2. Vérifier chaque écran en **clair ET sombre**, et **mesurer** le contraste plutôt que l'estimer. Sur fond pâle, le texte prend la variante `-on`.
 3. Couleur = sens : accent pour l'action principale, danger/warn/ok pour les états. Un seul bouton `primary` par vue.
-4. Casse en phrase, pas de Title Case ni de ALL CAPS (sauf en-têtes de groupe).
-5. Formes : rayon 14 px cartes, 12 px contrôles, 99 px pastilles ; bordures fines `--line`.
-6. Densité mesurée : listes en lignes bordées plutôt qu'en cartes empilées ; pas de sur-padding.
+4. **La couleur ne porte jamais seule l'information** : un drapeau de priorité écrit « P1 », un badge de notification écrit son compte.
+5. Casse en phrase, pas de Title Case ni de ALL CAPS (sauf en-têtes de groupe).
+6. Formes : rayon 14 px cartes, 12 px contrôles, 99 px pastilles ; bordures fines `--line`.
+7. Densité mesurée : listes en lignes bordées plutôt qu'en cartes empilées ; pas de sur-padding.
+8. **Chargement = squelette** au gabarit du contenu final, pas un rond qui tourne. Les états vide et erreur se conçoivent en même temps que l'état plein.
 
 ---
 
-*Généré depuis le code source de Planii (`planii-vite/src/index.css`). Voir aussi `planii-design-system.html` pour l'aperçu visuel interactif clair/sombre.*
+*Généré depuis le code source de Planii (`planii-vite/src/index.css`, `planii-mobile/src/theme/tokens.ts`). Voir aussi `planii-design-system.html` pour l'aperçu visuel interactif clair/sombre.*
