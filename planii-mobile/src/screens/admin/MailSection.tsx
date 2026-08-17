@@ -145,7 +145,6 @@ export function MailSection({ padBottom }: { padBottom: number }) {
         onPress={() => setCompose(true)}
         accessibilityLabel={t('ad.compose')}
         icon="edit"
-        tabBarHeight={0}
       />
 
       <MailSheet

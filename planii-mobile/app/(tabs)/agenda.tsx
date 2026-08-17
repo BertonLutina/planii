@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { ActionMenu, Banner, Button, Fab, Tabs, type TabItem } from '@/components/ui'
+import { ActionMenu, Banner, Button, Fab, NATIVE_TAB_BAR, Tabs, type TabItem } from '@/components/ui'
 import { NotifBell } from '@/components/NotifBell'
 import { QuickAppointment } from '@/components/QuickAppointment'
 import { QuickTask } from '@/components/QuickTask'
@@ -88,7 +88,7 @@ export default function AgendaScreen() {
   )
 
   /* Le bas de la liste doit dégager le bouton flottant (56 pt + sa marge). */
-  const padBottom = insets.bottom + 88
+  const padBottom = insets.bottom + NATIVE_TAB_BAR + 88
 
   let body: React.ReactNode
   if (!events) {
@@ -147,7 +147,7 @@ export default function AgendaScreen() {
       {body}
 
       {/* Dernier enfant du conteneur `flex: 1` — jamais dans une liste. */}
-      <Fab onPress={() => setPick(true)} accessibilityLabel={t('qa.pick')} tabBarHeight={0} />
+      <Fab onPress={() => setPick(true)} accessibilityLabel={t('qa.pick')} />
 
       <ActionMenu
         open={pick}

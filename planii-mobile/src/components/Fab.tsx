@@ -4,21 +4,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ic, type IconName } from '@/components/Icon'
 import { useTheme } from '@/theme/ThemeProvider'
 
+/** Hauteur de la barre native hors encoche. La JS-tab bar prenait de la place
+ *  dans le layout ; iOS 26 (Liquid Glass) et Material 3 se posent par-dessus. */
+export const NATIVE_TAB_BAR = Platform.OS === 'android' ? 80 : 49
+
 export interface FabProps {
   onPress: () => void
   /** Décrit l'action, pas l'icône : « Nouveau projet ». Obligatoire. */
   accessibilityLabel: string
   /** Icône (défaut : `plus`). */
   icon?: IconName | (string & {})
-  /** Hauteur de la barre d'onglets à franchir (56 par défaut). Passez 0 sur un
-   *  écran de pile sans onglets. */
+  /** Hauteur de la barre d'onglets à franchir (`NATIVE_TAB_BAR` par défaut).
+   *  Passez 0 sur un écran de pile sans onglets. */
   tabBarHeight?: number
   style?: StyleProp<ViewStyle>
 }
 
 /** Bouton d'action flottant (`.fab`) : cercle accent 56 pt, en bas à droite,
  *  au-dessus de la barre d'onglets et de l'encoche basse. */
-export function Fab({ onPress, accessibilityLabel, icon = 'plus', tabBarHeight = 56, style }: FabProps) {
+export function Fab({ onPress, accessibilityLabel, icon = 'plus', tabBarHeight = NATIVE_TAB_BAR, style }: FabProps) {
   const { c } = useTheme()
   const insets = useSafeAreaInsets()
   return (

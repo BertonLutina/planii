@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { Banner, Button, EmptyState, SkeletonList } from '@/components/ui'
+import { Banner, Button, EmptyState, NATIVE_TAB_BAR, SkeletonList } from '@/components/ui'
 import { NotifBell } from '@/components/NotifBell'
 import { t, useI18n } from '@/lib/i18n'
 import { TEAM_BONUS } from '@/lib/points'
@@ -108,7 +108,7 @@ export default function ClassementScreen() {
             onAction={() => router.push('/projets')}
           />
         }
-        contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[s.list, { paddingBottom: insets.bottom + NATIVE_TAB_BAR + 24 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.accent} colors={[c.accent]} />
         }

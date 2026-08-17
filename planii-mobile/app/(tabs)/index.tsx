@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { ActionMenu, Banner, Button, Fab, GroupHeader, Tabs, type TabItem } from '@/components/ui'
+import { ActionMenu, Banner, Button, Fab, GroupHeader, NATIVE_TAB_BAR, Tabs, type TabItem } from '@/components/ui'
 import { NotifBell } from '@/components/NotifBell'
 import { api } from '@/lib/api'
 import { t, trTerm, useI18n } from '@/lib/i18n'
@@ -80,7 +80,7 @@ export default function AccueilScreen() {
   }, [menuFor, home])
 
   /* Le bas des listes doit dégager le bouton flottant (56 pt + sa marge). */
-  const padBottom = insets.bottom + 88
+  const padBottom = insets.bottom + NATIVE_TAB_BAR + 88
 
   const items: TabItem<HomeView>[] = [
     { key: 'list', label: t('view.list'), icon: 'list' },
@@ -163,7 +163,7 @@ export default function AccueilScreen() {
       {body}
 
       {/* Dernier enfant du conteneur `flex: 1` — jamais dans une liste. */}
-      <Fab onPress={() => setNewOpen(true)} accessibilityLabel={t('cmd.newProject')} tabBarHeight={0} />
+      <Fab onPress={() => setNewOpen(true)} accessibilityLabel={t('cmd.newProject')} />
 
       <ActionMenu
         open={!!menuFor}

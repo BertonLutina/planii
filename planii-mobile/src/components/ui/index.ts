@@ -27,5 +27,5 @@ export { priorityColors, resolveTone, toneColors, type Tone, type ToneColors, ty
 export { useReduceMotion } from './useReduceMotion'
 
 /* Hors du kit mais du même registre visuel */
-export { Fab, type FabProps } from '@/components/Fab'
+export { Fab, NATIVE_TAB_BAR, type FabProps } from '@/components/Fab'
 export { Ic, ICON_NAMES, type IconName, type IcProps } from '@/components/Icon'

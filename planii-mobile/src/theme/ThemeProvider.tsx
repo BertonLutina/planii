@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useColorScheme } from 'react-native'
+import { Appearance, useColorScheme } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { dark, light, type Colors } from './tokens'
 
@@ -39,6 +39,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setPrefState(t)
     AsyncStorage.setItem(KEY, t).catch(() => { /* ignore */ })
   }, [])
+
+  /* La chrome native (Liquid Glass, barre Android) suit Appearance, pas le
+     thème JS. `null` = laisser le système décider (mode auto). */
+  useEffect(() => {
+    Appearance.setColorScheme(pref === 'auto' ? null : pref)
+  }, [pref])
 
   const scheme: Resolved = pref === 'auto' ? (system === 'dark' ? 'dark' : 'light') : pref
   const value = useMemo<Ctx>(() => ({

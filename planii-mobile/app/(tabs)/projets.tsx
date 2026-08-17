@@ -3,7 +3,7 @@ import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import {
-  ActionMenu, Banner, Button, Confirm, EmptyState, Fab, Tabs,
+  ActionMenu, Banner, Button, Confirm, EmptyState, Fab, NATIVE_TAB_BAR, Tabs,
   type ActionItem, type TabItem,
 } from '@/components/ui'
 import { NotifBell } from '@/components/NotifBell'
@@ -206,7 +206,7 @@ export default function ProjetsScreen() {
               />
             )
         }
-        contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 88 }]}
+        contentContainerStyle={[s.list, { paddingBottom: insets.bottom + NATIVE_TAB_BAR + 88 }]}
         refreshControl={
           <RefreshControl refreshing={P.refreshing} onRefresh={P.refresh} tintColor={c.accent} colors={[c.accent]} />
         }
@@ -222,7 +222,7 @@ export default function ProjetsScreen() {
       {body}
 
       {/* Dernier enfant du conteneur `flex: 1` — jamais dans une liste. */}
-      <Fab onPress={() => setNewOpen(true)} accessibilityLabel={t('projects.newProject')} tabBarHeight={0} />
+      <Fab onPress={() => setNewOpen(true)} accessibilityLabel={t('projects.newProject')} />
 
       <ActionMenu
         open={sortOpen}

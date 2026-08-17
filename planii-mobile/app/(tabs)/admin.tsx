@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Tabs, type TabItem } from '@/components/ui'
+import { NATIVE_TAB_BAR, Tabs, type TabItem } from '@/components/ui'
 import { NotifBell } from '@/components/NotifBell'
 import { t, useI18n } from '@/lib/i18n'
 import { useSession } from '@/lib/session'
@@ -14,7 +14,8 @@ import { useTheme } from '@/theme/ThemeProvider'
 
 /* Espace admin — portage de `Admin` (planii-vite/src/components/Admin.tsx).
  * L'onglet est déjà masqué et injoignable pour un non-admin : la garde vit dans
- * app/(tabs)/_layout.tsx (`href: me?.admin ? undefined : null`).
+ * app/(tabs)/_layout.tsx (`hidden={!me?.admin}`). Sur Android, Material 3
+ * plafonne à 5 onglets : l'admin remplace alors le classement.
  *
  * ── Ce que le web fait et que le téléphone ne peut pas reprendre tel quel ──
  *
@@ -60,7 +61,7 @@ export default function AdminScreen() {
 
   /* Le bas de chaque liste doit dégager la barre d'onglets, et la boîte mail
      son bouton flottant (56 pt + marge). */
-  const padBottom = insets.bottom + 96
+  const padBottom = insets.bottom + NATIVE_TAB_BAR + 96
 
   const items: TabItem<Section>[] = [
     { key: 'dash', label: t('ad.dash'), icon: 'chart-bar' },

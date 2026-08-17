@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { Button, Confirm, SectionHeader, Skeleton } from '@/components/ui'
+import { Button, Confirm, NATIVE_TAB_BAR, SectionHeader, Skeleton } from '@/components/ui'
 import { t, useI18n } from '@/lib/i18n'
 import { useSession } from '@/lib/session'
 import { roleLibraryOf, taskTypesOf } from '@/lib/tasktype'
@@ -128,7 +128,7 @@ function ProfileSkeleton() {
 const s = StyleSheet.create({
   screen: { flex: 1 },
   title: { fontSize: 27, fontWeight: '800', letterSpacing: -0.5, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8 },
-  body: { paddingHorizontal: 18, paddingBottom: 32 },
+  body: { paddingHorizontal: 18, paddingBottom: 32 + NATIVE_TAB_BAR },
   admin: { marginTop: 20 },
   logout: { marginTop: 22 },
   skel: { gap: 12 },
