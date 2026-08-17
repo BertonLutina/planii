@@ -2017,3 +2017,38 @@ textarea:focus-visible,[tabindex]:focus-visible,[role="button"]:focus-visible,[c
   -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='12' y='10' width='58' height='21' rx='10.5' fill='%23fff'/%3E%3Crect x='15.5' y='43' width='69' height='14' rx='7' fill='none' stroke='%23fff' stroke-width='7'/%3E%3Crect x='12' y='69' width='40' height='21' rx='10.5' fill='%23fff'/%3E%3C/svg%3E");
           mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='12' y='10' width='58' height='21' rx='10.5' fill='%23fff'/%3E%3Crect x='15.5' y='43' width='69' height='14' rx='7' fill='none' stroke='%23fff' stroke-width='7'/%3E%3Crect x='12' y='69' width='40' height='21' rx='10.5' fill='%23fff'/%3E%3C/svg%3E");
 }
+
+/* ==========================================================================
+   Écran d'authentification — agencement aligné sur l'app mobile.
+   L'arrière-plan flouté (.auth-bg / .auth-glass) est conservé tel quel.
+   ========================================================================== */
+.auth-back{align-self:flex-start;margin-bottom:6px}
+
+/* Verrou de marque : tuile et nom solidaires, centrés, sur une ligne. */
+.auth-lockup{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:26px}
+.auth-lockup .logo{width:34px;height:34px;border-radius:10px;flex:none}
+.auth .auth-lockup h1{font-size:22px;font-weight:800;letter-spacing:-.03em;margin:0;text-align:left}
+
+/* Titre d'action + ligne d'accueil, alignés à gauche comme les champs. */
+.auth-head{width:100%;text-align:left;margin-bottom:16px}
+.auth-head h2{font-size:26px;font-weight:800;letter-spacing:-.035em;margin:0}
+.auth-head p{font-size:14.5px;line-height:1.45;color:var(--muted);margin:4px 0 0}
+.auth-glass .auth-head p{color:rgba(20,16,31,.72)}
+
+/* Listbox de langue : pleine largeur, alignée sur les champs et les boutons. */
+.auth .lang-select{width:100%;margin-bottom:16px;padding:12px 13px;font-size:15px;
+  border:1px solid var(--line-strong);border-radius:11px;background:var(--surface);color:var(--text)}
+.auth-glass .lang-select{background:rgba(255,255,255,.55);border-color:rgba(255,255,255,.65);color:#14101f}
+
+/* Les quatre fournisseurs prennent toute la largeur, comme sur mobile. */
+.auth .auth-social-row{max-width:none}
+.auth .auth-social-btn{aspect-ratio:auto;height:58px;max-height:none}
+
+/* Mentions : une seule ligne, après l'action. */
+.auth-foot{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.auth-foot a{font-size:12.5px;font-weight:700;color:var(--accent-on)}
+.auth-foot i{width:3px;height:3px;border-radius:50%;background:var(--line-strong);display:block}
+.auth-glass .auth-foot{border-top-color:rgba(20,16,31,.14)}
+.auth-glass .auth-foot a{color:#5b4dff}
+.auth-glass .auth-foot i{background:rgba(20,16,31,.24)}

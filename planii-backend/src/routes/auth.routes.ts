@@ -1,4 +1,5 @@
-import { Router, type Request, type RequestHandler } from 'express'
+import { Router, type Request, type RequestHandler, type Response } from 'express'
+import jwt from 'jsonwebtoken'
 import passport from 'passport'
 import * as AuthController from '../controllers/Auth.controller'
 import { authRateLimit } from '../middleware/security'
@@ -57,16 +58,70 @@ function withParam(target: string, key: string, value: string): string {
   return `${target}${sep}${key}=${encodeURIComponent(value)}`
 }
 
-/** Cible de retour retenue pour cette requête, web par défaut. */
-function redirectTarget(req: Request): string {
+/* ── Second canal : un cookie signé ────────────────────────────────────────
+   La session Express seule ne suffit pas. `express-session` tourne ici sur son
+   MemoryStore par défaut : la cible écrite par le worker qui reçoit
+   `/auth/<provider>` est invisible au worker qui reçoit `/callback` dès que le
+   serveur tourne en plusieurs processus, et elle est perdue à chaque
+   redémarrage. Le flux retombait alors silencieusement sur le web — sur mobile,
+   l'utilisateur se retrouvait dans le navigateur au lieu de revenir dans l'app.
+
+   On double donc la session d'un cookie signé, sans état côté serveur : même
+   hôte, `SameSite=Lax` (le retour du fournisseur est une navigation GET de
+   premier niveau, le cookie passe), dix minutes de validité. La cible reste
+   revalidée par `safeRedirect` à la lecture — le cookie ne fait que transporter,
+   il n'autorise rien.                                                        */
+
+const REDIRECT_COOKIE = 'planii_oauth_redirect'
+const REDIRECT_TTL_S = 600
+
+function cookieOptions() {
+  return {
+    httpOnly: true,
+    secure: env.isProd,
+    sameSite: 'lax' as const,
+    maxAge: REDIRECT_TTL_S * 1000,
+    path: '/',
+  }
+}
+
+function writeRedirectCookie(res: Response, target: string): void {
+  const token = jwt.sign({ r: target }, env.JWT_SECRET, { expiresIn: REDIRECT_TTL_S })
+  res.cookie(REDIRECT_COOKIE, token, cookieOptions())
+}
+
+/** Lit le cookie sans `cookie-parser` : l'en-tête brut suffit pour une clé. */
+function readRedirectCookie(req: Request): string | null {
+  const raw = req.headers.cookie
+  if (!raw) return null
+  for (const part of raw.split(';')) {
+    const eq = part.indexOf('=')
+    if (eq < 0) continue
+    if (part.slice(0, eq).trim() !== REDIRECT_COOKIE) continue
+    try {
+      const payload = jwt.verify(decodeURIComponent(part.slice(eq + 1).trim()), env.JWT_SECRET)
+      const r = (payload as { r?: unknown }).r
+      return typeof r === 'string' ? r : null
+    } catch {
+      return null // expiré ou falsifié : on ignore, le web reprend la main
+    }
+  }
+  return null
+}
+
+/** Cible de retour retenue pour cette requête, web par défaut.
+ *  Session d'abord, cookie ensuite — les deux sont à usage unique. */
+function redirectTarget(req: Request, res: Response): string {
   const stored = req.session?.oauthRedirect
   if (stored) {
     // Usage unique : une session réutilisée ne doit pas rejouer l'ancienne cible.
     delete req.session.oauthRedirect
-    const ok = safeRedirect(stored)
-    if (ok) return ok
   }
-  return `${env.webUrl.replace(/\/$/, '')}/`
+  const fromCookie = readRedirectCookie(req)
+  if (fromCookie) res.clearCookie(REDIRECT_COOKIE, { path: '/' })
+
+  const ok = safeRedirect(stored) || safeRedirect(fromCookie)
+  return ok || `${env.webUrl.replace(/\/$/, '')}/`
 }
 
 /** Mémorise la cible demandée, puis lance l'autorisation du fournisseur. */
@@ -77,6 +132,8 @@ function oauthStartHandler(provider: OAuthProvider): RequestHandler {
       if (wanted) req.session.oauthRedirect = wanted
       else delete req.session.oauthRedirect
     }
+    if (wanted) writeRedirectCookie(res, wanted)
+    else res.clearCookie(REDIRECT_COOKIE, { path: '/' })
     passport.authenticate(provider, { session: true })(req, res, next)
   }
 }
@@ -84,7 +141,7 @@ function oauthStartHandler(provider: OAuthProvider): RequestHandler {
 function oauthCallbackHandler(provider: OAuthProvider): RequestHandler {
   return (req, res, next) => {
     passport.authenticate(provider, { session: false }, (err: unknown, result: OAuthAuthResult | false) => {
-      const target = redirectTarget(req)
+      const target = redirectTarget(req, res)
       if (err || !result) {
         return res.redirect(withParam(target, 'authError', provider))
       }

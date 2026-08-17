@@ -32,7 +32,7 @@ const fr: Dict = {
   'theme.title': 'Apparence', 'theme.light': 'Clair', 'theme.dark': 'Sombre', 'theme.auto': 'Auto', 'theme.autoHint': 'Sombre de 19h à 7h, clair le reste du temps',
 
   'lang.title': 'Langue',
-  'auth.tagline': 'Projets partagés : clients, prestataires et groupes — tâches, invitations, sondages, activité.', 'auth.email': 'Email', 'auth.password': 'Mot de passe', 'auth.login': 'Se connecter', 'auth.signup': 'Créer mon compte', 'auth.noAccount': 'Pas encore de compte ?', 'auth.hasAccount': 'Déjà inscrit ?', 'auth.register': 'S’inscrire', 'auth.name': 'Nom complet', 'auth.job': 'Métier', 'auth.country': 'Pays', 'auth.countryPh': 'Choisir un pays', 'auth.support': 'Un problème ? Contactez le support :', 'auth.privacy': 'Politique de confidentialité', 'auth.continueGoogle': 'Continuer avec Google', 'auth.continueMicrosoft': 'Continuer avec Microsoft', 'auth.continueLinkedin': 'Continuer avec LinkedIn', 'auth.continueYahoo': 'Continuer avec Yahoo', 'auth.orEmail': 'ou par e-mail', 'common.search': 'Rechercher…',
+  'lang.fr': 'Français', 'lang.en': 'Anglais', 'lang.nl': 'Néerlandais', 'lang.es': 'Espagnol', 'lang.pt': 'Portugais', 'lang.it': 'Italien', 'lang.el': 'Grec', 'lang.ru': 'Russe', 'lang.sw': 'Swahili', 'lang.device': 'langue de l’appareil', 'auth.tagline': 'Projets partagés : clients, prestataires et groupes — tâches, invitations, sondages, activité.', 'auth.welcomeBack': 'Content de vous revoir.', 'auth.startSub': 'Deux minutes, et votre premier projet est prêt.', 'auth.help': 'Aide', 'auth.email': 'Email', 'auth.password': 'Mot de passe', 'auth.login': 'Se connecter', 'auth.signup': 'Créer mon compte', 'auth.noAccount': 'Pas encore de compte ?', 'auth.hasAccount': 'Déjà inscrit ?', 'auth.register': 'S’inscrire', 'auth.name': 'Nom complet', 'auth.job': 'Métier', 'auth.country': 'Pays', 'auth.countryPh': 'Choisir un pays', 'auth.support': 'Un problème ? Contactez le support :', 'auth.privacy': 'Politique de confidentialité', 'auth.continueGoogle': 'Continuer avec Google', 'auth.continueMicrosoft': 'Continuer avec Microsoft', 'auth.continueLinkedin': 'Continuer avec LinkedIn', 'auth.continueYahoo': 'Continuer avec Yahoo', 'auth.orEmail': 'ou par e-mail', 'common.search': 'Rechercher…',
   'profile.info': 'Mes informations', 'profile.firstName': 'Prénom', 'profile.lastName': 'Nom', 'profile.job': 'Métier', 'profile.email': 'E-mail', 'profile.roles': 'Mes rôles', 'profile.taskTypes': 'Mes types de tâches', 'profile.labels': 'Mes libellés de projets', 'profile.logout': 'Se déconnecter', 'profile.changePhoto': 'Changer la photo', 'profile.removePhoto': 'Retirer la photo', 'profile.photoOk': 'Photo mise à jour ✓', 'profile.photoRemoved': 'Photo retirée', 'pd.projectPhoto': 'Photo du projet', 'pd.photoOk': 'Photo du projet mise à jour ✓', 'pd.photoRemoved': 'Photo du projet retirée', 'profile.adminSpace': 'Espace admin', 'profile.editInfo': 'Modifier mes informations',
   'profile.emailNotifs': 'Notifications e-mail', 'profile.emailNotifsDesc': 'Choisis quels e-mails tu veux recevoir. La cloche dans l’app reste inchangée.',
   'profile.emailNotifsTasks': 'Tâches', 'profile.emailNotifsAppts': 'Rendez-vous', 'profile.emailNotifsInvites': 'Invitations & membres',
@@ -76,7 +76,7 @@ const en: Dict = {
   'theme.title': 'Appearance', 'theme.light': 'Light', 'theme.dark': 'Dark', 'theme.auto': 'Auto', 'theme.autoHint': 'Dark from 7pm to 7am, light the rest of the day',
 
   'lang.title': 'Language',
-  'auth.tagline': 'Shared projects: clients, providers and groups — tasks, invites, polls, activity.', 'auth.email': 'Email', 'auth.password': 'Password', 'auth.login': 'Sign in', 'auth.signup': 'Create my account', 'auth.noAccount': 'No account yet?', 'auth.hasAccount': 'Already registered?', 'auth.register': 'Sign up', 'auth.name': 'Full name', 'auth.job': 'Job title', 'auth.country': 'Country', 'auth.countryPh': 'Choose a country', 'auth.support': 'Need help? Contact support:', 'auth.privacy': 'Privacy policy', 'auth.continueGoogle': 'Continue with Google', 'auth.continueMicrosoft': 'Continue with Microsoft', 'auth.continueLinkedin': 'Continue with LinkedIn', 'auth.continueYahoo': 'Continue with Yahoo', 'auth.orEmail': 'or with email', 'common.search': 'Search…',
+  'lang.fr': 'French', 'lang.en': 'English', 'lang.nl': 'Dutch', 'lang.es': 'Spanish', 'lang.pt': 'Portuguese', 'lang.it': 'Italian', 'lang.el': 'Greek', 'lang.ru': 'Russian', 'lang.sw': 'Swahili', 'lang.device': 'device language', 'auth.tagline': 'Shared projects: clients, providers and groups — tasks, invites, polls, activity.', 'auth.welcomeBack': 'Good to see you again.', 'auth.startSub': 'Two minutes, and your first project is ready.', 'auth.help': 'Help', 'auth.email': 'Email', 'auth.password': 'Password', 'auth.login': 'Sign in', 'auth.signup': 'Create my account', 'auth.noAccount': 'No account yet?', 'auth.hasAccount': 'Already registered?', 'auth.register': 'Sign up', 'auth.name': 'Full name', 'auth.job': 'Job title', 'auth.country': 'Country', 'auth.countryPh': 'Choose a country', 'auth.support': 'Need help? Contact support:', 'auth.privacy': 'Privacy policy', 'auth.continueGoogle': 'Continue with Google', 'auth.continueMicrosoft': 'Continue with Microsoft', 'auth.continueLinkedin': 'Continue with LinkedIn', 'auth.continueYahoo': 'Continue with Yahoo', 'auth.orEmail': 'or with email', 'common.search': 'Search…',
   'profile.info': 'My information', 'profile.firstName': 'First name', 'profile.lastName': 'Last name', 'profile.job': 'Job', 'profile.email': 'Email', 'profile.roles': 'My roles', 'profile.taskTypes': 'My task types', 'profile.labels': 'My project labels', 'profile.logout': 'Sign out', 'profile.changePhoto': 'Change photo', 'profile.removePhoto': 'Remove photo', 'profile.photoOk': 'Photo updated ✓', 'profile.photoRemoved': 'Photo removed', 'pd.projectPhoto': 'Project photo', 'pd.photoOk': 'Project photo updated ✓', 'pd.photoRemoved': 'Project photo removed', 'profile.adminSpace': 'Admin space', 'profile.editInfo': 'Edit my information',
   'profile.emailNotifs': 'Email notifications', 'profile.emailNotifsDesc': 'Choose which emails you want to receive. The in-app bell is unchanged.',
   'profile.emailNotifsTasks': 'Tasks', 'profile.emailNotifsAppts': 'Appointments', 'profile.emailNotifsInvites': 'Invites & membership',
@@ -417,6 +417,26 @@ export function setLang(l: Lang) {
 
 /** Traduit une clé dans la langue active (repli : français, puis la clé elle-même).
  *  Variables : t('x', { n: 3 }) remplace {n} dans la chaîne. */
+/**
+ * Options prêtes pour la list box : nom de la langue traduit sur la première
+ * ligne, nom natif sur la seconde. La langue de l'appareil est signalée — c'est
+ * elle qui est présélectionnée, autant le dire.
+ */
+export function langOptions(): { value: Lang; label: string; hint: string; flag: string }[] {
+  const device = (Localization.getLocales()[0]?.languageCode || '').slice(0, 2).toLowerCase()
+  return LANGS.map((l) => ({
+    value: l.code,
+    label: t('lang.' + l.code),
+    hint: l.code === device ? `${l.label} · ${t('lang.device')}` : l.label,
+    flag: LANG_FLAG_ISO[l.code] || l.code,
+  }))
+}
+
+/** Code langue Planii → code ISO du drapeau. */
+const LANG_FLAG_ISO: Record<string, string> = {
+  fr: 'fr', en: 'gb', nl: 'nl', es: 'es', pt: 'pt', it: 'it', el: 'gr', ru: 'ru', sw: 'tz',
+}
+
 export function t(key: string, vars?: Record<string, string | number>): string {
   let s = DICTS[current][key] ?? en[key] ?? fr[key] ?? key
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.split('{' + k + '}').join(String(v))

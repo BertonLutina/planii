@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Planii — écrans de connexion : avant / après</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#f7f7f8; --surface:#fff; --surface-2:#f0f0f2;
+  --line:#e5e5e7; --line-strong:#d6d6da;
+  --text:#0d0d0d; --muted:#68687a; --hint:#6a6a76;
+  --accent:#6d5cff; --accent-bg:#efeaff; --accent-on:#5a48e8; --accent-2:#8b7bff;
+  --ok:#0f8f6a; --ok-bg:#e2f6ef; --ok-on:#0b7a5a;
+  --warn-bg:#fdf2df; --warn-on:#8a5608;
+  --danger:#c8362f; --danger-bg:#fdeceb;
+  --page:#ececed; --card:#fff;
+  --sh:0 1px 3px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.05);
+}
+:root[data-theme="dark"]{
+  --bg:#100e1a; --surface:#191426; --surface-2:#231d3a;
+  --line:#2a2442; --line-strong:#382f59;
+  --text:#f3f1fb; --muted:#a29dbf; --hint:#8b86aa;
+  --accent:#8b7bff; --accent-bg:#231d44; --accent-on:#8b7bff; --accent-2:#a78bff;
+  --ok:#3ce0ab; --ok-bg:#0f2a21; --ok-on:#3ce0ab;
+  --warn-bg:#2a2010; --warn-on:#ffc44d;
+  --danger:#ff8189; --danger-bg:#2a1418;
+  --page:#0a0812; --card:#191426;
+  --sh:0 1px 3px rgba(0,0,0,.4),0 12px 34px rgba(0,0,0,.42);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--page);color:var(--text);letter-spacing:-.011em;-webkit-font-smoothing:antialiased;
+  padding:34px 24px 70px}
+.wrap{max-width:1500px;margin:0 auto}
+
+/* entête */
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:34px}
+h1{font-size:30px;font-weight:800;letter-spacing:-.035em}
+.top p{font-size:15.5px;color:var(--muted);margin-top:10px;max-width:70ch;line-height:1.6}
+.tbtn{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line-strong);color:var(--muted)}
+:root[data-theme="dark"] .i-sun{display:block}:root[data-theme="dark"] .i-moon{display:none}
+:root[data-theme="light"] .i-sun{display:none}:root[data-theme="light"] .i-moon{display:block}
+
+/* grille d'écrans */
+.screens{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start}
+.col{width:390px;flex:none}
+.cap{margin-bottom:12px}
+.cap b{font-size:15px;font-weight:700;letter-spacing:-.02em;display:block}
+.cap span{font-size:13px;color:var(--muted);display:block;margin-top:3px;line-height:1.5}
+.tagi{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 9px;border-radius:99px;margin-bottom:8px}
+.tagi.old{background:var(--danger-bg);color:var(--danger)}
+.tagi.new{background:var(--ok-bg);color:var(--ok-on)}
+
+/* téléphone */
+.phone{width:390px;height:844px;border-radius:44px;padding:10px;background:linear-gradient(160deg,#3a3159,#241d3c 45%,#15111f);
+  box-shadow:0 2px 8px rgba(0,0,0,.3),0 26px 60px rgba(0,0,0,.32)}
+.scr{position:relative;height:100%;border-radius:35px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:96px;height:26px;border-radius:99px;background:#0a0812;z-index:9}
+.sbar{display:flex;align-items:center;justify-content:space-between;padding:15px 24px 4px;font-size:13px;font-weight:700;flex:none}
+.sbar em{font-style:normal;opacity:.7;letter-spacing:1px}
+.body{flex:1;overflow:hidden;padding:0 22px;display:flex;flex-direction:column}
+.body.scrolls{overflow-y:auto}
+.fold{position:absolute;left:0;right:0;top:600px;border-top:2px dashed var(--accent);z-index:8;pointer-events:none}
+.fold span{position:absolute;right:8px;top:-9px;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--accent);color:#fff;padding:2px 7px;border-radius:5px}
+
+/* briques d'UI */
+.mark{width:72px;height:72px;border-radius:21px;background:linear-gradient(135deg,#8b7bff,#6d5cff);
+  display:grid;place-items:center;margin:0 auto}
+.mark.sm{width:34px;height:34px;border-radius:10px}
+.mark svg{width:66%;height:66%;display:block}
+.lockup{display:flex;align-items:center;justify-content:center;gap:10px}
+.lockup b{font-size:22px;font-weight:800;letter-spacing:-.03em}
+.wordmark{font-size:28px;font-weight:800;letter-spacing:-.03em;text-align:center;margin-top:10px}
+.tagline{font-size:13.5px;line-height:1.45;color:var(--muted);text-align:center;margin-top:6px}
+h2{font-size:26px;font-weight:800;letter-spacing:-.035em}
+.sub{font-size:14.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+.h-old{font-size:20px;font-weight:800;letter-spacing:-.02em}
+
+.flags{display:flex;flex-wrap:wrap;justify-content:center;gap:7px}
+.flags i{width:46px;height:44px;border:1px solid var(--line);border-radius:11px;background:var(--surface);
+  display:grid;place-items:center;font-size:19px;font-style:normal}
+.flags i.on{background:var(--accent-bg);border-color:var(--accent-on)}
+
+.oauth{display:flex;gap:8px}
+.oauth b{flex:1;aspect-ratio:1;max-height:64px;border:1px solid var(--line);border-radius:12px;background:var(--surface);
+  display:grid;place-items:center}
+.oauth svg{width:26px;height:26px;display:block}
+.or{display:flex;align-items:center;gap:10px;color:var(--hint);font-size:12.5px;font-weight:600}
+.or:before,.or:after{content:'';flex:1;height:1px;background:var(--line)}
+
+.field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.field .in{border:1px solid var(--line-strong);border-radius:11px;background:var(--surface);padding:13px 13px;
+  font-size:15px;color:var(--hint);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lrow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.lrow a{font-size:12.5px;font-weight:600;color:var(--accent-on)}
+.cta{background:var(--accent);color:#fff;border-radius:12px;padding:15px;text-align:center;
+  font-size:15.5px;font-weight:700;box-shadow:0 8px 22px rgba(109,92,255,.32)}
+.swap{text-align:center;font-size:14px;color:var(--muted)}
+.swap b{color:var(--accent-on);font-weight:700}
+.foot{text-align:center;font-size:12.5px;color:var(--hint);line-height:1.7}
+.foot a{color:var(--accent-on);font-weight:700}
+
+/* pied discret : langue + confidentialité */
+.botbar{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+  padding-top:14px;border-top:1px solid var(--line)}
+.langbtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;
+  background:var(--surface);padding:8px 14px;font-size:13px;font-weight:600;color:var(--muted)}
+.dot{width:3px;height:3px;border-radius:50%;background:var(--line-strong);display:block}
+
+/* listbox de langues — le contrôle fermé, puis la liste déroulée.
+   Drapeau + nom écrit : le nom porte le sens, le drapeau ne sert qu'au repérage. */
+.lbx{display:flex;align-items:center;gap:10px;border:1px solid var(--line-strong);border-radius:11px;
+  background:var(--surface);padding:11px 13px;font-size:14.5px;font-weight:600}
+.lbx em{font-style:normal;font-size:19px;line-height:1}
+.lbx .nm{flex:1;min-width:0}
+.lbx .cv{color:var(--muted);font-size:12px}
+.lbx.sm{padding:9px 12px;font-size:13.5px;border-radius:10px;gap:8px}
+.lbx.sm em{font-size:17px}
+.lbx.open{border-color:var(--accent-on);border-radius:11px 11px 0 0}
+.lbx-lab{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.lbx-list{border:1px solid var(--accent-on);border-top:0;border-radius:0 0 11px 11px;background:var(--surface);
+  box-shadow:0 16px 38px rgba(0,0,0,.18);overflow:hidden}
+.lbx-opt{display:flex;align-items:center;gap:11px;padding:11px 13px;font-size:14.5px}
+.lbx-opt+.lbx-opt{border-top:1px solid var(--line)}
+.lbx-opt em{font-style:normal;font-size:19px;width:24px;text-align:center;line-height:1}
+.lbx-opt .n{flex:1;min-width:0}
+.lbx-opt .n b{display:block;font-weight:600}
+.lbx-opt .n span{display:block;font-size:11.5px;color:var(--hint)}
+.lbx-opt.on{background:var(--accent-bg)}
+.lbx-opt.on .ck{color:var(--accent-on);font-weight:800}
+
+/* feuille de langues */
+.sheet{position:absolute;inset:0;background:rgba(8,6,18,.42);display:flex;align-items:flex-end;z-index:7}
+.sheet-in{width:100%;background:var(--surface);border-radius:22px 22px 0 0;padding:8px 18px 26px;max-height:76%;
+  display:flex;flex-direction:column;box-shadow:0 -8px 34px rgba(0,0,0,.22)}
+.grab{width:38px;height:4px;border-radius:99px;background:var(--line-strong);margin:6px auto 12px}
+.sheet h3{font-size:18px;font-weight:800;letter-spacing:-.025em}
+.sheet .note{font-size:12.5px;color:var(--hint);margin-top:4px;margin-bottom:12px}
+.lang{display:flex;align-items:center;gap:12px;padding:12px 8px;border-radius:12px}
+.lang+.lang{border-top:1px solid var(--line)}
+.lang.on{background:var(--accent-bg)}
+.lang em{font-style:normal;font-size:20px;width:26px;text-align:center}
+.lang .n{flex:1;min-width:0}
+.lang .n b{display:block;font-size:14.5px;font-weight:600}
+.lang .n span{display:block;font-size:12px;color:var(--hint)}
+.lang .ck{color:var(--accent-on);font-weight:800}
+
+/* légende */
+.legend{margin-top:44px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;box-shadow:var(--sh)}
+.legend h3{font-size:19px;font-weight:800;letter-spacing:-.028em}
+.legend table{width:100%;border-collapse:collapse;margin-top:16px;font-size:14px}
+.legend th{text-align:left;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--hint);padding:0 12px 9px 0;border-bottom:1px solid var(--line)}
+.legend td{padding:11px 12px 11px 0;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.55;color:var(--muted)}
+.legend td b{color:var(--text);font-weight:600}
+.legend tr:last-child td{border-bottom:0}
+.warnbox{margin-top:20px;background:var(--warn-bg);border:1px solid var(--warn-on);border-radius:12px;padding:16px 18px;
+  font-size:14px;line-height:1.6;color:var(--warn-on)}
+.warnbox b{font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <div>
+    <h1>Écrans de connexion — avant / après</h1>
+    <p>Même contenu fonctionnel, remis dans l'ordre d'usage : la marque se fait discrète, l'action monte, les réglages descendent. Le trait violet marque la ligne de flottaison d'un iPhone 14 (844 pt).</p>
+  </div>
+  <button class="tbtn" id="t" aria-label="Changer de thème">
+    <svg class="i-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+    <svg class="i-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+</div>
+
+<div class="screens">
+
+  <!-- ============ 1. AVANT ============ -->
+  <div class="col">
+    <div class="cap"><span class="tagi old">Aujourd'hui</span><b>Connexion — 13 blocs</b>
+      <span>Le champ e-mail arrive en 8ᵉ position. Les drapeaux occupent 130 pt avant l'action.</span></div>
+    <div class="phone"><div class="scr">
+      <div class="island"></div>
+      <div class="sbar"><span>19:07</span><em>▮▮▮ ⌁ ▰</em></div>
+      <div class="fold"><span>ligne de flottaison</span></div>
+      <div class="body" style="gap:0;padding-top:26px">
+        <div class="mark"><svg viewBox="0 0 100 100"><rect x="12" y="10" width="58" height="21" rx="10.5" fill="#fff"/><rect x="15.5" y="43" width="69" height="14" rx="7" fill="none" stroke="#fff" stroke-width="7"/><rect x="12" y="69" width="40" height="21" rx="10.5" fill="#fff"/></svg></div>
+        <div class="wordmark">Planii</div>
+        <div class="tagline">Projets partagés : clients, prestataires et groupes<br>— tâches, invitations, sondages, activité.</div>
+        <div class="flags" style="margin-top:16px">
+          <i class="on">🇫🇷</i><i>🇬🇧</i><i>🇳🇱</i><i>🇪🇸</i><i>🇵🇹</i><i>🇮🇹</i><i>🇬🇷</i><i>🇷🇺</i><i>🇹🇿</i>
+        </div>
+        <div class="h-old" style="margin-top:20px;margin-bottom:12px">Se connecter</div>
+        <div class="oauth" style="max-width:300px;margin:0 auto">
+          <b><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></b>
+          <b><svg viewBox="0 0 24 24"><rect x="1" y="1" width="10" height="10" fill="#F25022"/><rect x="13" y="1" width="10" height="10" fill="#7FBA00"/><rect x="1" y="13" width="10" height="10" fill="#00A4EF"/><rect x="13" y="13" width="10" height="10" fill="#FFB900"/></svg></b>
+          <b><svg viewBox="0 0 24 24"><path fill="#0A66C2" d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.47-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.23 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.23 0z"/></svg></b>
+          <b><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#6001D2" stroke-width="1.6"/><path fill="#6001D2" d="M12 2c-2 2.6-3 6-3 10s1 7.4 3 10c2-2.6 3-6 3-10s-1-7.4-3-10zM2.6 8.5h18.8v1.6H2.6zm0 5.4h18.8v1.6H2.6z"/></svg></b>
+        </div>
+        <div class="or" style="margin:10px 0">ou par e-mail</div>
+        <div class="field" style="margin-bottom:12px"><label>Email</label><div class="in">vous@exemple.com</div></div>
+        <div class="field" style="margin-bottom:16px"><label>Mot de passe</label><div class="in">••••••••<span>👁</span></div></div>
+        <div class="cta">Se connecter</div>
+        <div class="swap" style="margin-top:16px">Pas encore de compte ? <b>S'inscrire</b></div>
+        <div class="foot" style="margin-top:20px">Un problème ? Contactez le support :<br><a>info@planii.app</a><br><a>Politique de confidentialité</a></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============ 2. APRÈS — CONNEXION ============ -->
+  <div class="col">
+    <div class="cap"><span class="tagi new">Proposition</span><b>Connexion — 8 blocs</b>
+      <span>Le champ e-mail passe en 5ᵉ position. Tout le formulaire tient au-dessus de la ligne.</span></div>
+    <div class="phone"><div class="scr">
+      <div class="island"></div>
+      <div class="sbar"><span>19:07</span><em>▮▮▮ ⌁ ▰</em></div>
+      <div class="fold"><span>ligne de flottaison</span></div>
+      <div class="body" style="padding-top:30px">
+        <!-- lockup horizontal : la marque tient sur une ligne -->
+        <div class="lockup">
+          <span class="mark sm"><svg viewBox="0 0 100 100"><rect x="12" y="10" width="58" height="21" rx="10.5" fill="#fff"/><rect x="12" y="39.5" width="76" height="21" rx="10.5" fill="#fff" fill-opacity=".55"/><rect x="12" y="69" width="40" height="21" rx="10.5" fill="#fff"/></svg></span>
+          <b>Planii</b>
+        </div>
+
+        <div style="margin-top:34px">
+          <h2>Se connecter</h2>
+          <p class="sub">Content de vous revoir.</p>
+        </div>
+
+        <div class="oauth" style="margin-top:22px">
+          <b><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></b>
+          <b><svg viewBox="0 0 24 24"><rect x="1" y="1" width="10" height="10" fill="#F25022"/><rect x="13" y="1" width="10" height="10" fill="#7FBA00"/><rect x="1" y="13" width="10" height="10" fill="#00A4EF"/><rect x="13" y="13" width="10" height="10" fill="#FFB900"/></svg></b>
+          <b><svg viewBox="0 0 24 24"><path fill="#0A66C2" d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.47-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.23 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.23 0z"/></svg></b>
+          <b><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#6001D2" stroke-width="1.6"/><path fill="#6001D2" d="M12 2c-2 2.6-3 6-3 10s1 7.4 3 10c2-2.6 3-6 3-10s-1-7.4-3-10zM2.6 8.5h18.8v1.6H2.6zm0 5.4h18.8v1.6H2.6z"/></svg></b>
+        </div>
+        <div class="or" style="margin:16px 0">ou par e-mail</div>
+
+        <div class="field" style="margin-bottom:14px"><label>Email</label><div class="in">vous@exemple.com</div></div>
+        <div class="field" style="margin-bottom:20px">
+          <div class="lrow"><label style="margin:0">Mot de passe</label><a>Oublié ?</a></div>
+          <div class="in">••••••••<span>👁</span></div>
+        </div>
+        <div class="cta">Se connecter</div>
+        <div class="swap" style="margin-top:18px">Pas encore de compte ? <b>S'inscrire</b></div>
+
+        <!-- réglages et mentions : après l'action, pas avant -->
+        <div style="flex:1"></div>
+        <div style="padding-top:14px;border-top:1px solid var(--line);margin-bottom:16px">
+          <!-- listbox fermée : un seul contrôle à la place des 9 drapeaux -->
+          <div class="lbx sm"><em>🇫🇷</em><span class="nm">Français</span><span class="cv">⌄</span></div>
+          <div class="botbar" style="border:0;padding-top:12px">
+            <a class="foot" style="font-size:12.5px"><span style="color:var(--accent-on);font-weight:700">Confidentialité</span></a>
+            <span class="dot"></span>
+            <a class="foot" style="font-size:12.5px"><span style="color:var(--accent-on);font-weight:700">Aide</span></a>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============ 3. APRÈS — INSCRIPTION ============ -->
+  <div class="col">
+    <div class="cap"><span class="tagi new">Proposition</span><b>Inscription — 3 champs au lieu de 6</b>
+      <span>Métier et pays partent dans le profil, demandés quand ils servent.</span></div>
+    <div class="phone"><div class="scr">
+      <div class="island"></div>
+      <div class="sbar"><span>19:07</span><em>▮▮▮ ⌁ ▰</em></div>
+      <div class="fold"><span>ligne de flottaison</span></div>
+      <div class="body" style="padding-top:30px">
+        <div class="lockup">
+          <span class="mark sm"><svg viewBox="0 0 100 100"><rect x="12" y="10" width="58" height="21" rx="10.5" fill="#fff"/><rect x="12" y="39.5" width="76" height="21" rx="10.5" fill="#fff" fill-opacity=".55"/><rect x="12" y="69" width="40" height="21" rx="10.5" fill="#fff"/></svg></span>
+          <b>Planii</b>
+        </div>
+
+        <div style="margin-top:34px">
+          <h2>Créer un compte</h2>
+          <p class="sub">Deux minutes, et votre premier projet est prêt.</p>
+        </div>
+
+        <!-- Sur l'inscription la listbox reste haute : c'est le premier contact,
+             et le seul moment où quelqu'un peut être arrivé dans la mauvaise
+             langue sans savoir comment en sortir. -->
+        <div style="margin-top:20px">
+          <div class="lbx-lab">Langue</div>
+          <div class="lbx"><em>🇫🇷</em><span class="nm">Français</span><span class="cv">⌄</span></div>
+        </div>
+
+        <div class="oauth" style="margin-top:18px">
+          <b><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></b>
+          <b><svg viewBox="0 0 24 24"><rect x="1" y="1" width="10" height="10" fill="#F25022"/><rect x="13" y="1" width="10" height="10" fill="#7FBA00"/><rect x="1" y="13" width="10" height="10" fill="#00A4EF"/><rect x="13" y="13" width="10" height="10" fill="#FFB900"/></svg></b>
+          <b><svg viewBox="0 0 24 24"><path fill="#0A66C2" d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.47-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.23 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.23 0z"/></svg></b>
+          <b><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#6001D2" stroke-width="1.6"/><path fill="#6001D2" d="M12 2c-2 2.6-3 6-3 10s1 7.4 3 10c2-2.6 3-6 3-10s-1-7.4-3-10zM2.6 8.5h18.8v1.6H2.6zm0 5.4h18.8v1.6H2.6z"/></svg></b>
+        </div>
+        <div class="or" style="margin:16px 0">ou par e-mail</div>
+
+        <div class="field" style="margin-bottom:14px"><label>Nom complet</label><div class="in">Ex. Awa Ndiaye</div></div>
+        <div class="field" style="margin-bottom:14px"><label>Email</label><div class="in">vous@exemple.com</div></div>
+        <div class="field" style="margin-bottom:18px"><label>Mot de passe</label><div class="in">••••••••<span>👁</span></div></div>
+        <div class="cta">Créer mon compte</div>
+        <div class="foot" style="margin-top:12px;font-size:11.5px">En continuant, vous acceptez les <a>conditions</a> et la <a>confidentialité</a>.</div>
+        <div class="swap" style="margin-top:14px">Déjà inscrit ? <b>Se connecter</b></div>
+        <div style="flex:1"></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============ 4. FEUILLE DE LANGUES ============ -->
+  <div class="col">
+    <div class="cap"><span class="tagi new">Proposition</span><b>La listbox, ouverte</b>
+      <span>Drapeau pour repérer, nom écrit pour lever le doute — et le nom natif en dessous.</span></div>
+    <div class="phone"><div class="scr">
+      <div class="island"></div>
+      <div class="sbar"><span>19:07</span><em>▮▮▮ ⌁ ▰</em></div>
+      <div class="body" style="padding-top:30px">
+        <div class="lockup">
+          <span class="mark sm"><svg viewBox="0 0 100 100"><rect x="12" y="10" width="58" height="21" rx="10.5" fill="#fff"/><rect x="12" y="39.5" width="76" height="21" rx="10.5" fill="#fff" fill-opacity=".55"/><rect x="12" y="69" width="40" height="21" rx="10.5" fill="#fff"/></svg></span><b>Planii</b>
+        </div>
+        <div style="margin-top:34px"><h2>Créer un compte</h2><p class="sub">Deux minutes, et votre premier projet est prêt.</p></div>
+
+        <div style="margin-top:20px;position:relative;z-index:3">
+          <div class="lbx-lab">Langue</div>
+          <div class="lbx open"><em>🇫🇷</em><span class="nm">Français</span><span class="cv">⌃</span></div>
+          <div class="lbx-list">
+            <div class="lbx-opt on"><em>🇫🇷</em><span class="n"><b>Français</b><span>Français · langue de l'appareil</span></span><span class="ck">✓</span></div>
+            <div class="lbx-opt"><em>🇬🇧</em><span class="n"><b>Anglais</b><span>English</span></span></div>
+            <div class="lbx-opt"><em>🇳🇱</em><span class="n"><b>Néerlandais</b><span>Nederlands</span></span></div>
+            <div class="lbx-opt"><em>🇪🇸</em><span class="n"><b>Espagnol</b><span>Español</span></span></div>
+            <div class="lbx-opt"><em>🇵🇹</em><span class="n"><b>Portugais</b><span>Português</span></span></div>
+            <div class="lbx-opt"><em>🇮🇹</em><span class="n"><b>Italien</b><span>Italiano</span></span></div>
+            <div class="lbx-opt"><em>🇬🇷</em><span class="n"><b>Grec</b><span>Ελληνικά</span></span></div>
+            <div class="lbx-opt"><em>🇷🇺</em><span class="n"><b>Russe</b><span>Русский</span></span></div>
+            <div class="lbx-opt"><em>🇹🇿</em><span class="n"><b>Swahili</b><span>Kiswahili</span></span></div>
+          </div>
+        </div>
+
+        <!-- le formulaire continue dessous, masqué par la liste -->
+        <div style="opacity:.35;margin-top:-236px;pointer-events:none">
+          <div class="or" style="margin:18px 0">ou par e-mail</div>
+          <div class="field" style="margin-bottom:14px"><label>Nom complet</label><div class="in">Ex. Awa Ndiaye</div></div>
+          <div class="field" style="margin-bottom:14px"><label>Email</label><div class="in">vous@exemple.com</div></div>
+          <div class="field" style="margin-bottom:18px"><label>Mot de passe</label><div class="in">••••••••<span>👁</span></div></div>
+          <div class="cta">Créer mon compte</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+<!-- ============ LÉGENDE ============ -->
+<div class="legend">
+  <h3>Ce qui bouge, et pourquoi</h3>
+  <table>
+    <tr><th style="width:19%">Élément</th><th style="width:26%">Aujourd'hui</th><th style="width:26%">Proposition</th><th>Raison</th></tr>
+    <tr>
+      <td><b>Marque</b></td>
+      <td>Tuile 72 pt, puis « Planii » 28 pt en dessous</td>
+      <td>Lockup horizontal : tuile 34 pt + nom 22 pt, sur une ligne</td>
+      <td>La tuile et le nom disent la même chose. Empilés, ils coûtent 120 pt pour une information déjà connue — l'app est installée.</td>
+    </tr>
+    <tr>
+      <td><b>Accroche</b></td>
+      <td>« Projets partagés : clients, prestataires… » sur 2 lignes</td>
+      <td>Supprimée. Remplacée par une ligne de contexte : « Content de vous revoir. »</td>
+      <td>C'est une phrase de positionnement : elle a sa place sur la landing, pas devant quelqu'un qui va taper son mot de passe.</td>
+    </tr>
+    <tr>
+      <td><b>Langue</b></td>
+      <td>9 drapeaux sur 2 rangées, ~130 pt, avant l'action</td>
+      <td>Une listbox, ~44 pt : drapeau + nom écrit + chevron</td>
+      <td>Un drapeau seul, il faut deviner ; un drapeau à côté du mot « Français », il n'y a plus rien à deviner. La listbox gagne la place <b>et</b> supprime l'ambiguïté. Elle affiche le nom écrit — « 🇫🇷 Français ⌄ » se lit comme un réglage modifiable, « 🇫🇷 ⌄ » comme une décoration.</td>
+    </tr>
+    <tr>
+      <td><b>Mot de passe oublié</b></td>
+      <td>Absent</td>
+      <td>Lien « Oublié ? » aligné sur le libellé</td>
+      <td>Manque réel : sans lui, l'utilisateur bloqué n'a que l'adresse de support. C'est le premier motif de contact évitable.</td>
+    </tr>
+    <tr>
+      <td><b>Inscription</b></td>
+      <td>Nom, métier, pays, e-mail, mot de passe</td>
+      <td>Nom, e-mail, mot de passe</td>
+      <td>Métier et pays ne changent rien à cet instant. Ils se demandent dans le profil, au moment où ils servent — chaque champ posé avant la première réussite est une fuite.</td>
+    </tr>
+    <tr>
+      <td><b>Pied de page</b></td>
+      <td>Support + confidentialité, sous le formulaire</td>
+      <td>Une barre : langue · confidentialité · aide</td>
+      <td>Trois mentions sur trois lignes pour un écran dont le travail est une action. Une barre suffit.</td>
+    </tr>
+  </table>
+
+  <div class="warnbox">
+    <b>Deux conditions pour que la listbox tienne ses promesses.</b><br>
+    <b>1. La langue doit être présélectionnée depuis l'appareil</b>, pas figée sur le français. Si le système est en swahili, le contrôle affiche « Kiswahili » à l'ouverture — et celui qui devait changer n'a plus rien à changer.
+    <b>2. Le nom doit rester écrit sur le contrôle fermé.</b> C'est lui qui signale qu'il y a d'autres langues derrière. Neuf drapeaux visibles, ça <em>annonçait</em> le multilingue d'un coup d'œil ; un contrôle replié ne dit plus rien, sauf s'il porte un mot.<br>
+    Ces deux points réglés, il reste à vérifier sur le terrain : quelle proportion de vos utilisateurs change la langue ? À 2 %, la listbox gagne sans discussion. À 30 %, remontez-la sur la connexion aussi, au lieu de la laisser en bas.
+  </div>
+</div>
+
+</div>
+<script>
+(function(){
+  var r=document.documentElement, mq=matchMedia('(prefers-color-scheme: dark)'), manual=false;
+  r.setAttribute('data-theme', mq.matches?'dark':'light');
+  mq.addEventListener('change',function(e){ if(!manual) r.setAttribute('data-theme', e.matches?'dark':'light') });
+  document.getElementById('t').addEventListener('click',function(){
+    manual=true; r.setAttribute('data-theme', r.getAttribute('data-theme')==='dark'?'light':'dark');
+  });
+})();
+</script>
+</body>
+</html>

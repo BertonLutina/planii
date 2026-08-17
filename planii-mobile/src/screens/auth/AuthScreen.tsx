@@ -6,11 +6,9 @@ import {
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Banner, Button, SelectBox, Skeleton } from '@/components/ui'
-import { Flag, LANG_FLAG } from '@/components/Flag'
 import { BrandTile } from '@/components/BrandMark'
 import { api } from '@/lib/api'
-import { COUNTRIES } from '@/lib/countries'
-import { LANGS, getLang, setLang, t, useI18n } from '@/lib/i18n'
+import { getLang, langOptions, setLang, t, useI18n } from '@/lib/i18n'
 import { useSession } from '@/lib/session'
 import type { User } from '@/lib/types'
 import { useTheme } from '@/theme/ThemeProvider'
@@ -27,7 +25,7 @@ const PRIVACY_URL = 'https://planii.app/confidentialite'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 type Mode = 'login' | 'signup'
-interface Errors { name?: string; email?: string; password?: string; country?: string }
+interface Errors { name?: string; email?: string; password?: string }
 
 export function AuthScreen({ mode }: { mode: Mode }) {
   const { c } = useTheme()
@@ -36,7 +34,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
   const { signIn } = useSession()
   const { lang } = useI18n()
 
-  const [f, setF] = useState({ name: '', job: '', email: '', password: '', country: 'fr' })
+  const [f, setF] = useState({ name: '', email: '', password: '' })
   const [errs, setErrs] = useState<Errors>({})
   const [formErr, setFormErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -45,7 +43,6 @@ export function AuthScreen({ mode }: { mode: Mode }) {
   const [provLoading, setProvLoading] = useState(true)
   const [oauthBusy, setOauthBusy] = useState<ProviderKey | null>(null)
 
-  const jobRef = useRef<TextInput>(null)
   const emailRef = useRef<TextInput>(null)
   const passRef = useRef<TextInput>(null)
 
@@ -67,7 +64,6 @@ export function AuthScreen({ mode }: { mode: Mode }) {
   function validate(): boolean {
     const next: Errors = {}
     if (mode === 'signup' && !f.name.trim()) next.name = 'Indique ton nom complet'
-    if (mode === 'signup' && !f.country) next.country = 'Choisis ton pays'
     if (!f.email.trim()) next.email = 'Indique ton e-mail'
     else if (!EMAIL_RE.test(f.email.trim())) next.email = 'Cette adresse e-mail n’est pas valide'
     if (!f.password) next.password = 'Indique ton mot de passe'
@@ -85,11 +81,9 @@ export function AuthScreen({ mode }: { mode: Mode }) {
         ? { email: f.email.trim(), password: f.password }
         : {
           name: f.name.trim(),
-          job: f.job.trim(),
           email: f.email.trim(),
           password: f.password,
           lang: getLang(),
-          country: f.country,
         }
       const r = await api<{ token: string; user: User }>('POST', path, body)
       signIn(r.user, r.token)
@@ -116,12 +110,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
 
   const enabled = PROVIDER_ORDER.filter((p) => providers[p])
   const signup = mode === 'signup'
-  const langOpts = LANGS.map((l) => ({ value: l.code, label: l.label, flag: LANG_FLAG[l.code] || l.code }))
-  const countryOpts = COUNTRIES.map((x) => ({
-    value: x.code,
-    label: lang === 'en' ? x.nameEn : x.name,
-    flag: x.code,
-  }))
+  const langOpts = langOptions()
 
   return (
     <KeyboardAvoidingView
@@ -134,43 +123,35 @@ export function AuthScreen({ mode }: { mode: Mode }) {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
+        {/* Verrou de marque : tuile et nom restent solidaires, centrés.
+            34 px de tuile → la marque tombe sous 48 px, donc variante simplifiée. */}
         <View style={s.brand}>
-          {/* 72 px : la marque fait 47 px, l'évidement tient. Plus petit, il
-              faudrait basculer sur la variante simplifiée. */}
-          <BrandTile size={72} simplified={false} />
+          <BrandTile size={48} radius={10} />
           <Text accessibilityRole="header" style={[s.wordmark, { color: c.text }]}>Planii</Text>
-          <Text style={[s.tagline, { color: c.muted }]}>{t('auth.tagline')}</Text>
         </View>
 
-        {/* Drapeaux en ligne — même sélecteur que le web : la langue se change
-            d'un seul geste, sans ouvrir de liste. */}
-        <View style={s.langRow} accessibilityRole="radiogroup" accessibilityLabel={t('lang.title')}>
-          {langOpts.map((l) => {
-            const on = lang === l.value
-            return (
-              <Pressable
-                key={l.value}
-                onPress={() => setLang(l.value as typeof lang)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: on }}
-                accessibilityLabel={l.label}
-                style={({ pressed }) => [
-                  s.langBtn,
-                  {
-                    backgroundColor: on ? c.accentBg : pressed ? c.surface2 : c.surface,
-                    borderColor: on ? c.accentOn : c.line,
-                  },
-                ]}
-              >
-                <Flag code={l.flag} size={17} />
-              </Pressable>
-            )
-          })}
+        {/* Le titre porte l'action ; la ligne en dessous accueille, elle
+            n'explique pas le produit — l'app est déjà installée. */}
+        <View style={s.head}>
+          <Text accessibilityRole="header" style={[s.pageTitle, { color: c.text }]}>
+            {signup ? t('auth.register') : t('auth.login')}
+          </Text>
+          <Text style={[s.pageSub, { color: c.muted }]}>
+            {signup ? t('auth.startSub') : t('auth.welcomeBack')}
+          </Text>
         </View>
 
-        <Text accessibilityRole="header" style={[s.pageTitle, { color: c.text }]}>
-          {signup ? t('auth.register') : t('auth.login')}
-        </Text>
+        {/* La langue vient avant les fournisseurs, sur les deux écrans : c'est le
+            seul moment où quelqu'un arrivé dans la mauvaise langue peut en sortir,
+            et il doit pouvoir le faire avant de commencer quoi que ce soit. */}
+        <SelectBox
+          label={t('lang.title')}
+          value={lang}
+          options={langOpts}
+          onChange={(code) => setLang(code as typeof lang)}
+          searchable={false}
+          style={s.langTop}
+        />
 
         {provLoading ? (
           <View style={s.social}>
@@ -220,46 +201,24 @@ export function AuthScreen({ mode }: { mode: Mode }) {
 
         {!!formErr && <Banner tone="danger" icon="alert" text={formErr} style={s.formErr} />}
 
+        {/* Nom, e-mail, mot de passe — rien de plus. Métier et pays ne changent
+            rien à cet instant : ils se demandent dans le profil, au moment où
+            ils servent. Chaque champ posé avant la première réussite est une fuite. */}
         {signup && (
-          <>
-            <RefField
-              label={t('auth.name')}
-              value={f.name}
-              onChangeText={set('name')}
-              placeholder="Ex. Awa Ndiaye"
-              error={errs.name}
-              maxLength={120}
-              autoCapitalize="words"
-              autoComplete="name"
-              textContentType="name"
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => jobRef.current?.focus()}
-            />
-            <RefField
-              ref={jobRef}
-              label={t('auth.job')}
-              value={f.job}
-              onChangeText={set('job')}
-              placeholder={t('profile.phJob')}
-              maxLength={60}
-              autoCapitalize="sentences"
-              autoComplete="off"
-              textContentType="jobTitle"
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => emailRef.current?.focus()}
-            />
-            <SelectBox
-              label={t('auth.country')}
-              value={f.country}
-              options={countryOpts}
-              onChange={set('country')}
-              placeholder={t('auth.countryPh')}
-              error={errs.country}
-              searchable
-            />
-          </>
+          <RefField
+            label={t('auth.name')}
+            value={f.name}
+            onChangeText={set('name')}
+            placeholder="Ex. Awa Ndiaye"
+            error={errs.name}
+            maxLength={120}
+            autoCapitalize="words"
+            autoComplete="name"
+            textContentType="name"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => emailRef.current?.focus()}
+          />
         )}
 
         <RefField
@@ -318,25 +277,28 @@ export function AuthScreen({ mode }: { mode: Mode }) {
           </Text>
         </Pressable>
 
-        <View style={s.foot}>
-          <Text style={[s.footTxt, { color: c.hint }]}>{t('auth.support')}</Text>
-          <Pressable
-            onPress={() => { Linking.openURL(`mailto:${SUPPORT_MAIL}`).catch(() => {}) }}
-            hitSlop={10}
-            accessibilityRole="link"
-            accessibilityLabel={SUPPORT_MAIL}
-          >
-            <Text style={[s.footLink, { color: c.accent }]}>{SUPPORT_MAIL}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => { Linking.openURL(PRIVACY_URL).catch(() => {}) }}
-            hitSlop={10}
-            accessibilityRole="link"
-            accessibilityLabel={t('auth.privacy')}
-            style={s.privacy}
-          >
-            <Text style={[s.footLink, { color: c.accent }]}>{t('auth.privacy')}</Text>
-          </Pressable>
+        {/* Réglages et mentions : après l'action, jamais avant.
+            À la connexion, la langue vit ici. */}
+        <View style={[s.foot, { borderTopColor: c.line }]}>
+          <View style={s.footLinks}>
+            <Pressable
+              onPress={() => { Linking.openURL(PRIVACY_URL).catch(() => {}) }}
+              hitSlop={10}
+              accessibilityRole="link"
+              accessibilityLabel={t('auth.privacy')}
+            >
+              <Text style={[s.footLink, { color: c.accent }]}>{t('auth.privacy')}</Text>
+            </Pressable>
+            <View style={[s.footDot, { backgroundColor: c.lineStrong }]} />
+            <Pressable
+              onPress={() => { Linking.openURL(`mailto:${SUPPORT_MAIL}`).catch(() => {}) }}
+              hitSlop={10}
+              accessibilityRole="link"
+              accessibilityLabel={SUPPORT_MAIL}
+            >
+              <Text style={[s.footLink, { color: c.accent }]}>{t('auth.help')}</Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -347,23 +309,23 @@ const s = StyleSheet.create({
   screen: { flex: 1 },
   body: { paddingHorizontal: 18, flexGrow: 1, justifyContent: 'center' },
 
-  brand: { alignItems: 'center', marginBottom: 14 },
-  wordmark: { fontSize: 28, fontWeight: '800', letterSpacing: -0.6, marginTop: 10 },
-  tagline: { fontSize: 13.5, lineHeight: 19, textAlign: 'center', marginTop: 6, maxWidth: 320 },
-  pageTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3, marginBottom: 12 },
+  // Verrou : tuile + nom sur une ligne, solidaires et centrés.
+  brand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20  },
+  wordmark: { fontSize: 32, fontWeight: '800', letterSpacing: -0.6 },
 
-  // Drapeaux : 46×44 pour rester au-dessus de la cible tactile de 44 pt.
-  langRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 7, marginBottom: 16 },
-  langBtn: {
-    width: 46, height: 44, borderWidth: 1, borderRadius: radius.control,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  head: { marginTop: 30, marginBottom: 18 },
+  pageTitle: { fontSize: 26, fontWeight: '800', letterSpacing: -0.7 },
+  pageSub: { fontSize: 14.5, lineHeight: 21, marginTop: 4 },
+
+  langTop: { marginBottom: 16 },
 
   social: { marginBottom: 4 },
-  socialRow: { flexDirection: 'row', gap: 8, alignSelf: 'center', maxWidth: 300, width: '100%' },
+  // Pleine largeur, alignée sur la listbox de langue au-dessus : les quatre
+  // boutons se partagent la ligne, d'un bord à l'autre du contenu.
+  socialRow: { flexDirection: 'row', gap: 8, width: '100%' },
   socialCell: { flex: 1, minWidth: 0 },
   socialBtn: {
-    aspectRatio: 1, minHeight: 58, alignItems: 'center', justifyContent: 'center',
+    height: 58, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderRadius: radius.control,
   },
   or: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4, marginBottom: 12 },
@@ -375,8 +337,8 @@ const s = StyleSheet.create({
   switch: { marginTop: 16, alignItems: 'center' },
   switchTxt: { fontSize: 14, textAlign: 'center' },
 
-  foot: { alignItems: 'center', marginTop: 22, gap: 4 },
-  footTxt: { fontSize: 12.5, textAlign: 'center' },
+  foot: { marginTop: 26, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth },
+  footLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 8 },
   footLink: { fontSize: 12.5, fontWeight: '700' },
-  privacy: { marginTop: 6 },
+  footDot: { width: 3, height: 3, borderRadius: 2 },
 })

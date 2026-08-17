@@ -1,7 +1,6 @@
 import { StyleSheet } from 'react-native'
 import { Card, SelectBox } from '@/components/ui'
-import { LANG_FLAG } from '@/components/Flag'
-import { LANGS, t, useI18n } from '@/lib/i18n'
+import { langOptions, t, useI18n } from '@/lib/i18n'
 
 /** Langue du profil — list box avec drapeaux. */
 export function LangPicker() {
@@ -12,11 +11,7 @@ export function LangPicker() {
       <SelectBox
         label={t('lang.title')}
         value={lang}
-        options={LANGS.map((l) => ({
-          value: l.code,
-          label: l.label,
-          flag: LANG_FLAG[l.code] || l.code,
-        }))}
+        options={langOptions()}
         onChange={(code) => setLang(code as typeof lang)}
         searchable={false}
         style={s.select}

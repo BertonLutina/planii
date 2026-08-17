@@ -3,7 +3,7 @@ import { api, setTok } from '@/lib/api'
 import { toastErr } from '@/lib/ui'
 import { MicInput } from './Mic'
 import type { User } from '@/lib/types'
-import { useI18n, LangFlags, getLang, t as tt } from '@/lib/i18n'
+import { useI18n, LangPicker, getLang, t as tt } from '@/lib/i18n'
 
 const API = (import.meta.env.VITE_API_URL as string) || 'https://api.planii.app/api'
 
@@ -63,7 +63,7 @@ export function Auth({ onAuth, initialMode = 'login', onBack }: {
 }) {
   const { t: tr } = useI18n()
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode)
-  const [f, setF] = useState({ name: '', email: '', password: '', job: '' })
+  const [f, setF] = useState({ name: '', email: '', password: '' })
   const [busy, setBusy] = useState(false)
   const [providers, setProviders] = useState<Providers>({})
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value })
@@ -94,20 +94,29 @@ export function Auth({ onAuth, initialMode = 'login', onBack }: {
         <img src="/auth-bg.png" alt="" />
       </div>
       <div className="auth auth-glass">
-        <div className="logo-big"><b /></div>
-        <h1>Planii</h1>
-        {/* Tagline kept in i18n as auth.tagline — not shown on auth screen */}
-        <LangFlags />
-
         {onBack && (
-          <button type="button" className="btn-link" style={{ marginBottom: 12 }} onClick={onBack}>
-            {tt('pd.back')}
-          </button>
+          <button type="button" className="btn-link auth-back" onClick={onBack}>{tt('pd.back')}</button>
         )}
+
+        {/* Verrou de marque : tuile et nom solidaires, centrés — identique au mobile. */}
+        <div className="auth-lockup">
+          <span className="logo"><b /></span>
+          <h1>Planii</h1>
+        </div>
+
+        {/* Le titre porte l'action ; la ligne en dessous accueille, elle n'explique
+            pas le produit. L'accroche est sur la page d'accueil publique. */}
+        <div className="auth-head">
+          <h2>{mode === 'login' ? tr('auth.login') : tr('auth.register')}</h2>
+          <p>{mode === 'login' ? tr('auth.welcomeBack') : tr('auth.startSub')}</p>
+        </div>
+
+        {/* La langue avant les fournisseurs : c'est le seul moment où quelqu'un
+            arrivé dans la mauvaise langue peut en sortir. */}
+        <LangPicker />
 
         {enabled.length > 0 && (
           <div className="auth-social">
-            <p className="auth-social-title">{tr('auth.login')}</p>
             <div className="auth-social-row" role="group" aria-label={tr('auth.login')}>
               {enabled.map((provider) => (
                 <button
@@ -126,13 +135,11 @@ export function Auth({ onAuth, initialMode = 'login', onBack }: {
           </div>
         )}
 
+        {/* Nom, e-mail, mot de passe — rien de plus. Le métier se règle dans le
+            profil, au moment où il sert. */}
         {mode === 'signup' && (
-          <>
-            <div className="field"><label>{tr('auth.name')}</label>
-              <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Awa Ndiaye" /></div>
-            <div className="field"><label>{tr('auth.job')}</label>
-              <MicInput value={f.job} onChange={(v) => setF({ ...f, job: v })} placeholder="Ex. Développeur, Consultant…" maxLength={60} /></div>
-          </>
+          <div className="field"><label>{tr('auth.name')}</label>
+            <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Awa Ndiaye" /></div>
         )}
         <div className="field"><label>{tr('auth.email')}</label>
           <input type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" /></div>
@@ -146,8 +153,13 @@ export function Auth({ onAuth, initialMode = 'login', onBack }: {
             ? <>{tr('auth.noAccount')} <button className="btn-link" onClick={() => setMode('signup')}>{tr('auth.register')}</button></>
             : <>{tr('auth.hasAccount')} <button className="btn-link" onClick={() => setMode('login')}>{tr('auth.login')}</button></>}
         </p>
-        <p className="auth-support">{tr('auth.support')} <a href="mailto:info@planii.app">info@planii.app</a></p>
-        <p className="auth-support"><a href="/confidentialite">{tr('auth.privacy')}</a></p>
+
+        {/* Mentions : après l'action, sur une seule ligne. */}
+        <div className="auth-foot">
+          <a href="/confidentialite">{tr('auth.privacy')}</a>
+          <i aria-hidden />
+          <a href="mailto:info@planii.app">{tr('auth.help')}</a>
+        </div>
       </div>
     </div>
   )

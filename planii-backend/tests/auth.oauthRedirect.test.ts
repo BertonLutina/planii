@@ -41,4 +41,32 @@ describe('safeRedirect (retour OAuth)', () => {
     const expo = 'exp://192.168.1.5:8081/--/oauth'
     expect(safeRedirect(expo)).toBe(env.isProd ? null : expo)
   })
+
+  /* Builds de magasin (EAS → App Store / Play Store). C'est le cas qui compte
+     en production : `Linking.createURL('oauth')` y renvoie le schéma natif, et
+     il doit passer même quand `NODE_ENV=production`. Selon la version
+     d'expo-linking la forme est `planii://oauth` ou `planii:///oauth` — les
+     deux doivent être acceptées et rendues telles quelles, sans normalisation
+     qui casserait la comparaison faite par `openAuthSessionAsync`. */
+  describe('build de magasin (iOS / Android)', () => {
+    it('accepte le schéma natif, avec ou sans hôte', () => {
+      expect(safeRedirect('planii://oauth')).toBe('planii://oauth')
+      expect(safeRedirect('planii:///oauth')).toBe('planii:///oauth')
+    })
+
+    it('accepte le schéma natif même en production', () => {
+      // Ne dépend pas de NODE_ENV : contrairement à `exp://`, il n'est jamais filtré.
+      expect(safeRedirect('planii://oauth')).not.toBeNull()
+    })
+
+    it('préserve la query du retour', () => {
+      expect(safeRedirect('planii://oauth?from=google')).toBe('planii://oauth?from=google')
+    })
+
+    it('refuse un schéma voisin qui se ferait passer pour l’app', () => {
+      expect(safeRedirect('planiii://oauth')).toBeNull()
+      expect(safeRedirect('planii.evil://oauth')).toBeNull()
+      expect(safeRedirect('xplanii://oauth')).toBeNull()
+    })
+  })
 })
