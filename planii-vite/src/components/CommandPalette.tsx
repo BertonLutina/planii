@@ -4,6 +4,7 @@ import { applyTheme } from '@/lib/theme'
 import type { ProjectSummary } from '@/lib/types'
 import { Ic } from './Icon'
 import { useI18n } from '@/lib/i18n'
+import { useDialog } from '@/lib/useDialog'
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '')
 /** Étiquette du raccourci selon la plateforme (⌘K sur Mac, Ctrl K ailleurs). */
@@ -21,6 +22,7 @@ export function CommandPalette({ open, onClose, setTab, openProject, newProject 
   const { t: tr } = useI18n()
   const [q, setQ] = useState('')
   const [projects, setProjects] = useState<ProjectSummary[]>([])
+  const dialogRef = useDialog<HTMLDivElement>(onClose, open)
 
   useEffect(() => {
     if (!open) return
@@ -48,8 +50,8 @@ export function CommandPalette({ open, onClose, setTab, openProject, newProject 
 
   return (
     <div className="cmd-ovl" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="cmd">
-        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)}
+      <div ref={dialogRef} className="cmd" role="dialog" aria-modal="true" aria-label={tr('cmd.placeholder')}>
+        <input autoFocus aria-label={tr('cmd.placeholder')} value={q} onChange={(e) => setQ(e.target.value)}
           placeholder={tr('cmd.placeholder')}
           onKeyDown={(e) => { if (e.key === 'Enter' && filtered[0]) go(filtered[0].run); if (e.key === 'Escape') onClose() }} />
         <div className="cmd-list">

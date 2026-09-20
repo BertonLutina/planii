@@ -6,12 +6,14 @@ import { prioMeta } from '@/lib/priority'
 import type { Project, Task, User } from '@/lib/types'
 import { useI18n } from '@/lib/i18n'
 import { Ic } from './Icon'
+import { useDialog } from '@/lib/useDialog'
 
 /** Panneau de détail d'une tâche (droite sur desktop, feuille en bas sur mobile). */
 export function TaskDrawer({ t, p, me, onClose, onChanged, onOpenProject }: {
   t: Task; p: Project; me: User; onClose: () => void; onChanged: () => void; onOpenProject: () => void
 }) {
   const { t: tr } = useI18n()
+  const dialogRef = useDialog<HTMLDivElement>(onClose)
   const [expanded, setExpanded] = useState(false)
   const pm = prioMeta(t.priority)
   const mine = t.assigneeId === me.id
@@ -26,7 +28,7 @@ export function TaskDrawer({ t, p, me, onClose, onChanged, onOpenProject }: {
 
   return (
     <div className="drawer-ovl" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={'drawer' + (expanded ? ' expanded' : '')} role="dialog" aria-modal="true" aria-labelledby="task-detail-title">
+      <div ref={dialogRef} className={'drawer' + (expanded ? ' expanded' : '')} role="dialog" aria-modal="true" aria-labelledby="task-detail-title">
         <div className="drawer-head">
           <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine ? '' : ' locked')} disabled={!mine} onClick={() => toggle(t)} aria-label={tr('home.check')}>{t.done ? '✓' : ''}</button>
           <span className="dt-title" id="task-detail-title">{t.title}</span>

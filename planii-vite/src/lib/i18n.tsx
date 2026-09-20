@@ -23,6 +23,8 @@ export const LANGS: { code: Lang; label: string; flag: string }[] = [
 
 type Dict = Record<string, string>
 const fr: Dict = {
+  'proj.moveGroup': 'Ordre de « {n} »', 'proj.moveEarlier': 'Monter « {n} »', 'proj.moveLater': 'Descendre « {n} »',
+  'pd.mMoveTo': 'Déplacer vers « {s} »',
   'nav.home': 'Accueil', 'nav.projects': 'Projets', 'nav.agenda': 'Agenda', 'nav.leaderboard': 'Classement', 'nav.profile': 'Profil', 'nav.admin': 'Admin',
   'title.home': 'Accueil — mes tâches', 'title.projects': 'Projets', 'title.agenda': 'Agenda', 'title.leaderboard': 'Classement', 'title.profile': 'Profil', 'title.admin': 'Espace admin',
   'action.new': 'Nouveau', 'action.save': 'Enregistrer', 'action.saving': 'Enregistrement…', 'action.cancel': 'Annuler', 'action.edit': 'Modifier', 'action.add': 'Ajouter', 'action.delete': 'Supprimer', 'action.close': 'Fermer', 'action.confirm': 'Confirmer', 'action.done': 'Terminé', 'action.create': 'Créer', 'action.search': 'Rechercher', 'action.expand': 'Agrandir', 'action.collapse': 'Réduire',
@@ -67,6 +69,8 @@ const fr: Dict = {
   'qa.title': 'Nouveau rendez-vous', 'qa.optTitle': 'Titre (optionnel)', 'qa.date': 'Date', 'qa.start': 'Début', 'qa.end': 'Fin', 'qa.needProject': 'Crée d’abord un projet pour pouvoir y ajouter un rendez-vous.', 'qa.needFields': 'Date et horaires requis', 'qa.created': 'Rendez-vous créé ✓', 'qa.pick': 'Créer dans l’agenda', 'qa.appt': 'Rendez-vous', 'qa.task': 'Tâche',
 }
 const en: Dict = {
+  'proj.moveGroup': 'Order of “{n}”', 'proj.moveEarlier': 'Move “{n}” earlier', 'proj.moveLater': 'Move “{n}” later',
+  'pd.mMoveTo': 'Move to “{s}”',
   'nav.home': 'Home', 'nav.projects': 'Projects', 'nav.agenda': 'Calendar', 'nav.leaderboard': 'Leaderboard', 'nav.profile': 'Profile', 'nav.admin': 'Admin',
   'title.home': 'Home — my tasks', 'title.projects': 'Projects', 'title.agenda': 'Calendar', 'title.leaderboard': 'Leaderboard', 'title.profile': 'Profile', 'title.admin': 'Admin space',
   'action.new': 'New', 'action.save': 'Save', 'action.saving': 'Saving…', 'action.cancel': 'Cancel', 'action.edit': 'Edit', 'action.add': 'Add', 'action.delete': 'Delete', 'action.close': 'Close', 'action.confirm': 'Confirm', 'action.done': 'Done', 'action.create': 'Create', 'action.search': 'Search', 'action.expand': 'Expand', 'action.collapse': 'Collapse',

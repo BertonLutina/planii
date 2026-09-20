@@ -71,6 +71,8 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
           configOverwrite: { prejoinPageEnabled: false },
           interfaceConfigOverwrite: { MOBILE_APP_PROMO: false },
         })
+        // The embedded frame has no accessible name by default (WCAG 4.1.2 / 2.4.1).
+        try { apiRef.current.getIFrame().title = tr('meet.title') } catch { /* ignore */ }
       } catch { /* ignore */ }
     }
     if (window.JitsiMeetExternalAPI) start()

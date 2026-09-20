@@ -29,18 +29,12 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
         navigateFallback: '/index.html',
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/api\.planii\.app\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'planii-api',
-              networkTimeoutSeconds: 6,
-              expiration: { maxEntries: 120, maxAgeSeconds: 300 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+        // No runtime caching: every API response is authenticated or account-specific, so none may be
+        // stored by the service worker. Public routes (`/api/auth/providers`, `/api/health`) are tiny and
+        // left uncached on purpose. Only the static app shell is precached (installable + offline shell).
+        runtimeCaching: [],
+        cleanupOutdatedCaches: true,
+        importScripts: ['sw-cleanup.js'],
       },
     }),
   ],

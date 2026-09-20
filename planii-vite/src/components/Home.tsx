@@ -268,12 +268,13 @@ function TodayDashboard({ today, onOpenTask, onOpenProject }: { today: TodayPayl
     <section className="today-board">
       <div className="today-head">
         <div>
-          <h2>{tt('today.title')}</h2>
+          <h2 id="today-title">{tt('today.title')}</h2>
           <p>{total ? tt('today.watch', { n: total }) : tt('today.calm')}</p>
         </div>
         <span className="today-pill">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
       </div>
-      <div className="today-grid">
+      {/* Horizontally scrollable on phones: must be keyboard-focusable and named (WCAG 2.1.1). */}
+      <div className="today-grid" role="group" aria-labelledby="today-title" tabIndex={0}>
         {sections.map((s) => {
           const items = today[s.key] as TodayTask[]
           return (

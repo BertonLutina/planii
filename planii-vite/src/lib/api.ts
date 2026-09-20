@@ -2,7 +2,19 @@ const API = (import.meta.env.VITE_API_URL as string) || 'https://api.planii.app/
 const TKEY = 'planii.token'
 
 export const getTok = () => localStorage.getItem(TKEY)
-export const setTok = (t: string | null) => t ? localStorage.setItem(TKEY, t) : localStorage.removeItem(TKEY)
+/** Drop any runtime cache (everything except Workbox's static precache) so no account data outlives a session. */
+function purgeRuntimeCaches() {
+  if (typeof caches === 'undefined') return
+  caches.keys()
+    .then((names) => Promise.all(names.filter((n) => !n.startsWith('workbox-precache')).map((n) => caches.delete(n))))
+    .catch(() => { /* best effort */ })
+}
+
+export const setTok = (t: string | null) => {
+  if (t) { localStorage.setItem(TKEY, t); return }
+  localStorage.removeItem(TKEY)
+  purgeRuntimeCaches()
+}
 
 /** Absolute URL for a stored `/uploads/...` path (or pass-through if already absolute). */
 export function mediaUrl(path?: string | null): string | null {

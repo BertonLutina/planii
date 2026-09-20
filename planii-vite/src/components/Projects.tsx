@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, apiUpload, mediaUrl } from '@/lib/api'
-import { toast, toastErr, Modal, health, Avatar } from '@/lib/ui'
+import { toast, toastErr, Modal, health, Avatar, readableOn } from '@/lib/ui'
 import { ROLE_LABEL } from '@/lib/dates'
 import { MicInput } from './Mic'
 import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
@@ -119,6 +119,9 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
     return [...byKey.values()].sort((a, b) => a.position - b.position || a.label.localeCompare(b.label))
   })()
 
+  function persistOrder(ids: string[]) {
+    api('PUT', '/projects/order', { ids: [...ids, ...projects.filter((p) => p.status === 'done').map((p) => p.id)] }).then(() => load(1, false)).catch((e: any) => toastErr(e.message))
+  }
   function dropOn(targetId: string) {
     if (!canDrag || !dragId || dragId === targetId) { setDragId(null); return }
     const ids = list.map((p) => p.id)
@@ -126,7 +129,15 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
     if (from < 0 || to < 0) { setDragId(null); return }
     ids.splice(to, 0, ids.splice(from, 1)[0])
     setDragId(null)
-    api('PUT', '/projects/order', { ids: [...ids, ...projects.filter((p) => p.status === 'done').map((p) => p.id)] }).then(() => load(1, false)).catch((e: any) => toastErr(e.message))
+    persistOrder(ids)
+  }
+  /** Keyboard / single-pointer alternative to dragging (WCAG 2.5.7). */
+  function moveBy(id: string, delta: -1 | 1) {
+    const ids = list.map((p) => p.id)
+    const from = ids.indexOf(id), to = from + delta
+    if (from < 0 || to < 0 || to >= ids.length) return
+    ids.splice(to, 0, ids.splice(from, 1)[0])
+    persistOrder(ids)
   }
 
   return (
@@ -188,7 +199,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                       <td className="pt-name">
                         {mediaUrl(p.imageUrl)
                           ? <span className="pt-avatar pt-avatar-img"><img src={mediaUrl(p.imageUrl)!} alt="" /></span>
-                          : <span className="pt-avatar" style={{ background: labelColor }}>{initialsOf(p.name)}</span>}
+                          : <span className="pt-avatar" style={{ background: labelColor, color: readableOn(labelColor) }}>{initialsOf(p.name)}</span>}
                         <span className="pt-name-txt">{p.name}</span>
                       </td>
                       <td><span className="pt-type"><Ic name={TYPE_ICON[p.type] || 'folder'} s={13} /> {typeShort}</span></td>
@@ -201,7 +212,7 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                           <span className="pt-pct">{h.pct}%</span>
                         </div>
                       </td>
-                      <td><span className="pt-chip" style={{ color: labelColor, background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}><i style={{ background: labelColor }} />{trTerm(labelName)}</span></td>
+                      <td><span className="pt-chip" style={{ color: 'var(--text)', background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}><i style={{ background: labelColor }} />{trTerm(labelName)}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -213,8 +224,9 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
 
         return (
           <div className="pcard-grid">
-            {rows.map(({ p, h, typeShort, memberCount, role, labelName, labelColor, barColor }) => (
-              <button key={p.id} className={'pcard' + (canDrag ? ' draggable' : '') + (dragId === p.id ? ' dragging' : '')} onClick={() => onOpen(p.id)}
+            {rows.map(({ p, h, typeShort, memberCount, role, labelName, labelColor, barColor }, idx) => (
+              <div key={p.id} className="pcard-slot">
+              <button className={'pcard' + (canDrag ? ' draggable' : '') + (dragId === p.id ? ' dragging' : '')} onClick={() => onOpen(p.id)}
                 draggable={canDrag}
                 onDragStart={canDrag ? () => setDragId(p.id) : undefined}
                 onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
@@ -223,12 +235,12 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                 <div className="pcard-head">
                   {mediaUrl(p.imageUrl)
                     ? <span className="pcard-avatar pcard-avatar-img"><img src={mediaUrl(p.imageUrl)!} alt="" /></span>
-                    : <span className="pcard-avatar" style={{ background: labelColor }}>{initialsOf(p.name)}</span>}
+                    : <span className="pcard-avatar" style={{ background: labelColor, color: readableOn(labelColor) }}>{initialsOf(p.name)}</span>}
                   <div className="pcard-titles">
                     <b className="pcard-name">{p.name}</b>
                     <span className="pcard-type"><Ic name={TYPE_ICON[p.type] || 'folder'} s={12} /> {typeShort}{role ? ' · ' + role : ''}</span>
                   </div>
-                  <span className="pcard-chip" style={{ color: labelColor, background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}>{trTerm(labelName)}</span>
+                  <span className="pcard-chip" style={{ color: 'var(--text)', background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}>{trTerm(labelName)}</span>
                 </div>
                 <div className="pcard-stats">
                   <span className="pcard-stat"><Ic name="users" s={14} /> {memberCount}</span>
@@ -241,6 +253,13 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                 </div>
                 {canDrag && <span className="drag-handle pcard-drag" aria-hidden="true"><Ic name="grip" s={14} /></span>}
               </button>
+              {canDrag && (
+                <div className="pcard-move" role="group" aria-label={tr('proj.moveGroup', { n: p.name })}>
+                  <button type="button" disabled={idx === 0} onClick={() => moveBy(p.id, -1)} aria-label={tr('proj.moveEarlier', { n: p.name })} title={tr('proj.moveEarlier', { n: p.name })}><Ic name="chevron-up" s={14} /></button>
+                  <button type="button" disabled={idx === rows.length - 1} onClick={() => moveBy(p.id, 1)} aria-label={tr('proj.moveLater', { n: p.name })} title={tr('proj.moveLater', { n: p.name })}><Ic name="chevron-down" s={14} /></button>
+                </div>
+              )}
+              </div>
             ))}
             {tab === 'active' && <button className="pcard pcard-new" onClick={() => setNewOpen(true)}><Ic name="plus" s={18} /> {tr('projects.newProject')}</button>}
           </div>

@@ -46,7 +46,7 @@
 :root[data-theme="light"] .lp{
   --lp-bg:#fafafb; --lp-deep:#f4f4f6;
   --lp-line:#eaeaee; --lp-line2:#dcdce3;
-  --lp-text:#0b0a12; --lp-muted:#63637a; --lp-hint:#8a8a9e;
+  --lp-text:#0b0a12; --lp-muted:#63637a; --lp-hint:#65657a;
   --lp-surf:linear-gradient(180deg,#ffffff,#fdfdfe);
   --lp-soft:#ffffff; --lp-sunk:#fafafb; --lp-raise:#ffffff;
   --lp-ring:inset 0 1px 0 rgba(255,255,255,.9);

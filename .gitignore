@@ -1,0 +1,4 @@
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+planii-vite/test-results/
+planii-vite/playwright-report/

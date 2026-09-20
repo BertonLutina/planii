@@ -4,7 +4,7 @@ import {
   ArrowLeft, MoreHorizontal, List, LayoutGrid, Sun, Moon, Monitor, Copy, RefreshCw, Send,
   TriangleAlert, Flame, TrendingUp, Settings, Mail, LogOut, Filter, ArrowUpDown, GripVertical,
   Megaphone, Sparkles, Target, Inbox, MessageSquare, Hand, PieChart, ChartBar, Circle, CircleCheck,
-  Clock4, ArrowUpRight, Repeat, ListChecks, Vote, Activity, CircleHelp, ChevronLeft, type LucideIcon,
+  Clock4, ArrowUpRight, Repeat, ListChecks, Vote, Activity, CircleHelp, ChevronLeft, ChevronUp, type LucideIcon,
 } from 'lucide-react'
 
 const MAP: Record<string, LucideIcon> = {
@@ -19,7 +19,7 @@ const MAP: Record<string, LucideIcon> = {
   sparkles: Sparkles, target: Target, inbox: Inbox, message: MessageSquare, hand: Hand,
   'chart-pie': PieChart, 'chart-bar': ChartBar, circle: Circle, 'circle-check': CircleCheck,
   'arrow-up-right': ArrowUpRight, transfer: Repeat, tasks: ListChecks, poll: Vote, activity: Activity,
-  help: CircleHelp, 'chevron-left': ChevronLeft,
+  help: CircleHelp, 'chevron-left': ChevronLeft, 'chevron-up': ChevronUp,
 }
 
 /** Icône en trait (lucide), taille et épaisseur cohérentes.

@@ -307,7 +307,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
     const canTransfer = canMove && t.transferable === true && p.members.some((m) => m.id !== (t.assigneeId || me.id))
     const subs = isSub ? [] : p.tasks.filter((s) => s.parentId === t.id)
     const subDone = subs.filter((s) => s.done).length
-    const hasMenu = canEditMeta || canLogHours || canDel || canPrio || canTransfer || (unassigned && !closed)
+    const hasMenu = canEditMeta || canLogHours || canDel || canPrio || canTransfer || canMove || (unassigned && !closed)
     return (
       <div key={t.id} className={'task status-task' + (isSub ? ' subtask' : '') + (t.done ? ' done' : '') + (over ? ' overdue' : '') + (dragId === t.id ? ' dragging' : '')}
         draggable={!isSub && !closed}
@@ -346,6 +346,9 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
           <Modal title={t.title} onClose={() => setMenuId(null)}>
             {(canEditMeta || canLogHours) && <button className="mact" onClick={() => { setMenuId(null); setEditId(t.id) }}><span className="mi"><Ic name="edit" s={17} /></span>{tt('pd.mEdit')}</button>}
             {!isSub && !closed && <button className="mact" onClick={() => { setMenuId(null); setSubTitle(''); setAddSubFor(t.id) }}><span className="mi"><Ic name="plus" s={17} /></span>{tt('pd.mSub')}</button>}
+            {canMove && !isSub && statuses.filter((s) => s.key !== statusOf(t) && (s.key !== 'transferred' || t.transferable)).map((s) => (
+              <button key={s.key} className="mact" onClick={() => { setMenuId(null); moveTask(t, s.key) }}><span className="mi"><i className="mact-dot" style={{ background: s.color }} /></span>{tt('pd.mMoveTo', { s: trTerm(s.label) })}</button>
+            ))}
             {canPrio && <button className="mact" onClick={() => { setMenuId(null); setPrioId(t.id) }}><span className="mi">🚩</span>{tt('pd.mPrio')}</button>}
             {canTransfer && <button className="mact" onClick={() => { setMenuId(null); setTransferId(t.id) }}><span className="mi">⇄</span>{tt('pd.mTransfer')}</button>}
             {unassigned && !closed && <button className="mact" onClick={() => { setMenuId(null); claim(t) }}><span className="mi">👐</span>{tt('pd.mClaim')}</button>}
