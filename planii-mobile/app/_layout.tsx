@@ -66,6 +66,10 @@ function Root() {
       router.replace({ pathname: '/invite/[token]', params: { token: invite } })
       return
     }
+    /* Un lien de reset ouvert alors qu'une session existe : on reste sur
+       l'écran, le mot de passe doit pouvoir être changé sans être renvoyé
+       dans l'app. */
+    if (inAuth && segs[1] === 'reset-password') return
     if (inAuth) router.replace('/')
   }, [ready, me, segments, router])
 

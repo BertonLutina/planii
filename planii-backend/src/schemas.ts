@@ -23,6 +23,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'mot de passe requis').max(200),
 }).passthrough()
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().min(1, 'email requis').max(200),
+}).passthrough()
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'lien requis').max(200),
+  password: z.string().min(8, 'mot de passe trop court (8 caractères min.)').max(200),
+}).passthrough()
+
 // ---- Me / profil ----
 export const meUpdateSchema = z.object({
   firstName: z.string().max(120).nullish(),

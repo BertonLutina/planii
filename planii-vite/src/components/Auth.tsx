@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, setTok } from '@/lib/api'
-import { toastErr } from '@/lib/ui'
+import { toast, toastErr } from '@/lib/ui'
 import { MicInput } from './Mic'
 import type { User } from '@/lib/types'
 import { useI18n, LangPicker, getLang, t as tt } from '@/lib/i18n'
@@ -9,6 +9,7 @@ const API = (import.meta.env.VITE_API_URL as string) || 'https://api.planii.app/
 
 type ProviderKey = 'google' | 'microsoft' | 'linkedin' | 'yahoo'
 type Providers = Partial<Record<ProviderKey, boolean>>
+type AuthMode = 'login' | 'signup' | 'forgot' | 'reset'
 
 const PROVIDER_ORDER: ProviderKey[] = ['google', 'microsoft', 'linkedin', 'yahoo']
 
@@ -54,17 +55,20 @@ function ProviderIcon({ provider }: { provider: ProviderKey }) {
   )
 }
 
-export function Auth({ onAuth, initialMode = 'login', onBack }: {
+export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }: {
   onAuth: (u: User) => void
   /** Ouvre directement sur l'inscription — utilisé par « Commencer gratuitement » de la landing. */
-  initialMode?: 'login' | 'signup'
+  initialMode?: AuthMode
   /** Retour à la page d'accueil publique. Absent = pas de bouton retour. */
   onBack?: () => void
+  /** Jeton du lien reçu par e-mail, pour l'écran « nouveau mot de passe ». */
+  resetToken?: string
 }) {
   const { t: tr } = useI18n()
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode)
-  const [f, setF] = useState({ name: '', email: '', password: '' })
+  const [mode, setMode] = useState<AuthMode>(initialMode)
+  const [f, setF] = useState({ name: '', email: '', password: '', confirm: '' })
   const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
   const [providers, setProviders] = useState<Providers>({})
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value })
 
@@ -72,11 +76,34 @@ export function Auth({ onAuth, initialMode = 'login', onBack }: {
     api<Providers>('GET', '/auth/providers').then(setProviders).catch(() => {})
   }, [])
 
+  function go(next: AuthMode) {
+    setMode(next)
+    setSent(false)
+    setBusy(false)
+  }
+
   async function submit() {
     setBusy(true)
     try {
+      if (mode === 'forgot') {
+        await api('POST', '/auth/forgot-password', { email: f.email })
+        setSent(true)
+        return
+      }
+      if (mode === 'reset') {
+        if (!resetToken) { toastErr(tr('auth.resetInvalid')); return }
+        if (f.password.length < 8) { toastErr(tr('auth.resetShort')); return }
+        if (f.password !== f.confirm) { toastErr(tr('auth.resetMismatch')); return }
+        await api('POST', '/auth/reset-password', { token: resetToken, password: f.password })
+        toast(tr('auth.resetOk'))
+        setTok(null)
+        setF({ ...f, password: '', confirm: '' })
+        go('login')
+        onBack?.()
+        return
+      }
       const path = mode === 'login' ? '/auth/login' : '/auth/register'
-      const body = mode === 'login' ? { email: f.email, password: f.password } : { ...f, lang: getLang() }
+      const body = mode === 'login' ? { email: f.email, password: f.password } : { name: f.name, email: f.email, password: f.password, lang: getLang() }
       const r = await api<{ token: string; user: User }>('POST', path, body)
       setTok(r.token); onAuth(r.user)
     } catch (e: any) { toastErr(e.message) } finally { setBusy(false) }
@@ -87,6 +114,17 @@ export function Auth({ onAuth, initialMode = 'login', onBack }: {
   }
 
   const enabled = PROVIDER_ORDER.filter((p) => providers[p])
+  const title = mode === 'signup' ? tr('auth.register')
+    : mode === 'forgot' ? tr('auth.forgotTitle')
+    : mode === 'reset' ? tr('auth.resetTitle')
+    : tr('auth.login')
+  const sub = mode === 'signup' ? tr('auth.startSub')
+    : mode === 'forgot' ? tr('auth.forgotSub')
+    : mode === 'reset' ? tr('auth.resetSub')
+    : tr('auth.welcomeBack')
+  const back = mode === 'forgot' ? () => go('login')
+    : mode === 'reset' ? () => { go('login'); onBack?.() }
+    : onBack
 
   return (
     <div className="auth-screen">
@@ -94,8 +132,8 @@ export function Auth({ onAuth, initialMode = 'login', onBack }: {
         <img src="/auth-bg.png" alt="" />
       </div>
       <div className="auth auth-glass">
-        {onBack && (
-          <button type="button" className="btn-link auth-back" onClick={onBack}>{tt('pd.back')}</button>
+        {back && (
+          <button type="button" className="btn-link auth-back" onClick={back}>{tt('pd.back')}</button>
         )}
 
         {/* Verrou de marque : tuile et nom solidaires, centrés — identique au mobile. */}
@@ -107,15 +145,15 @@ export function Auth({ onAuth, initialMode = 'login', onBack }: {
         {/* Le titre porte l'action ; la ligne en dessous accueille, elle n'explique
             pas le produit. L'accroche est sur la page d'accueil publique. */}
         <div className="auth-head">
-          <h2>{mode === 'login' ? tr('auth.login') : tr('auth.register')}</h2>
-          <p>{mode === 'login' ? tr('auth.welcomeBack') : tr('auth.startSub')}</p>
+          <h2>{title}</h2>
+          <p>{sub}</p>
         </div>
 
         {/* La langue avant les fournisseurs : c'est le seul moment où quelqu'un
             arrivé dans la mauvaise langue peut en sortir. */}
         <LangPicker />
 
-        {enabled.length > 0 && (
+        {mode !== 'forgot' && mode !== 'reset' && enabled.length > 0 && (
           <div className="auth-social">
             <div className="auth-social-row" role="group" aria-label={tr('auth.login')}>
               {enabled.map((provider) => (
@@ -135,24 +173,57 @@ export function Auth({ onAuth, initialMode = 'login', onBack }: {
           </div>
         )}
 
-        {/* Nom, e-mail, mot de passe — rien de plus. Le métier se règle dans le
-            profil, au moment où il sert. */}
-        {mode === 'signup' && (
-          <div className="field"><label>{tr('auth.name')}</label>
-            <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Awa Ndiaye" /></div>
+        {mode === 'forgot' && sent ? (
+          <p className="auth-sent">{tr('auth.forgotSent')}</p>
+        ) : (
+          <>
+            {mode === 'signup' && (
+              <div className="field"><label>{tr('auth.name')}</label>
+                <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Awa Ndiaye" /></div>
+            )}
+            {mode !== 'reset' && (
+              <div className="field"><label>{tr('auth.email')}</label>
+                <input type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" autoComplete="email" onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
+            )}
+            {(mode === 'login' || mode === 'signup') && (
+              <div className="field"><label>{tr('auth.password')}</label>
+                <input type="password" value={f.password} onChange={set('password')} placeholder="••••••••" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
+            )}
+            {mode === 'login' && (
+              <p className="auth-forgot">
+                <button type="button" className="btn-link" onClick={() => go('forgot')}>{tr('auth.forgot')}</button>
+              </p>
+            )}
+            {mode === 'reset' && (
+              <>
+                <div className="field"><label>{tr('auth.resetPassword')}</label>
+                  <input type="password" value={f.password} onChange={set('password')} placeholder="••••••••" autoComplete="new-password" onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
+                <div className="field"><label>{tr('auth.resetConfirm')}</label>
+                  <input type="password" value={f.confirm} onChange={set('confirm')} placeholder="••••••••" autoComplete="new-password" onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
+              </>
+            )}
+            <button className="btn primary block" disabled={busy} onClick={submit}>
+              {busy ? '…' : mode === 'signup' ? tr('auth.signup')
+                : mode === 'forgot' ? tr('auth.forgotSubmit')
+                : mode === 'reset' ? tr('auth.resetSubmit')
+                : tr('auth.login')}
+            </button>
+          </>
         )}
-        <div className="field"><label>{tr('auth.email')}</label>
-          <input type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" /></div>
-        <div className="field"><label>{tr('auth.password')}</label>
-          <input type="password" value={f.password} onChange={set('password')} placeholder="••••••••" /></div>
-        <button className="btn primary block" disabled={busy} onClick={submit}>
-          {busy ? '…' : mode === 'login' ? tr('auth.login') : tr('auth.signup')}
-        </button>
-        <p className="switch">
-          {mode === 'login'
-            ? <>{tr('auth.noAccount')} <button className="btn-link" onClick={() => setMode('signup')}>{tr('auth.register')}</button></>
-            : <>{tr('auth.hasAccount')} <button className="btn-link" onClick={() => setMode('login')}>{tr('auth.login')}</button></>}
-        </p>
+
+        {mode !== 'forgot' && mode !== 'reset' && (
+          <p className="switch">
+            {mode === 'login'
+              ? <>{tr('auth.noAccount')} <button className="btn-link" onClick={() => go('signup')}>{tr('auth.register')}</button></>
+              : <>{tr('auth.hasAccount')} <button className="btn-link" onClick={() => go('login')}>{tr('auth.login')}</button></>}
+          </p>
+        )}
+
+        {mode === 'forgot' && sent && (
+          <p className="switch">
+            <button type="button" className="btn-link" onClick={() => go('login')}>{tr('auth.forgotBack')}</button>
+          </p>
+        )}
 
         {/* Mentions : après l'action, sur une seule ligne. */}
         <div className="auth-foot">

@@ -69,6 +69,8 @@ export async function updateUser(
 }
 
 export const touchLastLogin = (id: string) => q('UPDATE users SET last_login=now() WHERE id=$1', [id])
+export const setPasswordHash = (id: string, passHash: string) =>
+  q('UPDATE users SET pass_hash=$1 WHERE id=$2', [passHash, id])
 
 export const projectManagers = (projectId: string) => many(
   `SELECT DISTINCT u.id, u.name, u.email, u.lang, u.email_notifs, m.role

@@ -2054,6 +2054,10 @@ textarea:focus-visible,[tabindex]:focus-visible,[role="button"]:focus-visible,[c
 .auth-glass .auth-foot{border-top-color:rgba(20,16,31,.14)}
 .auth-glass .auth-foot a{color:#5b4dff}
 .auth-glass .auth-foot i{background:rgba(20,16,31,.24)}
+.auth-forgot{text-align:right;margin:-4px 0 12px}
+.auth-forgot .btn-link{font-size:13px}
+.auth-sent{font-size:14.5px;line-height:1.5;margin:4px 0 8px;color:rgba(20,16,31,.78)}
+
 /* Pastille de statut dans le menu d'actions (l'intitulé texte porte le sens, la couleur seulement l'appui) */
 .mact-dot{display:block;width:12px;height:12px;border-radius:50%}
 

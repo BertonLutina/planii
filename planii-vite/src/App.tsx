@@ -648,14 +648,53 @@ const isPrivacyRoute = () => {
   return names.some((n) => path === n || path.endsWith(n)) || hash === 'confidentialite' || hash === 'privacy'
 }
 
+function resetTokenFromLocation(): string {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const fromQuery = params.get('reset_token') || ''
+    const path = window.location.pathname.replace(/\/+$/, '')
+    const hash = window.location.hash.replace(/^#\/?/, '')
+    const onReset = path === '/reset-password' || path.endsWith('/reset-password')
+      || hash === 'reset-password' || hash.startsWith('reset-password')
+    return fromQuery || (onReset ? (params.get('token') || '') : '')
+  } catch {
+    return ''
+  }
+}
+
+const isResetRoute = () => {
+  const path = window.location.pathname.replace(/\/+$/, '')
+  const hash = window.location.hash.replace(/^#\/?/, '')
+  return path === '/reset-password' || path.endsWith('/reset-password')
+    || hash === 'reset-password' || hash.startsWith('reset-password')
+    || !!resetTokenFromLocation()
+}
+
+function leaveResetUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    params.delete('token')
+    params.delete('reset_token')
+    let path = window.location.pathname
+    if (/\/reset-password\/?$/.test(path)) path = '/'
+    const q = params.toString()
+    window.history.replaceState({}, '', path + (q ? '?' + q : ''))
+  } catch { /* ignore */ }
+}
+
 export default function App() {
   const styleGuide = isStyleGuideRoute()
   const privacy = isPrivacyRoute()
+  const [resetToken] = useState(() => resetTokenFromLocation())
+  const [inReset, setInReset] = useState(() => isResetRoute())
   const [me, setMe] = useState<User | null | undefined>(undefined)
   /** Visiteur non connecté : landing publique, puis connexion ou inscription. */
   const [gate, setGate] = useState<'landing' | 'login' | 'signup'>('landing')
   useEffect(() => {
-    if (styleGuide || privacy) return
+    if (styleGuide || privacy || inReset) {
+      if (inReset) setMe(null)
+      return
+    }
     try {
       const params = new URLSearchParams(window.location.search)
       const oauth = params.get('oauth_token')
@@ -683,12 +722,21 @@ export default function App() {
   return (
     <>
       <Toaster />
-      {me === undefined ? <div className="boot">Connexion…</div>
+      {inReset ? (
+        <Auth
+          key="reset"
+          initialMode="reset"
+          resetToken={resetToken}
+          onBack={() => { leaveResetUrl(); setInReset(false); setGate('login'); setMe(null) }}
+          onAuth={(u) => { leaveResetUrl(); setInReset(false); setMe(u); connectRealtime() }}
+        />
+      ) : me === undefined ? <div className="boot">Connexion…</div>
         : me ? <Shell me={me} onLogout={onLogout} onUpdate={setMe} />
         : gate === 'landing'
           ? <Landing onLogin={() => setGate('login')} onStart={() => setGate('signup')} />
           : (
             <Auth
+              key={gate}
               initialMode={gate}
               onBack={() => setGate('landing')}
               onAuth={(u) => { setMe(u); connectRealtime() }}

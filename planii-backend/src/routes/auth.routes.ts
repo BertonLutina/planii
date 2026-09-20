@@ -4,7 +4,7 @@ import passport from 'passport'
 import * as AuthController from '../controllers/Auth.controller'
 import { authRateLimit } from '../middleware/security'
 import { validate } from '../middleware/validate'
-import { registerSchema, loginSchema } from '../schemas'
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../schemas'
 import { env } from '../config/env'
 import type { OAuthAuthResult } from '../auth/passport'
 import { oauthConfigured, oauthProvidersStatus, type OAuthProvider } from '../services/oauth.service'
@@ -154,6 +154,8 @@ export function authRoutes() {
   const r = Router()
   r.post('/register', authRateLimit, validate(registerSchema), AuthController.register)
   r.post('/login', authRateLimit, validate(loginSchema), AuthController.login)
+  r.post('/forgot-password', authRateLimit, validate(forgotPasswordSchema), AuthController.forgotPassword)
+  r.post('/reset-password', authRateLimit, validate(resetPasswordSchema), AuthController.resetPassword)
 
   r.get('/providers', (_req, res) => {
     res.json(oauthProvidersStatus())

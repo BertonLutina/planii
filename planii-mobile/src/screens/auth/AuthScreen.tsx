@@ -3,9 +3,9 @@ import {
   KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
 } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, type Href } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Banner, Button, SelectBox, Skeleton } from '@/components/ui'
+import { Banner, Button, SelectBox, Skeleton, toast } from '@/components/ui'
 import { BrandTile } from '@/components/BrandMark'
 import { api } from '@/lib/api'
 import { getLang, langOptions, setLang, t, useI18n } from '@/lib/i18n'
@@ -24,20 +24,21 @@ const SUPPORT_MAIL = 'info@planii.app'
 const PRIVACY_URL = 'https://planii.app/confidentialite'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-type Mode = 'login' | 'signup'
-interface Errors { name?: string; email?: string; password?: string }
+type Mode = 'login' | 'signup' | 'forgot' | 'reset'
+interface Errors { name?: string; email?: string; password?: string; confirm?: string }
 
-export function AuthScreen({ mode }: { mode: Mode }) {
+export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?: string }) {
   const { c } = useTheme()
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { signIn } = useSession()
   const { lang } = useI18n()
 
-  const [f, setF] = useState({ name: '', email: '', password: '' })
+  const [f, setF] = useState({ name: '', email: '', password: '', confirm: '' })
   const [errs, setErrs] = useState<Errors>({})
   const [formErr, setFormErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
 
   const [providers, setProviders] = useState<Providers>({})
   const [provLoading, setProvLoading] = useState(true)
@@ -45,6 +46,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
 
   const emailRef = useRef<TextInput>(null)
   const passRef = useRef<TextInput>(null)
+  const confirmRef = useRef<TextInput>(null)
 
   useEffect(() => {
     let alive = true
@@ -64,9 +66,17 @@ export function AuthScreen({ mode }: { mode: Mode }) {
   function validate(): boolean {
     const next: Errors = {}
     if (mode === 'signup' && !f.name.trim()) next.name = 'Indique ton nom complet'
-    if (!f.email.trim()) next.email = 'Indique ton e-mail'
-    else if (!EMAIL_RE.test(f.email.trim())) next.email = 'Cette adresse e-mail n’est pas valide'
+    if (mode !== 'reset') {
+      if (!f.email.trim()) next.email = 'Indique ton e-mail'
+      else if (!EMAIL_RE.test(f.email.trim())) next.email = 'Cette adresse e-mail n’est pas valide'
+    }
+    if (mode === 'forgot') {
+      setErrs(next)
+      return Object.keys(next).length === 0
+    }
     if (!f.password) next.password = 'Indique ton mot de passe'
+    else if (mode === 'reset' && f.password.length < 8) next.password = t('auth.resetShort')
+    if (mode === 'reset' && f.password !== f.confirm) next.confirm = t('auth.resetMismatch')
     setErrs(next)
     return Object.keys(next).length === 0
   }
@@ -76,6 +86,18 @@ export function AuthScreen({ mode }: { mode: Mode }) {
     setFormErr(null)
     setBusy(true)
     try {
+      if (mode === 'forgot') {
+        await api('POST', '/auth/forgot-password', { email: f.email.trim() })
+        setSent(true)
+        return
+      }
+      if (mode === 'reset') {
+        if (!resetToken) { setFormErr(t('auth.resetInvalid')); return }
+        await api('POST', '/auth/reset-password', { token: resetToken, password: f.password })
+        toast(t('auth.resetOk'))
+        router.replace('/login')
+        return
+      }
       const path = mode === 'login' ? '/auth/login' : '/auth/register'
       const body = mode === 'login'
         ? { email: f.email.trim(), password: f.password }
@@ -110,7 +132,17 @@ export function AuthScreen({ mode }: { mode: Mode }) {
 
   const enabled = PROVIDER_ORDER.filter((p) => providers[p])
   const signup = mode === 'signup'
+  const forgot = mode === 'forgot'
+  const reset = mode === 'reset'
   const langOpts = langOptions()
+  const title = signup ? t('auth.register')
+    : forgot ? t('auth.forgotTitle')
+    : reset ? t('auth.resetTitle')
+    : t('auth.login')
+  const sub = signup ? t('auth.startSub')
+    : forgot ? t('auth.forgotSub')
+    : reset ? t('auth.resetSub')
+    : t('auth.welcomeBack')
 
   return (
     <KeyboardAvoidingView
@@ -134,10 +166,10 @@ export function AuthScreen({ mode }: { mode: Mode }) {
             n'explique pas le produit — l'app est déjà installée. */}
         <View style={s.head}>
           <Text accessibilityRole="header" style={[s.pageTitle, { color: c.text }]}>
-            {signup ? t('auth.register') : t('auth.login')}
+            {title}
           </Text>
           <Text style={[s.pageSub, { color: c.muted }]}>
-            {signup ? t('auth.startSub') : t('auth.welcomeBack')}
+            {sub}
           </Text>
         </View>
 
@@ -153,7 +185,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
           style={s.langTop}
         />
 
-        {provLoading ? (
+        {!forgot && !reset && (provLoading ? (
           <View style={s.social}>
             <View style={s.socialRow}>
               {[0, 1, 2, 3].map((i) => (
@@ -197,85 +229,151 @@ export function AuthScreen({ mode }: { mode: Mode }) {
               <View style={[s.orLine, { backgroundColor: c.line }]} />
             </View>
           </View>
-        ) : null}
+        ) : null)}
 
         {!!formErr && <Banner tone="danger" icon="alert" text={formErr} style={s.formErr} />}
 
-        {/* Nom, e-mail, mot de passe — rien de plus. Métier et pays ne changent
-            rien à cet instant : ils se demandent dans le profil, au moment où
-            ils servent. Chaque champ posé avant la première réussite est une fuite. */}
-        {signup && (
-          <RefField
-            label={t('auth.name')}
-            value={f.name}
-            onChangeText={set('name')}
-            placeholder="Ex. Awa Ndiaye"
-            error={errs.name}
-            maxLength={120}
-            autoCapitalize="words"
-            autoComplete="name"
-            textContentType="name"
-            returnKeyType="next"
-            blurOnSubmit={false}
-            onSubmitEditing={() => emailRef.current?.focus()}
-          />
+        {forgot && sent ? (
+          <Banner tone="ok" icon="check" text={t('auth.forgotSent')} style={s.formErr} />
+        ) : (
+          <>
+            {signup && (
+              <RefField
+                label={t('auth.name')}
+                value={f.name}
+                onChangeText={set('name')}
+                placeholder="Ex. Awa Ndiaye"
+                error={errs.name}
+                maxLength={120}
+                autoCapitalize="words"
+                autoComplete="name"
+                textContentType="name"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => emailRef.current?.focus()}
+              />
+            )}
+
+            {!reset && (
+              <RefField
+                ref={emailRef}
+                label={t('auth.email')}
+                value={f.email}
+                onChangeText={set('email')}
+                placeholder="vous@exemple.com"
+                error={errs.email}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType={forgot ? 'go' : 'next'}
+                blurOnSubmit={forgot}
+                onSubmitEditing={() => (forgot ? submit() : passRef.current?.focus())}
+              />
+            )}
+            {(mode === 'login' || signup) && (
+              <RefField
+                ref={passRef}
+                label={t('auth.password')}
+                value={f.password}
+                onChangeText={set('password')}
+                placeholder="••••••••"
+                error={errs.password}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete={signup ? 'new-password' : 'password'}
+                textContentType={signup ? 'newPassword' : 'password'}
+                returnKeyType="go"
+                onSubmitEditing={submit}
+              />
+            )}
+            {mode === 'login' && (
+              <Pressable
+                onPress={() => router.push('/forgot-password' as Href)}
+                hitSlop={8}
+                accessibilityRole="link"
+                accessibilityLabel={t('auth.forgot')}
+                style={s.forgot}
+              >
+                <Text style={[s.forgotTxt, { color: c.accent }]}>{t('auth.forgot')}</Text>
+              </Pressable>
+            )}
+            {reset && (
+              <>
+                <RefField
+                  ref={passRef}
+                  label={t('auth.resetPassword')}
+                  value={f.password}
+                  onChangeText={set('password')}
+                  placeholder="••••••••"
+                  error={errs.password}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => confirmRef.current?.focus()}
+                />
+                <RefField
+                  ref={confirmRef}
+                  label={t('auth.resetConfirm')}
+                  value={f.confirm}
+                  onChangeText={set('confirm')}
+                  placeholder="••••••••"
+                  error={errs.confirm}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  returnKeyType="go"
+                  onSubmitEditing={submit}
+                />
+              </>
+            )}
+
+            <Button
+              label={signup ? t('auth.signup') : forgot ? t('auth.forgotSubmit') : reset ? t('auth.resetSubmit') : t('auth.login')}
+              variant="primary"
+              block
+              loading={busy}
+              disabled={!!oauthBusy}
+              onPress={submit}
+              style={s.submit}
+            />
+          </>
         )}
 
-        <RefField
-          ref={emailRef}
-          label={t('auth.email')}
-          value={f.email}
-          onChangeText={set('email')}
-          placeholder="vous@exemple.com"
-          error={errs.email}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="email"
-          textContentType="emailAddress"
-          returnKeyType="next"
-          blurOnSubmit={false}
-          onSubmitEditing={() => passRef.current?.focus()}
-        />
-        <RefField
-          ref={passRef}
-          label={t('auth.password')}
-          value={f.password}
-          onChangeText={set('password')}
-          placeholder="••••••••"
-          error={errs.password}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete={signup ? 'new-password' : 'password'}
-          textContentType={signup ? 'newPassword' : 'password'}
-          returnKeyType="go"
-          onSubmitEditing={submit}
-        />
-
-        <Button
-          label={signup ? t('auth.signup') : t('auth.login')}
-          variant="primary"
-          block
-          loading={busy}
-          disabled={!!oauthBusy}
-          onPress={submit}
-          style={s.submit}
-        />
-
-        <Pressable
-          onPress={() => router.replace(signup ? '/login' : '/register')}
-          hitSlop={10}
-          accessibilityRole="link"
-          style={s.switch}
-        >
-          <Text style={[s.switchTxt, { color: c.muted }]}>
-            {signup ? t('auth.hasAccount') : t('auth.noAccount')}{' '}
-            <Text style={{ color: c.accent, fontWeight: '700' }}>
-              {signup ? t('auth.login') : t('auth.register')}
+        {forgot || reset ? (
+          <Pressable
+            onPress={() => router.replace('/login')}
+            hitSlop={10}
+            accessibilityRole="link"
+            style={s.switch}
+          >
+            <Text style={[s.switchTxt, { color: c.accent, fontWeight: '700' }]}>
+              {t('auth.forgotBack')}
             </Text>
-          </Text>
-        </Pressable>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={() => router.replace(signup ? '/login' : '/register')}
+            hitSlop={10}
+            accessibilityRole="link"
+            style={s.switch}
+          >
+            <Text style={[s.switchTxt, { color: c.muted }]}>
+              {signup ? t('auth.hasAccount') : t('auth.noAccount')}{' '}
+              <Text style={{ color: c.accent, fontWeight: '700' }}>
+                {signup ? t('auth.login') : t('auth.register')}
+              </Text>
+            </Text>
+          </Pressable>
+        )}
 
         {/* Réglages et mentions : après l'action, jamais avant.
             À la connexion, la langue vit ici. */}
@@ -333,6 +431,8 @@ const s = StyleSheet.create({
   orTxt: { fontSize: 12.5, fontWeight: '600' },
 
   formErr: { marginBottom: 14 },
+  forgot: { alignSelf: 'flex-end', marginTop: -4, marginBottom: 12 },
+  forgotTxt: { fontSize: 13, fontWeight: '700' },
   submit: { marginTop: 2 },
   switch: { marginTop: 16, alignItems: 'center' },
   switchTxt: { fontSize: 14, textAlign: 'center' },

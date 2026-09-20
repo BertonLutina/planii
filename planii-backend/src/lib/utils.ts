@@ -2,6 +2,7 @@ import crypto from 'crypto'
 
 export const uid = () => crypto.randomBytes(9).toString('base64url')
 export const newToken = () => crypto.randomBytes(18).toString('base64url')
+export const sha256hex = (s: string) => crypto.createHash('sha256').update(s).digest('hex')
 
 export const numOrNull = (v: unknown) =>
   (v === '' || v === null || v === undefined || isNaN(Number(v))) ? null : Math.max(0, Number(v))

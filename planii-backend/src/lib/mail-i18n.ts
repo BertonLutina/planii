@@ -24,6 +24,12 @@ const fr: D = {
   'invNewAdmin.i': '{actor} a généré un lien d’invitation ({role}) pour « {project} ».',
   'welcome.s': 'Bienvenue dans « {project} »', 'welcome.i': 'Vous avez rejoint le projet « {project} » en tant que {role}.',
   'joined.s': '{actor} a rejoint « {project} »', 'joined.i': '{actor} ({email}) a rejoint votre projet « {project} ».',
+  'pwReset.s': 'Réinitialiser votre mot de passe',
+  'pwReset.i': 'Vous avez demandé à réinitialiser le mot de passe de votre compte Planii. Le lien est valable une heure.',
+  'pwReset.cta': 'Choisir un nouveau mot de passe',
+  'pwReset.footer': 'Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail. Votre mot de passe reste inchangé.',
+  'pwResetSocial.s': 'Connexion à votre compte Planii',
+  'pwResetSocial.i': 'Ce compte se connecte avec Google, Microsoft, LinkedIn ou Yahoo — il n’a pas de mot de passe à réinitialiser. Utilisez le bouton du fournisseur sur l’écran de connexion.',
 }
 const en: D = {
   cta: 'Open Planii',
@@ -44,6 +50,12 @@ const en: D = {
   'invNewAdmin.i': '{actor} generated an invitation link ({role}) for “{project}”.',
   'welcome.s': 'Welcome to “{project}”', 'welcome.i': 'You joined the project “{project}” as {role}.',
   'joined.s': '{actor} joined “{project}”', 'joined.i': '{actor} ({email}) joined your project “{project}”.',
+  'pwReset.s': 'Reset your password',
+  'pwReset.i': 'You asked to reset the password for your Planii account. This link is valid for one hour.',
+  'pwReset.cta': 'Choose a new password',
+  'pwReset.footer': 'If you did not request this, ignore this email. Your password stays unchanged.',
+  'pwResetSocial.s': 'Signing in to your Planii account',
+  'pwResetSocial.i': 'This account signs in with Google, Microsoft, LinkedIn or Yahoo — there is no password to reset. Use the provider button on the sign-in screen.',
 }
 const nl: D = {
   cta: 'Planii openen',
@@ -61,6 +73,12 @@ const nl: D = {
   'invNewAdmin.i': '{actor} heeft een uitnodigingslink ({role}) aangemaakt voor “{project}”.',
   'welcome.s': 'Welkom in “{project}”', 'welcome.i': 'Je bent toegetreden tot het project “{project}” als {role}.',
   'joined.s': '{actor} is toegetreden tot “{project}”', 'joined.i': '{actor} ({email}) is toegetreden tot jouw project “{project}”.',
+  'pwReset.s': 'Je wachtwoord opnieuw instellen',
+  'pwReset.i': 'Je hebt gevraagd om het wachtwoord van je Planii-account opnieuw in te stellen. De link is één uur geldig.',
+  'pwReset.cta': 'Kies een nieuw wachtwoord',
+  'pwReset.footer': 'Als jij dit niet hebt gevraagd, negeer deze e-mail. Je wachtwoord blijft ongewijzigd.',
+  'pwResetSocial.s': 'Inloggen op je Planii-account',
+  'pwResetSocial.i': 'Dit account logt in met Google, Microsoft, LinkedIn of Yahoo — er is geen wachtwoord om te resetten. Gebruik de knop van de provider op het inlogscherm.',
 }
 const es: D = {
   cta: 'Abrir Planii',
@@ -78,6 +96,12 @@ const es: D = {
   'invNewAdmin.i': '{actor} generó un enlace de invitación ({role}) para «{project}».',
   'welcome.s': 'Bienvenido a «{project}»', 'welcome.i': 'Te uniste al proyecto «{project}» como {role}.',
   'joined.s': '{actor} se unió a «{project}»', 'joined.i': '{actor} ({email}) se unió a tu proyecto «{project}».',
+  'pwReset.s': 'Restablecer tu contraseña',
+  'pwReset.i': 'Has pedido restablecer la contraseña de tu cuenta Planii. El enlace es válido durante una hora.',
+  'pwReset.cta': 'Elegir una nueva contraseña',
+  'pwReset.footer': 'Si no has hecho esta solicitud, ignora este correo. Tu contraseña no cambia.',
+  'pwResetSocial.s': 'Acceso a tu cuenta Planii',
+  'pwResetSocial.i': 'Esta cuenta entra con Google, Microsoft, LinkedIn o Yahoo — no hay contraseña que restablecer. Usa el botón del proveedor en la pantalla de inicio de sesión.',
 }
 const pt: D = {
   cta: 'Abrir Planii',
@@ -95,6 +119,12 @@ const pt: D = {
   'invNewAdmin.i': '{actor} gerou um link de convite ({role}) para «{project}».',
   'welcome.s': 'Bem-vindo a «{project}»', 'welcome.i': 'Juntaste-te ao projeto «{project}» como {role}.',
   'joined.s': '{actor} juntou-se a «{project}»', 'joined.i': '{actor} ({email}) juntou-se ao teu projeto «{project}».',
+  'pwReset.s': 'Redefinir a tua palavra-passe',
+  'pwReset.i': 'Pediste para redefinir a palavra-passe da tua conta Planii. O link é válido durante uma hora.',
+  'pwReset.cta': 'Escolher uma nova palavra-passe',
+  'pwReset.footer': 'Se não fizeste este pedido, ignora este e-mail. A tua palavra-passe permanece inalterada.',
+  'pwResetSocial.s': 'Aceder à tua conta Planii',
+  'pwResetSocial.i': 'Esta conta entra com Google, Microsoft, LinkedIn ou Yahoo — não há palavra-passe para redefinir. Usa o botão do fornecedor no ecrã de início de sessão.',
 }
 const it: D = {
   cta: 'Apri Planii',
@@ -112,6 +142,12 @@ const it: D = {
   'invNewAdmin.i': '{actor} ha generato un link di invito ({role}) per «{project}».',
   'welcome.s': 'Benvenuto in «{project}»', 'welcome.i': 'Ti sei unito al progetto «{project}» come {role}.',
   'joined.s': '{actor} si è unito a «{project}»', 'joined.i': '{actor} ({email}) si è unito al tuo progetto «{project}».',
+  'pwReset.s': 'Reimposta la tua password',
+  'pwReset.i': 'Hai chiesto di reimpostare la password del tuo account Planii. Il link è valido per un’ora.',
+  'pwReset.cta': 'Scegli una nuova password',
+  'pwReset.footer': 'Se non hai fatto tu questa richiesta, ignora questa e-mail. La password resta invariata.',
+  'pwResetSocial.s': 'Accesso al tuo account Planii',
+  'pwResetSocial.i': 'Questo account accede con Google, Microsoft, LinkedIn o Yahoo — non c’è una password da reimpostare. Usa il pulsante del provider nella schermata di accesso.',
 }
 const el: D = {
   cta: 'Άνοιγμα Planii',
@@ -129,6 +165,12 @@ const el: D = {
   'invNewAdmin.i': 'Ο/Η {actor} δημιούργησε σύνδεσμο πρόσκλησης ({role}) για το «{project}».',
   'welcome.s': 'Καλωσήρθες στο «{project}»', 'welcome.i': 'Μπήκες στο έργο «{project}» ως {role}.',
   'joined.s': 'Ο/Η {actor} μπήκε στο «{project}»', 'joined.i': 'Ο/Η {actor} ({email}) μπήκε στο έργο σου «{project}».',
+  'pwReset.s': 'Επαναφορά κωδικού',
+  'pwReset.i': 'Ζήτησες επαναφορά του κωδικού του λογαριασμού Planii. Ο σύνδεσμος ισχύει για μία ώρα.',
+  'pwReset.cta': 'Επίλεξε νέο κωδικό',
+  'pwReset.footer': 'Αν δεν έκανες εσύ αυτό το αίτημα, αγνόησε το e-mail. Ο κωδικός σου δεν αλλάζει.',
+  'pwResetSocial.s': 'Σύνδεση στον λογαριασμό Planii',
+  'pwResetSocial.i': 'Αυτός ο λογαριασμός συνδέεται με Google, Microsoft, LinkedIn ή Yahoo — δεν υπάρχει κωδικός για επαναφορά. Χρησιμοποίησε το κουμπί του παρόχου στην οθόνη σύνδεσης.',
 }
 const ru: D = {
   cta: 'Открыть Planii',
@@ -146,6 +188,12 @@ const ru: D = {
   'invNewAdmin.i': '{actor} создал(а) пригласительную ссылку ({role}) для «{project}».',
   'welcome.s': 'Добро пожаловать в «{project}»', 'welcome.i': 'Вы присоединились к проекту «{project}» как {role}.',
   'joined.s': '{actor} присоединился(лась) к «{project}»', 'joined.i': '{actor} ({email}) присоединился(лась) к вашему проекту «{project}».',
+  'pwReset.s': 'Сброс пароля',
+  'pwReset.i': 'Вы запросили сброс пароля для аккаунта Planii. Ссылка действует один час.',
+  'pwReset.cta': 'Выбрать новый пароль',
+  'pwReset.footer': 'Если это были не вы, проигнорируйте письмо. Пароль не изменится.',
+  'pwResetSocial.s': 'Вход в аккаунт Planii',
+  'pwResetSocial.i': 'Этот аккаунт входит через Google, Microsoft, LinkedIn или Yahoo — пароля для сброса нет. Используйте кнопку провайдера на экране входа.',
 }
 const sw: D = {
   cta: 'Fungua Planii',
@@ -163,6 +211,12 @@ const sw: D = {
   'invNewAdmin.i': '{actor} ameunda kiungo cha mwaliko ({role}) kwa «{project}».',
   'welcome.s': 'Karibu katika «{project}»', 'welcome.i': 'Umejiunga na mradi «{project}» kama {role}.',
   'joined.s': '{actor} amejiunga na «{project}»', 'joined.i': '{actor} ({email}) amejiunga na mradi wako «{project}».',
+  'pwReset.s': 'Weka nenosiri jipya',
+  'pwReset.i': 'Umeomba kuweka nenosiri jipya la akaunti yako ya Planii. Kiungo ni halali kwa saa moja.',
+  'pwReset.cta': 'Chagua nenosiri jipya',
+  'pwReset.footer': 'Ikiwa hukuomba hivi, puuza barua hii. Nenosiri lako halibadiliki.',
+  'pwResetSocial.s': 'Kuingia kwenye akaunti ya Planii',
+  'pwResetSocial.i': 'Akaunti hii inaingia kwa Google, Microsoft, LinkedIn au Yahoo — hakuna nenosiri la kuweka upya. Tumia kitufe cha mtoa huduma kwenye skrini ya kuingia.',
 }
 
 const DICTS: Record<MLang, D> = { fr, en, nl, es, pt, it, el, ru, sw }
