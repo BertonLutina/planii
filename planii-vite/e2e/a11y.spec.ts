@@ -175,10 +175,15 @@ test('axe: task import wizard and voice wizard dialogs', async ({ page }) => {
   await expect(opener).toBeFocused()
 })
 
-test('axe: meeting room', async ({ page }) => {
+test('axe: meeting room (Jitsi stubbed: third-party frame content is out of scope)', async ({ page, context }) => {
+  // Deterministic and offline: a stand-in for Jitsi's external API that just injects an untitled iframe.
+  await context.route('https://meet.jit.si/external_api.js', (route) => route.fulfill({
+    contentType: 'application/javascript',
+    body: `window.JitsiMeetExternalAPI = class { constructor(_d, o) { this.f = document.createElement('iframe'); this.f.src = 'about:blank'; o.parentNode.appendChild(this.f) } getIFrame() { return this.f } dispose() {} }`,
+  }))
   await openProject(page)
   await page.getByRole('button', { name: /Meeting/i }).first().click()
-  await page.waitForTimeout(400)
+  await expect(page.locator('#jitsi-container iframe')).toHaveAttribute('title', 'Meeting')
   await scan(page, 'meeting')
 })
 
@@ -188,4 +193,55 @@ test('axe: notifications panel (mobile layout, where the bell lives)', async ({ 
   await page.getByRole('button', { name: /notification/i }).first().click()
   await page.waitForTimeout(300)
   await scan(page, 'notifications')
+})
+
+test('axe: privacy policy page (public)', async ({ page }) => {
+  await page.goto('/privacy')
+  await expect(page.getByRole('heading').first()).toBeVisible()
+  await scan(page, 'privacy')
+})
+
+test('axe: project tabs (team, polls, activity)', async ({ page }) => {
+  await openProject(page)
+  for (const name of ['Team', 'Polls', 'Activity']) {
+    await page.getByRole('button', { name, exact: true }).first().click()
+    await page.waitForTimeout(250)
+    await scan(page, 'project tab ' + name)
+  }
+})
+
+test('axe: voice task wizard dialog', async ({ page }) => {
+  await openProject(page)
+  const opener = page.getByRole('button', { name: /Dictate a task/ }).first()
+  await opener.click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  await scan(page, 'voice task wizard')
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await expect(opener).toBeFocused()
+})
+
+test('axe: invitation join dialog', async ({ page }) => {
+  await signIn(page, 'token-alice')
+  await page.goto('/invite/abc123')
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await scan(page, 'join invitation')
+})
+
+test('axe: admin space sections', async ({ page }) => {
+  await signIn(page, 'token-admin')
+  await page.getByRole('navigation').getByRole('button', { name: 'Profile', exact: true }).click()
+  await page.getByRole('button', { name: /Admin space/ }).click()
+  await page.waitForTimeout(400)
+  await scan(page, 'admin dashboard')
+  const segs = page.locator('.admin-seg button')
+  const n = await segs.count()
+  expect(n, 'admin sections found').toBeGreaterThanOrEqual(4)
+  for (let i = 1; i < n; i++) {
+    const label = (await segs.nth(i).innerText()).trim()
+    await segs.nth(i).click()
+    await page.waitForTimeout(300)
+    await scan(page, 'admin ' + label)
+  }
 })

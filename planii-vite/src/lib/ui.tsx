@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { initials } from './dates'
 import { useDialog } from './useDialog'
+import { useI18n } from './i18n'
 
 /* ---------- toast bus ---------- */
 type Toast = { text: string; err?: boolean }
@@ -46,6 +47,7 @@ export function Avatar({ name, size, src }: { name?: string; size?: number; src?
 
 /* ---------- modal ---------- */
 export function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+  const { t: tr } = useI18n()
   const [max, setMax] = useState(false)
   const titleId = useId()
   const ref = useDialog<HTMLDivElement>(onClose)
@@ -57,12 +59,12 @@ export function Modal({ title, children, onClose }: { title: string; children: R
         <div className="sheet-head">
           <h3 id={titleId}>{title}</h3>
           <div className="sheet-head-btns">
-            <button className="sheet-ico" onClick={() => setMax((m) => !m)} aria-label={max ? 'Réduire' : 'Agrandir'} title={max ? 'Réduire' : 'Agrandir'}>
+            <button className="sheet-ico" onClick={() => setMax((m) => !m)} aria-label={max ? tr('action.collapse') : tr('action.expand')} title={max ? tr('action.collapse') : tr('action.expand')}>
               {max
                 ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3" /></svg>
                 : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>}
             </button>
-            <button className="sheet-ico" onClick={onClose} aria-label="Fermer" title="Fermer">
+            <button className="sheet-ico" onClick={onClose} aria-label={tr('action.close')} title={tr('action.close')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
           </div>

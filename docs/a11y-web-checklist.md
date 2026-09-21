@@ -35,5 +35,5 @@ Vérifier : ordre de tabulation logique, focus jamais masqué, annonces des chan
 
 ## Écarts connus (à traiter)
 - **Revue manuelle lecteur d'écran** non réalisée à ce jour (voir liste ci-dessus).
-- Écrans non couverts par axe : Admin, invitation/jonction, mentions légales, assistants vocal/rendez-vous, sondages, équipe.
-- Libellés `Agrandir` / `Réduire` / `Fermer` de `Modal` (`lib/ui.tsx`) écrits en dur en français (non traduits).
+- Écrans non couverts par axe : assistant de rendez-vous, création de sondage, écran de reset de mot de passe (chantier en cours), guide/visite.
+- Contenu de l'iframe Jitsi (tiers) : hors périmètre de nos tests (l'iframe est simulée) ; seul son `title` est vérifié.

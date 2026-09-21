@@ -1,7 +1,8 @@
 import type { BrowserContext, Page } from '@playwright/test'
 
-export const USERS: Record<string, { id: string; name: string; email: string; firstName: string; lastName: string }> = {
+export const USERS: Record<string, { id: string; name: string; email: string; firstName: string; lastName: string; admin?: boolean; superAdmin?: boolean }> = {
   'token-alice': { id: 'u1', name: 'Alice Private', email: 'alice@example.test', firstName: 'Alice', lastName: 'Private' },
+  'token-admin': { id: 'u3', name: 'Ada Admin', email: 'ada@example.test', firstName: 'Ada', lastName: 'Admin', admin: true, superAdmin: true },
   'token-bob': { id: 'u2', name: 'Bob Other', email: 'bob@example.test', firstName: 'Bob', lastName: 'Other' },
 }
 
@@ -31,6 +32,9 @@ export async function mockApi(context: BrowserContext) {
     const path = new URL(route.request().url()).pathname
     if (!user) return route.fulfill({ status: 401, json: { error: 'unauthorized' } })
     if (path.endsWith('/me')) return route.fulfill({ json: { user } })
+    if (path.endsWith('/admin/stats')) return route.fulfill({ json: { stats: { users: 3, projects: 2, projectsActive: 2, tasks: 3, tasksDone: 1, tasksOpen: 2, tasksOverdue: 0, completion: 33, activeUsers7: 2, tasksByPriority: [{ p: 2, c: 1 }], projectsByType: [{ t: 'team', c: 2 }], doneByDay: [{ d: '2026-09-19', c: 1 }], recentLogins: [{ name: 'Alice Private', email: 'alice@example.test', lastLogin: '2026-09-20T08:00:00Z' }] } } })
+    if (path.endsWith('/admin/users')) return route.fulfill({ json: page(Object.values(USERS).map((u) => ({ ...u, createdAt: '2026-01-01', lastLogin: null, admin: !!u.admin, superAdmin: !!u.superAdmin, projectCount: 1, tasksOpen: 1, tasksDone: 0, points: 0 }))) })
+    if (/\/invites\/[^/]+$/.test(path)) return route.fulfill({ json: { project: { id: 'p9', name: 'Projet invité', type: 'team' }, role: 'member', invitedBy: 'Alice Private' } })
     if (path.endsWith('/projects/p1')) return route.fulfill({ json: { project } })
     if (path.endsWith('/projects/p1/tasks')) return route.fulfill({ json: page(tasks) })
     if (path.endsWith('/tasks/mine')) return route.fulfill({ json: { projects: [{ ...project, tasks: tasks.filter((t) => t.assigneeId === 'u1') }] } })

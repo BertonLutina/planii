@@ -32,7 +32,7 @@ export function TaskDrawer({ t, p, me, onClose, onChanged, onOpenProject }: {
         <div className="drawer-head">
           <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine ? '' : ' locked')} disabled={!mine} onClick={() => toggle(t)} aria-label={tr('home.check')}>{t.done ? '✓' : ''}</button>
           <span className="dt-title" id="task-detail-title">{t.title}</span>
-          <button className="drawer-x" onClick={() => setExpanded((v) => !v)} aria-label={expanded ? 'Réduire' : 'Agrandir'} title={expanded ? 'Réduire' : 'Agrandir'}><Ic name={expanded ? 'chevron-down' : 'arrow-up-right'} s={17} /></button>
+          <button className="drawer-x" onClick={() => setExpanded((v) => !v)} aria-label={expanded ? tr('action.collapse') : tr('action.expand')} title={expanded ? tr('action.collapse') : tr('action.expand')}><Ic name={expanded ? 'chevron-down' : 'arrow-up-right'} s={17} /></button>
           <button className="drawer-x" onClick={onClose} aria-label={tr('action.close')}><Ic name="x" s={17} /></button>
         </div>
         <div className="drawer-body">
