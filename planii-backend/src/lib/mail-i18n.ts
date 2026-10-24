@@ -28,6 +28,9 @@ const fr: D = {
   'pwReset.i': 'Vous avez demandé à réinitialiser le mot de passe de votre compte Planii. Le lien est valable une heure.',
   'pwReset.cta': 'Choisir un nouveau mot de passe',
   'pwReset.footer': 'Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail. Votre mot de passe reste inchangé.',
+  'pwChanged.s': 'Votre mot de passe Planii a été modifié',
+  'pwChanged.i': 'Le mot de passe de votre compte Planii vient d’être modifié et vos autres appareils ont été déconnectés.',
+  'pwChanged.footer': 'Si ce n’était pas vous, réinitialisez immédiatement votre mot de passe depuis l’écran de connexion et vérifiez la sécurité de votre boîte mail.',
   'pwResetSocial.s': 'Connexion à votre compte Planii',
   'pwResetSocial.i': 'Ce compte se connecte avec Google, Microsoft, LinkedIn ou Yahoo — il n’a pas de mot de passe à réinitialiser. Utilisez le bouton du fournisseur sur l’écran de connexion.',
 }
@@ -54,6 +57,9 @@ const en: D = {
   'pwReset.i': 'You asked to reset the password for your Planii account. This link is valid for one hour.',
   'pwReset.cta': 'Choose a new password',
   'pwReset.footer': 'If you did not request this, ignore this email. Your password stays unchanged.',
+  'pwChanged.s': 'Your Planii password was changed',
+  'pwChanged.i': 'The password of your Planii account was just changed and your other devices were signed out.',
+  'pwChanged.footer': 'If this was not you, reset your password right away from the sign-in screen and check the security of your mailbox.',
   'pwResetSocial.s': 'Signing in to your Planii account',
   'pwResetSocial.i': 'This account signs in with Google, Microsoft, LinkedIn or Yahoo — there is no password to reset. Use the provider button on the sign-in screen.',
 }

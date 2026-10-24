@@ -30,3 +30,18 @@ export const findValid = (tokenHash: string) =>
 
 export const markUsed = (id: string) =>
   q('UPDATE password_reset_tokens SET used_at=now() WHERE id=$1', [id])
+
+export const lastCreatedAt = async (userId: string) => {
+  const row = await one<{ created_at: Date }>(
+    'SELECT created_at FROM password_reset_tokens WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1',
+    [userId],
+  )
+  return row ? new Date(row.created_at) : null
+}
+
+/** Supprime les jetons expirés ou utilisés depuis plus d'un jour. */
+export const purgeStale = () =>
+  q(
+    `DELETE FROM password_reset_tokens
+      WHERE expires_at < now() - interval '1 day' OR used_at < now() - interval '1 day'`,
+  )
