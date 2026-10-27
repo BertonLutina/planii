@@ -670,6 +670,19 @@ const isResetRoute = () => {
     || !!resetTokenFromLocation()
 }
 
+/** Retire le jeton de la barre d'adresse (historique, journaux, capture d'écran, Referer) dès l'ouverture du lien :
+ *  il reste uniquement en mémoire. On garde le chemin : un rechargement montre « lien à redemander ». */
+function stripResetTokenFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (!params.has('token') && !params.has('reset_token')) return
+    params.delete('token')
+    params.delete('reset_token')
+    const q = params.toString()
+    window.history.replaceState({}, '', window.location.pathname + (q ? '?' + q : '') + window.location.hash)
+  } catch { /* ignore */ }
+}
+
 function leaveResetUrl() {
   try {
     const params = new URLSearchParams(window.location.search)
@@ -687,6 +700,7 @@ export default function App() {
   const privacy = isPrivacyRoute()
   const [resetToken] = useState(() => resetTokenFromLocation())
   const [inReset, setInReset] = useState(() => isResetRoute())
+  useEffect(() => { if (resetToken) stripResetTokenFromUrl() }, [resetToken])
   const [me, setMe] = useState<User | null | undefined>(undefined)
   /** Visiteur non connecté : landing publique, puis connexion ou inscription. */
   const [gate, setGate] = useState<'landing' | 'login' | 'signup'>('landing')

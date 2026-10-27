@@ -25,7 +25,17 @@ const project = {
 }
 const page = (items: unknown[]) => ({ items, page: 1, limit: 100, total: items.length, totalPages: 1, hasMore: false })
 
-export async function mockApi(context: BrowserContext) {
+/** Tâche « piège » : pastilles P1 + type, titre très long, mot unique sans espace et URL interminable. */
+export const LONG_TASK = {
+  id: 't9',
+  title: 'Opbouw content data base REPEAT CONNECT — Doornemen van Draft 1 avec un-mot-vraiment-interminable-sans-espace-pour-forcer-la-coupure',
+  description: 'Bekijken van UX report: Wat is mogelijk? https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789AbCdEfGhIjKlMnOpQr/edit?usp=sharing&gid=1234567890&range=A1:Z999 — suite du texte sur plusieurs lignes pour dépasser trois lignes de description affichées dans la carte.',
+  type: 'Tâche', assigneeId: 'u1', createdBy: 'u1', due: '2026-09-30', done: false, priority: 1, statusKey: 'todo', position: 9, commentCount: 0,
+}
+
+export async function mockApi(context: BrowserContext, opts: { extraTasks?: Record<string, unknown>[] } = {}) {
+  const allTasks = [...tasks, ...(opts.extraTasks ?? [])]
+  const proj = { ...project, tasks: allTasks, taskCount: allTasks.length }
   await context.route('https://api.planii.app/**', async (route) => {
     const token = (route.request().headers()['authorization'] || '').replace('Bearer ', '')
     const user = USERS[token]
@@ -35,9 +45,9 @@ export async function mockApi(context: BrowserContext) {
     if (path.endsWith('/admin/stats')) return route.fulfill({ json: { stats: { users: 3, projects: 2, projectsActive: 2, tasks: 3, tasksDone: 1, tasksOpen: 2, tasksOverdue: 0, completion: 33, activeUsers7: 2, tasksByPriority: [{ p: 2, c: 1 }], projectsByType: [{ t: 'team', c: 2 }], doneByDay: [{ d: '2026-09-19', c: 1 }], recentLogins: [{ name: 'Alice Private', email: 'alice@example.test', lastLogin: '2026-09-20T08:00:00Z' }] } } })
     if (path.endsWith('/admin/users')) return route.fulfill({ json: page(Object.values(USERS).map((u) => ({ ...u, createdAt: '2026-01-01', lastLogin: null, admin: !!u.admin, superAdmin: !!u.superAdmin, projectCount: 1, tasksOpen: 1, tasksDone: 0, points: 0 }))) })
     if (/\/invites\/[^/]+$/.test(path)) return route.fulfill({ json: { project: { id: 'p9', name: 'Projet invité', type: 'team' }, role: 'member', invitedBy: 'Alice Private' } })
-    if (path.endsWith('/projects/p1')) return route.fulfill({ json: { project } })
-    if (path.endsWith('/projects/p1/tasks')) return route.fulfill({ json: page(tasks) })
-    if (path.endsWith('/tasks/mine')) return route.fulfill({ json: { projects: [{ ...project, tasks: tasks.filter((t) => t.assigneeId === 'u1') }] } })
+    if (path.endsWith('/projects/p1')) return route.fulfill({ json: { project: proj } })
+    if (path.endsWith('/projects/p1/tasks')) return route.fulfill({ json: page(allTasks) })
+    if (path.endsWith('/tasks/mine')) return route.fulfill({ json: { projects: [{ ...proj, tasks: allTasks.filter((t) => t.assigneeId === 'u1') }] } })
     if (path.endsWith('/api/projects') && !route.request().url().includes('page=')) return route.fulfill({ json: { projects: [summary, summary2] } })
     if (path.endsWith('/api/projects')) return route.fulfill({ json: { ...page([summary, summary2]), counts: { active: 2, done: 0 } } })
     if (/\/tasks\/t\d+\/(comments|events)$/.test(path)) return route.fulfill({ json: { comments: [], events: [] } })
@@ -51,7 +61,11 @@ export async function mockApi(context: BrowserContext) {
 
 export async function signIn(page: Page, token: string) {
   await page.goto('/')
-  await page.evaluate((t) => localStorage.setItem('planii.token', t), token)
+  // Pin the theme: the default "auto" flips to dark from 19:00, which made results depend on the clock.
+  await page.evaluate((t) => {
+    localStorage.setItem('planii.token', t)
+    if (!localStorage.getItem('planii.theme')) localStorage.setItem('planii.theme', 'light')
+  }, token)
   await page.reload()
 }
 

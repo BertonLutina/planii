@@ -4,6 +4,7 @@ import {
   type KeyboardTypeOptions, type StyleProp, type TextStyle, type ViewStyle,
 } from 'react-native'
 import { Ic } from '@/components/Icon'
+import { t, useI18n } from '@/lib/i18n'
 import { useTheme } from '@/theme/ThemeProvider'
 
 export interface FieldProps {
@@ -38,6 +39,7 @@ export function Field({
   autoComplete, editable = true, returnKeyType, onSubmitEditing, style, inputStyle, testID,
 }: FieldProps) {
   const { c } = useTheme()
+  useI18n()
   const [focus, setFocus] = useState(false)
   const [reveal, setReveal] = useState(false)
 
@@ -66,6 +68,7 @@ export function Field({
           onBlur={() => setFocus(false)}
           accessibilityLabel={label ?? placeholder}
           accessibilityState={{ disabled: !editable }}
+          accessibilityHint={error || hint || undefined}
           style={[
             s.input,
             {
@@ -87,7 +90,7 @@ export function Field({
             onPress={() => setReveal((r) => !r)}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel={reveal ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+            accessibilityLabel={reveal ? t('auth.hidePassword') : t('auth.showPassword')}
             accessibilityState={{ selected: reveal }}
             style={s.eye}
           >
@@ -95,7 +98,7 @@ export function Field({
           </Pressable>
         )}
       </View>
-      {!!error && <Text style={[s.msg, { color: c.danger }]}>{error}</Text>}
+      {!!error && <Text accessibilityLiveRegion="polite" style={[s.msg, { color: c.danger }]}>{error}</Text>}
       {!error && !!hint && <Text style={[s.msg, { color: c.hint }]}>{hint}</Text>}
     </View>
   )

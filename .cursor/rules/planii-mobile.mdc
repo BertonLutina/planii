@@ -1,0 +1,41 @@
+---
+description: Workflow obligatoire pour toute implementation mobile Planii avec Expo et React Native
+globs:
+  - "planii-mobile/**/*"
+alwaysApply: false
+---
+
+# Planii mobile - workflow Cursor AI
+
+Cursor AI est le proprietaire exclusif des implementations dans `planii-mobile/`.
+
+## Competences obligatoires
+
+Avant toute analyse ou modification mobile, lire integralement les fichiers `SKILL.md` applicables dans cet ordre:
+
+1. `expo:expo-overview` - toujours en premier; il route vers les autres competences Expo.
+2. Les competences Expo indiquees par `expo-overview` pour la tache, notamment `expo:expo-router`, `expo:expo-data-fetching`, `expo:expo-native-ui`, `expo:expo-ui`, `expo:expo-design-system`, `expo:expo-animation`, `expo:expo-dev-client` ou les competences EAS selon le besoin.
+3. `frontend-design:frontend-design` pour definir une direction visuelle intentionnelle et coherente avec Planii.
+4. `ui-ux-pro-max` pour verifier ergonomie mobile, accessibilite, hierarchie, navigation et etats d'interaction.
+5. La competence 21st adaptee: `21st-ui-build` pour construire ou modifier une interface, `21st-ui-explore` pour comparer des directions, et `21st-cli-use` pour rechercher de l'inspiration ou des composants.
+
+Les competences sont disponibles dans le catalogue de skills de l'agent. Si Cursor ne peut pas charger une competence demandee, il suspend l'implementation et consigne le blocage dans le journal du backlog.
+
+## Processus
+
+1. Lire le ticket `PLANI-XXX`, ses dependances et les fichiers mobiles concernes. Termine lorsque le perimetre et les criteres d'acceptation sont tous relies a des changements verifies.
+2. Charger les competences ci-dessus et annoncer dans le journal lesquelles pilotent le travail. Termine lorsque chaque competence obligatoire a ete lue ou qu'un blocage explicite est consigne.
+3. Examiner les tokens, composants et conventions existants dans `planii-mobile/src/theme/` et `planii-mobile/src/components/ui/`. Termine lorsque chaque choix visuel reutilise ou etend une convention identifiee.
+4. Implementer uniquement dans le perimetre mobile attribue a Cursor. Termine lorsqu'aucun fichier web `planii-vite/` n'a ete modifie.
+5. Verifier typecheck, tests pertinents, etats chargement/vide/erreur/hors ligne, iOS/Android, tailles de texte, clavier, VoiceOver/TalkBack et reduction de mouvement selon le ticket. Termine lorsque les resultats et limites sont consignes dans `docs/backlog/logs/YYYY-MM-DD.md`.
+
+## Traduction 21st vers React Native
+
+21st fournit direction, composition, hierarchie et inspiration. Le code DOM, CSS, Tailwind web ou composant shadcn trouve dans 21st n'entre pas directement dans `planii-mobile/`. Cursor traduit ces choix avec les composants Expo/React Native et le design system Planii, en preservant comportements natifs, accessibilite et performances.
+
+## Coordination
+
+- Claude Code possede `planii-vite/`; Cursor n'y implemente rien.
+- Un besoin API commun passe par un ticket `Partage/backend` distinct avant le ticket mobile.
+- Les fichiers partages ne sont jamais modifies simultanement par Cursor AI et Claude Code.
+- Toute decision ou divergence est journalisee sous l'identifiant stable du ticket.

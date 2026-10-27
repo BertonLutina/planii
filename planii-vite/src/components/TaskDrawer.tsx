@@ -10,7 +10,7 @@ import { useDialog } from '@/lib/useDialog'
 
 /** Panneau de détail d'une tâche (droite sur desktop, feuille en bas sur mobile). */
 export function TaskDrawer({ t, p, me, onClose, onChanged, onOpenProject }: {
-  t: Task; p: Project; me: User; onClose: () => void; onChanged: () => void; onOpenProject: () => void
+  t: Task; p: Project; me: User; onClose: () => void; onChanged: () => void; onOpenProject?: () => void
 }) {
   const { t: tr } = useI18n()
   const dialogRef = useDialog<HTMLDivElement>(onClose)
@@ -37,7 +37,10 @@ export function TaskDrawer({ t, p, me, onClose, onChanged, onOpenProject }: {
         </div>
         <div className="drawer-body">
           <div className="drawer-main">
-            {t.description ? <div className="drawer-desc">{t.description}</div> : <div className="drawer-desc muted">Aucune description.</div>}
+            {t.description
+              // Zone défilante si le texte est long : doit être atteignable au clavier et nommée (WCAG 2.1.1).
+              ? <div className="drawer-desc" role="region" aria-label={tr('pd.desc')} tabIndex={0}>{t.description}</div>
+              : <div className="drawer-desc muted">Aucune description.</div>}
           </div>
           <div className="drawer-side">
             <div className="drow"><span className="dl">{tr('td.priority')}</span><span className={'pflag ' + pm.flagCls}>{pm.tag}</span></div>
@@ -58,9 +61,11 @@ export function TaskDrawer({ t, p, me, onClose, onChanged, onOpenProject }: {
             )}
           </div>
         </div>
-        <div className="sheet-actions" style={{ marginTop: 18 }}>
-          <button className="btn primary block" onClick={onOpenProject}>{tr('td.openProject')}</button>
-        </div>
+        {onOpenProject && (
+          <div className="sheet-actions" style={{ marginTop: 18 }}>
+            <button className="btn primary block" onClick={onOpenProject}>{tr('td.openProject')}</button>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import { useRouter, type Href } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Banner, Button, SelectBox, Skeleton, toast } from '@/components/ui'
 import { BrandTile } from '@/components/BrandMark'
+import { announce } from '@/lib/a11y'
 import { api } from '@/lib/api'
 import { getLang, langOptions, setLang, t, useI18n } from '@/lib/i18n'
 import { useSession } from '@/lib/session'
@@ -31,7 +32,7 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
   const { c } = useTheme()
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const { signIn } = useSession()
+  const { signIn, signOut } = useSession()
   const { lang } = useI18n()
 
   const [f, setF] = useState({ name: '', email: '', password: '', confirm: '' })
@@ -94,6 +95,7 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
       if (mode === 'reset') {
         if (!resetToken) { setFormErr(t('auth.resetInvalid')); return }
         await api('POST', '/auth/reset-password', { token: resetToken, password: f.password })
+        signOut()
         toast(t('auth.resetOk'))
         router.replace('/login')
         return
@@ -110,7 +112,9 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
       const r = await api<{ token: string; user: User }>('POST', path, body)
       signIn(r.user, r.token)
     } catch (e) {
-      setFormErr((e as Error).message)
+      const msg = mode === 'reset' ? t('auth.resetInvalid') : (e as Error).message
+      setFormErr(msg)
+      announce(msg)
     } finally {
       setBusy(false)
     }
@@ -134,6 +138,7 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
   const signup = mode === 'signup'
   const forgot = mode === 'forgot'
   const reset = mode === 'reset'
+  const resetBroken = reset && !resetToken
   const langOpts = langOptions()
   const title = signup ? t('auth.register')
     : forgot ? t('auth.forgotTitle')
@@ -233,7 +238,18 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
 
         {!!formErr && <Banner tone="danger" icon="alert" text={formErr} style={s.formErr} />}
 
-        {forgot && sent ? (
+        {resetBroken ? (
+          <>
+            {!formErr && <Banner tone="danger" icon="alert" text={t('auth.resetInvalid')} style={s.formErr} />}
+            <Button
+              label={t('auth.resetRequestNew')}
+              variant="primary"
+              block
+              onPress={() => router.replace('/forgot-password' as Href)}
+              style={s.submit}
+            />
+          </>
+        ) : forgot && sent ? (
           <Banner tone="ok" icon="check" text={t('auth.forgotSent')} style={s.formErr} />
         ) : (
           <>
@@ -353,6 +369,7 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
             onPress={() => router.replace('/login')}
             hitSlop={10}
             accessibilityRole="link"
+            accessibilityLabel={t('auth.forgotBack')}
             style={s.switch}
           >
             <Text style={[s.switchTxt, { color: c.accent, fontWeight: '700' }]}>

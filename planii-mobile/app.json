@@ -2,23 +2,21 @@
   "expo": {
     "name": "Planii",
     "slug": "planii",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "planii",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "runtimeVersion": {
       "policy": "appVersion"
-    },
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#6d5cff"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.planii.mobile",
+      "associatedDomains": [
+        "applinks:planii.app",
+        "applinks:www.planii.app"
+      ],
       "infoPlist": {
         "NSSpeechRecognitionUsageDescription": "Planii convertit votre voix en texte pour remplir vos champs à la dictée.",
         "NSMicrophoneUsageDescription": "Planii utilise le micro pour dicter vos tâches et vos messages.",
@@ -33,10 +31,22 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [
+            { "scheme": "https", "host": "planii.app", "pathPrefix": "/reset-password" },
+            { "scheme": "https", "host": "www.planii.app", "pathPrefix": "/reset-password" },
+            { "scheme": "https", "host": "planii.app", "pathPrefix": "/invite" },
+            { "scheme": "https", "host": "www.planii.app", "pathPrefix": "/invite" }
+          ]
+        }
       ]
     },
     "web": {
@@ -63,7 +73,21 @@
           ]
         }
       ],
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#6d5cff",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain"
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-image",
+      "expo-localization",
+      "expo-web-browser",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

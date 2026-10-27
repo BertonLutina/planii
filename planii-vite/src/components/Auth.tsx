@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { api, setTok } from '@/lib/api'
 import { toast, toastErr } from '@/lib/ui'
 import { MicInput } from './Mic'
@@ -67,6 +67,10 @@ export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }:
   const { t: tr } = useI18n()
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [f, setF] = useState({ name: '', email: '', password: '', confirm: '' })
+  // Reset : lien absent/expiré/déjà utilisé → écran dédié avec action ; erreur de saisie → message annoncé près du champ.
+  const emailRef = useRef<HTMLInputElement>(null)
+  const [linkBad, setLinkBad] = useState(false)
+  const [fieldErr, setFieldErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
   const [providers, setProviders] = useState<Providers>({})
@@ -80,7 +84,12 @@ export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }:
     setMode(next)
     setSent(false)
     setBusy(false)
+    setLinkBad(false)
+    setFieldErr(null)
   }
+
+  // Le champ e-mail est le même nœud DOM en connexion et en « oublié » : autoFocus ne se redéclencherait pas.
+  useEffect(() => { if (mode === 'forgot' && !sent) emailRef.current?.focus() }, [mode, sent])
 
   async function submit() {
     setBusy(true)
@@ -91,10 +100,17 @@ export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }:
         return
       }
       if (mode === 'reset') {
-        if (!resetToken) { toastErr(tr('auth.resetInvalid')); return }
-        if (f.password.length < 8) { toastErr(tr('auth.resetShort')); return }
-        if (f.password !== f.confirm) { toastErr(tr('auth.resetMismatch')); return }
-        await api('POST', '/auth/reset-password', { token: resetToken, password: f.password })
+        if (!resetToken) { setLinkBad(true); return }
+        if (f.password.length < 8) { setFieldErr(tr('auth.resetShort')); return }
+        if (f.password !== f.confirm) { setFieldErr(tr('auth.resetMismatch')); return }
+        setFieldErr(null)
+        try {
+          await api('POST', '/auth/reset-password', { token: resetToken, password: f.password })
+        } catch (e: any) {
+          // « Lien invalide ou expiré » (jeton périmé, déjà utilisé, inconnu) : écran dédié. Autres erreurs : on garde le formulaire.
+          if (/lien invalide|invalid|expir/i.test(String(e?.message))) { setLinkBad(true); return }
+          throw e
+        }
         toast(tr('auth.resetOk'))
         setTok(null)
         setF({ ...f, password: '', confirm: '' })
@@ -174,7 +190,12 @@ export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }:
         )}
 
         {mode === 'forgot' && sent ? (
-          <p className="auth-sent">{tr('auth.forgotSent')}</p>
+          <p className="auth-sent" role="status">{tr('auth.forgotSent')}</p>
+        ) : mode === 'reset' && (linkBad || !resetToken) ? (
+          <>
+            <p className="auth-sent auth-error" role="alert">{tr('auth.resetInvalid')}</p>
+            <button type="button" className="btn primary block" autoFocus onClick={() => go('forgot')}>{tr('auth.resetNewLink')}</button>
+          </>
         ) : (
           <>
             {mode === 'signup' && (
@@ -183,7 +204,7 @@ export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }:
             )}
             {mode !== 'reset' && (
               <div className="field"><label>{tr('auth.email')}</label>
-                <input type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" autoComplete="email" onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
+                <input type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" autoComplete="email" ref={emailRef} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
             )}
             {(mode === 'login' || mode === 'signup') && (
               <div className="field"><label>{tr('auth.password')}</label>
@@ -197,11 +218,13 @@ export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }:
             {mode === 'reset' && (
               <>
                 <div className="field"><label>{tr('auth.resetPassword')}</label>
-                  <input type="password" value={f.password} onChange={set('password')} placeholder="••••••••" autoComplete="new-password" onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
+                  <input type="password" value={f.password} onChange={set('password')} placeholder="••••••••" autoComplete="new-password" autoFocus aria-describedby="pw-hint" aria-invalid={!!fieldErr || undefined} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
+                <p id="pw-hint" className="auth-hint">{tr('auth.resetHint')}</p>
                 <div className="field"><label>{tr('auth.resetConfirm')}</label>
-                  <input type="password" value={f.confirm} onChange={set('confirm')} placeholder="••••••••" autoComplete="new-password" onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
+                  <input type="password" value={f.confirm} onChange={set('confirm')} placeholder="••••••••" autoComplete="new-password" aria-invalid={!!fieldErr || undefined} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
               </>
             )}
+            {mode === 'reset' && fieldErr && <p className="auth-error" role="alert">{fieldErr}</p>}
             <button className="btn primary block" disabled={busy} onClick={submit}>
               {busy ? '…' : mode === 'signup' ? tr('auth.signup')
                 : mode === 'forgot' ? tr('auth.forgotSubmit')

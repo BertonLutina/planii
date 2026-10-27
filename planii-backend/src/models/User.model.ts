@@ -16,6 +16,7 @@ export type DbUser = QueryResultRow & {
   lang?: string | null
   avatar_url?: string | null
   email_notifs?: Record<string, boolean> | null
+  session_epoch?: number | null
 }
 
 export const findByEmail = (email: string) => one<DbUser>('SELECT * FROM users WHERE email=$1', [email])

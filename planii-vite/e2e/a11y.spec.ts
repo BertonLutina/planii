@@ -183,6 +183,7 @@ test('axe: meeting room (Jitsi stubbed: third-party frame content is out of scop
   }))
   await openProject(page)
   await page.getByRole('button', { name: /Meeting/i }).first().click()
+  await page.getByRole('button', { name: 'Join the meeting' }).click()
   await expect(page.locator('#jitsi-container iframe')).toHaveAttribute('title', 'Meeting')
   await scan(page, 'meeting')
 })
@@ -210,17 +211,21 @@ test('axe: project tabs (team, polls, activity)', async ({ page }) => {
   }
 })
 
-test('axe: voice task wizard dialog', async ({ page }) => {
-  await openProject(page)
-  const opener = page.getByRole('button', { name: /Dictate a task/ }).first()
-  await opener.click()
-  const dialog = page.getByRole('dialog')
-  await expect(dialog).toBeVisible()
-  await scan(page, 'voice task wizard')
-  await page.keyboard.press('Escape')
-  await expect(dialog).toBeHidden()
-  await expect(opener).toBeFocused()
-})
+for (const scheme of ['light', 'dark'] as const) {
+  test(`axe: voice task wizard dialog (${scheme}; bare inputs must follow the app theme)`, async ({ page }) => {
+    await page.addInitScript((s) => localStorage.setItem('planii.theme', s), scheme)
+    await openProject(page)
+    const opener = page.getByRole('button', { name: /Dictate a task/ }).first()
+    await opener.click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', scheme)
+    await scan(page, 'voice task wizard ' + scheme)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await expect(opener).toBeFocused()
+  })
+}
 
 test('axe: invitation join dialog', async ({ page }) => {
   await signIn(page, 'token-alice')

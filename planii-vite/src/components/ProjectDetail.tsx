@@ -13,6 +13,7 @@ import { Ic } from './Icon'
 import { t as tt, trTerm } from '@/lib/i18n'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
 import { TaskImportWizard } from './TaskImportWizard'
+import { TaskDrawer } from './TaskDrawer'
 import { useRealtime } from '@/lib/realtime'
 import { taskComparator, type TaskSort, type Dir } from '@/lib/sort'
 import { TaskGrid, type GridGroup } from './TaskGrid'
@@ -185,6 +186,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
   const [adding, setAdding] = useState(false)
   const [voice, setVoice] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [nf, setNf] = useState<{ title: string; desc: string; type: string; assigneeId: string; due: string; est: string; priority: number; transferable: boolean }>({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6, transferable: false })
   const [editId, setEditId] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
@@ -312,16 +314,20 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
       <div key={t.id} className={'task status-task' + (isSub ? ' subtask' : '') + (t.done ? ' done' : '') + (over ? ' overdue' : '') + (dragId === t.id ? ' dragging' : '')}
         draggable={!isSub && !closed}
         onDragStart={!isSub && !closed ? () => setDragId(t.id) : undefined}
-        onDragEnd={!isSub && !closed ? () => setDragId(null) : undefined}>
+        onDragEnd={!isSub && !closed ? () => setDragId(null) : undefined}
+        // Souris : toute la carte ouvre le détail. Clavier / lecteur d'écran : le titre est un vrai bouton (voir plus bas).
+        onClick={(e) => { if (!(e.target as HTMLElement).closest('button,a,input,select,textarea,label')) setDetailId(t.id) }}>
         <div className="tt">
           <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} title={closed ? tt('pd.closedShort') : mine ? '' : tt('pd.onlyOwner')} aria-label={tt('home.check')}>{t.done ? <Ic name="check" s={13} c="#fff" strokeWidth={2.6} /> : (mine && !closed ? '' : <Ic name="lock" s={11} />)}</button>
           <div className="tname">
-            <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
-              {t.type && <span className={'ttype ' + typeTone(t.type)}>{trTerm(t.type)}</span>}
-              <span style={{ flex: 1, minWidth: 0 }}>{t.title}</span>
-            </span>
-            {t.description && <div className="sub" style={{ marginTop: 2 }}>{t.description}</div>}
+            {(pm.n < 6 || t.type) && (
+              <div className="t-chips">
+                {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
+                {t.type && <span className={'ttype ' + typeTone(t.type)}>{trTerm(t.type)}</span>}
+              </div>
+            )}
+            <button type="button" className="t-title" aria-haspopup="dialog" onClick={() => setDetailId(t.id)}>{t.title}</button>
+            {t.description && <div className="sub t-desc">{t.description}</div>}
             <div className="meta">
               <span className={'tag ' + (unassigned ? 'due' : 'client')}>{unassigned ? <><Ic name="hand" s={12} /> {tt('vw.toTake')}</> : <><Ic name="user" s={12} /> {memberName(t.assigneeId)}</>}</span>
               {t.due && <span className={'tag ' + (over ? 'late' : 'due')}>📅 {formatDue(t.due)}</span>}
@@ -498,6 +504,9 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
         </div>
       )}
       {voice && <VoiceTaskWizard p={p} me={me} onClose={() => setVoice(false)} onCreated={() => { setVoice(false); reload() }} />}
+      {detailId && p.tasks.find((x) => x.id === detailId) && (
+        <TaskDrawer t={p.tasks.find((x) => x.id === detailId)!} p={p} me={me} onClose={() => setDetailId(null)} onChanged={reload} />
+      )}
       {importOpen && (
         <TaskImportWizard
           projectId={p.id}

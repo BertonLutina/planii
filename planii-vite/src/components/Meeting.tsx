@@ -6,8 +6,26 @@ import { PRIORITIES } from '@/lib/priority'
 import { useRealtime } from '@/lib/realtime'
 import type { Project, User } from '@/lib/types'
 import { useI18n, trTerm } from '@/lib/i18n'
+import { Ic } from './Icon'
 
 declare global { interface Window { JitsiMeetExternalAPI?: any } }
+
+const JITSI_DOMAIN = 'meet.jit.si'
+const SCRIPT_TIMEOUT_MS = 15000
+
+/** Loads Jitsi's external API on demand. Rejects on network failure, CSP block or timeout. */
+function loadJitsiScript(): Promise<void> {
+  if (window.JitsiMeetExternalAPI) return Promise.resolve()
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script')
+    el.src = `https://${JITSI_DOMAIN}/external_api.js`
+    el.async = true
+    const timer = window.setTimeout(() => { el.remove(); reject(new Error('timeout')) }, SCRIPT_TIMEOUT_MS)
+    el.onload = () => { window.clearTimeout(timer); window.JitsiMeetExternalAPI ? resolve() : reject(new Error('missing')) }
+    el.onerror = () => { window.clearTimeout(timer); el.remove(); reject(new Error('blocked')) }
+    document.body.appendChild(el)
+  })
+}
 
 interface MeetingMessage {
   id: string
@@ -57,32 +75,44 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages.length])
 
+  // Jitsi (meet.jit.si, third party) is only contacted after an explicit "Join" click (PLANI-030).
+  const [phase, setPhase] = useState<'consent' | 'loading' | 'ready' | 'error'>('consent')
+  const [mediaNotice, setMediaNotice] = useState<string | null>(null)
+  const closedRef = useRef(false)
+  const gateBtnRef = useRef<HTMLButtonElement>(null)
+
   useEffect(() => {
-    let cancelled = false
-    const start = () => {
-      if (cancelled || !ref.current || !window.JitsiMeetExternalAPI) return
+    closedRef.current = false
+    return () => { closedRef.current = true; try { apiRef.current?.dispose() } catch { /* ignore */ } apiRef.current = null }
+  }, [])
+
+  // Keyboard/screen-reader users land on the action that matters in each state.
+  useEffect(() => { if (phase === 'consent' || phase === 'error') gateBtnRef.current?.focus() }, [phase])
+
+  function join() {
+    setPhase('loading')
+    setMediaNotice(null)
+    loadJitsiScript().then(() => {
+      if (closedRef.current || !ref.current) return
+      const api = new window.JitsiMeetExternalAPI(JITSI_DOMAIN, {
+        roomName: 'planii-' + p.id,
+        parentNode: ref.current,
+        width: '100%',
+        height: '100%',
+        userInfo: { displayName: me.name },
+        configOverwrite: { prejoinPageEnabled: false },
+        interfaceConfigOverwrite: { MOBILE_APP_PROMO: false },
+      })
+      apiRef.current = api
+      // The embedded frame has no accessible name by default (WCAG 4.1.2 / 2.4.1).
+      try { api.getIFrame().title = tr('meet.title') } catch { /* ignore */ }
       try {
-        apiRef.current = new window.JitsiMeetExternalAPI('meet.jit.si', {
-          roomName: 'planii-' + p.id,
-          parentNode: ref.current,
-          width: '100%',
-          height: '100%',
-          userInfo: { displayName: me.name },
-          configOverwrite: { prejoinPageEnabled: false },
-          interfaceConfigOverwrite: { MOBILE_APP_PROMO: false },
-        })
-        // The embedded frame has no accessible name by default (WCAG 4.1.2 / 2.4.1).
-        try { apiRef.current.getIFrame().title = tr('meet.title') } catch { /* ignore */ }
+        api.addListener('cameraError', () => setMediaNotice(tr('meet.cameraError')))
+        api.addListener('micError', () => setMediaNotice(tr('meet.micError')))
       } catch { /* ignore */ }
-    }
-    if (window.JitsiMeetExternalAPI) start()
-    else {
-      const s = document.createElement('script')
-      s.src = 'https://meet.jit.si/external_api.js'; s.async = true; s.onload = start
-      document.body.appendChild(s)
-    }
-    return () => { cancelled = true; try { apiRef.current?.dispose() } catch { /* ignore */ } }
-  }, [p.id, me.name])
+      setPhase('ready')
+    }).catch(() => { if (!closedRef.current) setPhase('error') })
+  }
 
   async function send() {
     const body = text.trim()
@@ -142,7 +172,26 @@ export function Meeting({ p, me, onClose }: { p: Project; me: User; onClose: () 
       </div>
       <div className="meet-layout">
         <div className="meet-main">
-          <div id="jitsi-container" ref={ref} className="jitsi-frame" />
+          <div className="meet-stage">
+            <div id="jitsi-container" ref={ref} className="jitsi-frame" hidden={phase === 'consent' || phase === 'error'} />
+            {phase === 'consent' && (
+              <section className="meet-gate" aria-labelledby="meet-gate-title">
+                <h3 id="meet-gate-title">{tr('meet.consentTitle')}</h3>
+                <p>{tr('meet.consentBody', { host: JITSI_DOMAIN })}</p>
+                <p><a href="/privacy" target="_blank" rel="noopener noreferrer">{tr('meet.consentPrivacy')}</a></p>
+                <button ref={gateBtnRef} className="btn primary" onClick={join}><Ic name="video" s={16} /> {tr('meet.join')}</button>
+              </section>
+            )}
+            {phase === 'loading' && <div className="meet-gate meet-gate-overlay" role="status">{tr('meet.loading')}</div>}
+            {phase === 'error' && (
+              <section className="meet-gate" role="alert">
+                <h3>{tr('meet.errTitle')}</h3>
+                <p>{tr('meet.errBody', { host: JITSI_DOMAIN })}</p>
+                <button ref={gateBtnRef} className="btn primary" onClick={join}>{tr('meet.retry')}</button>
+              </section>
+            )}
+            {mediaNotice && <p className="meet-media-notice" role="status">{mediaNotice}</p>}
+          </div>
           <div className="meet-invites">
             <div>
               <b>{tr('meet.autoInvited')}</b>

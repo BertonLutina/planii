@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { q, many } from '../db/pool'
 import { env } from '../config/env'
+import * as UserModel from '../models/User.model'
+import * as UserView from '../views/User.view'
 import { uid } from '../lib/utils'
 import * as ProjectModel from '../models/Project.model'
 import { logger } from '../logger'
@@ -11,6 +13,15 @@ import { logger } from '../logger'
 type WsClient = WebSocket & { userId?: string; isAlive?: boolean }
 
 const wsClients = new Map<string, Set<WsClient>>()
+
+export function disconnectUser(userId: string) {
+  const set = wsClients.get(userId)
+  if (!set) return
+  for (const ws of set) {
+    try { ws.close() } catch { /* noop */ }
+  }
+  wsClients.delete(userId)
+}
 
 export function wsSend(userId: string, payload: unknown) {
   const set = wsClients.get(userId)
@@ -80,28 +91,35 @@ export function createServer(app: Express) {
   const wss = new WebSocketServer({ server, path: '/ws' })
 
   wss.on('connection', (ws: WsClient, req) => {
-    try {
-      const url = new URL(req.url || '', 'http://localhost')
-      const token = url.searchParams.get('token')
-      const payload = jwt.verify(token || '', env.JWT_SECRET) as { sub: string }
-      const userId = payload.sub
-      ws.userId = userId
-      ws.isAlive = true
-      if (!wsClients.has(userId)) wsClients.set(userId, new Set())
-      wsClients.get(userId)!.add(ws)
-      ws.on('pong', () => { ws.isAlive = true })
-      ws.on('close', () => {
-        const s = wsClients.get(userId)
-        if (s) {
-          s.delete(ws)
-          if (!s.size) wsClients.delete(userId)
+    void (async () => {
+      try {
+        const url = new URL(req.url || '', 'http://localhost')
+        const token = url.searchParams.get('token')
+        const payload = jwt.verify(token || '', env.JWT_SECRET) as { sub: string; sv?: number }
+        const user = await UserModel.findById(payload.sub)
+        if (!user || !UserView.sessionMatches(user, payload)) {
+          ws.close()
+          return
         }
-      })
-      ws.on('error', () => {})
-      try { ws.send(JSON.stringify({ type: 'hello' })) } catch { /* noop */ }
-    } catch {
-      try { ws.close() } catch { /* noop */ }
-    }
+        const userId = payload.sub
+        ws.userId = userId
+        ws.isAlive = true
+        if (!wsClients.has(userId)) wsClients.set(userId, new Set())
+        wsClients.get(userId)!.add(ws)
+        ws.on('pong', () => { ws.isAlive = true })
+        ws.on('close', () => {
+          const s = wsClients.get(userId)
+          if (s) {
+            s.delete(ws)
+            if (!s.size) wsClients.delete(userId)
+          }
+        })
+        ws.on('error', () => {})
+        try { ws.send(JSON.stringify({ type: 'hello' })) } catch { /* noop */ }
+      } catch {
+        try { ws.close() } catch { /* noop */ }
+      }
+    })()
   })
 
   setInterval(() => {

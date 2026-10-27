@@ -23,6 +23,8 @@ export const LANGS: { code: Lang; label: string; flag: string }[] = [
 
 type Dict = Record<string, string>
 const fr: Dict = {
+  'auth.resetNewLink': 'Demander un nouveau lien', 'auth.resetHint': '8 caractères minimum.',
+  'meet.consentTitle': 'Visioconférence par Jitsi Meet', 'meet.consentBody': 'La réunion est fournie par un service tiers ({host}). En rejoignant, votre navigateur charge un script et un cadre depuis ce service, qui reçoit votre nom, votre adresse IP et votre flux audio/vidéo. Rien n’est envoyé avant que vous cliquiez sur « Rejoindre ».', 'meet.consentPrivacy': 'Lire les informations de confidentialité', 'meet.join': 'Rejoindre la réunion', 'meet.loading': 'Connexion à la réunion…', 'meet.errTitle': 'La réunion n’a pas pu démarrer', 'meet.errBody': 'Le service {host} est injoignable ou bloqué par votre navigateur ou votre réseau. Vérifiez votre connexion puis réessayez.', 'meet.retry': 'Réessayer', 'meet.cameraError': 'La caméra est indisponible ou son accès a été refusé. Autorisez-la dans votre navigateur.', 'meet.micError': 'Le microphone est indisponible ou son accès a été refusé. Autorisez-le dans votre navigateur.',
   'proj.moveGroup': 'Ordre de « {n} »', 'proj.moveEarlier': 'Monter « {n} »', 'proj.moveLater': 'Descendre « {n} »',
   'pd.mMoveTo': 'Déplacer vers « {s} »',
   'nav.home': 'Accueil', 'nav.projects': 'Projets', 'nav.agenda': 'Agenda', 'nav.leaderboard': 'Classement', 'nav.profile': 'Profil', 'nav.admin': 'Admin',
@@ -69,6 +71,8 @@ const fr: Dict = {
   'qa.title': 'Nouveau rendez-vous', 'qa.optTitle': 'Titre (optionnel)', 'qa.date': 'Date', 'qa.start': 'Début', 'qa.end': 'Fin', 'qa.needProject': 'Crée d’abord un projet pour pouvoir y ajouter un rendez-vous.', 'qa.needFields': 'Date et horaires requis', 'qa.created': 'Rendez-vous créé ✓', 'qa.pick': 'Créer dans l’agenda', 'qa.appt': 'Rendez-vous', 'qa.task': 'Tâche',
 }
 const en: Dict = {
+  'auth.resetNewLink': 'Request a new link', 'auth.resetHint': 'At least 8 characters.',
+  'meet.consentTitle': 'Video meeting by Jitsi Meet', 'meet.consentBody': 'The meeting is provided by a third-party service ({host}). When you join, your browser loads a script and a frame from that service, which receives your name, IP address and audio/video stream. Nothing is sent before you click “Join”.', 'meet.consentPrivacy': 'Read the privacy information', 'meet.join': 'Join the meeting', 'meet.loading': 'Connecting to the meeting…', 'meet.errTitle': 'The meeting could not start', 'meet.errBody': 'The {host} service is unreachable or blocked by your browser or network. Check your connection and try again.', 'meet.retry': 'Try again', 'meet.cameraError': 'The camera is unavailable or access was denied. Allow it in your browser.', 'meet.micError': 'The microphone is unavailable or access was denied. Allow it in your browser.',
   'proj.moveGroup': 'Order of “{n}”', 'proj.moveEarlier': 'Move “{n}” earlier', 'proj.moveLater': 'Move “{n}” later',
   'pd.mMoveTo': 'Move to “{s}”',
   'nav.home': 'Home', 'nav.projects': 'Projects', 'nav.agenda': 'Calendar', 'nav.leaderboard': 'Leaderboard', 'nav.profile': 'Profile', 'nav.admin': 'Admin',

@@ -25,6 +25,7 @@
 - **Cibles** : ≥ 24×24 px (critère 2.5.8) ; ≥ 44 px sur écrans tactiles (déjà en place).
 
 ## Revue manuelle à consigner avant livraison
+Script détaillé avec tableau de résultats : [a11y-manual-review.md](a11y-manual-review.md).
 Pour chaque parcours ci-dessous, clavier seul puis lecteur d'écran (VoiceOver + Safari, NVDA + Firefox) :
 1. **Auth** : accéder à la connexion, saisir e-mail/mot de passe, soumettre, lire l'erreur ; parcours « mot de passe oublié ».
 2. **Projets** : ouvrir la liste, créer un projet (dialogue), ouvrir un projet, revenir.

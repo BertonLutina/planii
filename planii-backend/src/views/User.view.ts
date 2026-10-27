@@ -52,7 +52,15 @@ export const toPublic = (u: DbUser | null) => {
   }
 }
 
-export const signToken = (u: DbUser) => jwt.sign({ sub: u.id }, env.JWT_SECRET, { expiresIn: '30d' })
+export const sessionEpochOf = (u: Pick<DbUser, 'session_epoch'> | null | undefined) =>
+  Number(u?.session_epoch) || 0
+
+export const signToken = (u: DbUser) =>
+  jwt.sign({ sub: u.id, sv: sessionEpochOf(u) }, env.JWT_SECRET, { expiresIn: '30d' })
+
+/** Un jeton sans `sv` vaut 0 : les sessions d'avant ce champ restent valides tant que l'époque n'a pas bougé. */
+export const sessionMatches = (u: DbUser, payload: { sv?: number }) =>
+  (Number(payload.sv) || 0) === sessionEpochOf(u)
 
 export const authSession = (token: string, user: DbUser | null) => ({
   token,

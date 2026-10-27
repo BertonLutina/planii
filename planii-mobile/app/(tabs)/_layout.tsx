@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
-import { DarkTheme, DefaultTheme, ThemeProvider as NavigationTheme } from '@react-navigation/native'
-import { Icon, Label, NativeTabs, VectorIcon } from 'expo-router/unstable-native-tabs'
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationTheme } from 'expo-router/react-navigation'
+import { NativeTabs } from 'expo-router/unstable-native-tabs'
 import { Platform } from 'react-native'
 import { t, useI18n } from '@/lib/i18n'
 import { useSession } from '@/lib/session'
@@ -12,7 +12,7 @@ import { useTheme } from '@/theme/ThemeProvider'
    la chrome système — SF Symbols côté iOS, Material Icons côté Android. */
 
 function Md({ name }: { name: ComponentProps<typeof MaterialIcons>['name'] }) {
-  return <VectorIcon family={MaterialIcons} name={name} />
+  return <NativeTabs.Trigger.VectorIcon family={MaterialIcons} name={name} />
 }
 
 export default function TabsLayout() {
@@ -46,28 +46,28 @@ export default function TabsLayout() {
         disableTransparentOnScrollEdge
       >
         <NativeTabs.Trigger name="index">
-          <Label>{t('nav.home')}</Label>
-          <Icon sf={{ default: 'house', selected: 'house.fill' }} androidSrc={<Md name="home" />} />
+          <NativeTabs.Trigger.Label>{t('nav.home')}</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} src={<Md name="home" />} />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="projets">
-          <Label>{t('nav.projects')}</Label>
-          <Icon sf={{ default: 'folder', selected: 'folder.fill' }} androidSrc={<Md name="folder" />} />
+          <NativeTabs.Trigger.Label>{t('nav.projects')}</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: 'folder', selected: 'folder.fill' }} src={<Md name="folder" />} />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="agenda">
-          <Label>{t('nav.agenda')}</Label>
-          <Icon sf="calendar" androidSrc={<Md name="calendar-today" />} />
+          <NativeTabs.Trigger.Label>{t('nav.agenda')}</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf="calendar" src={<Md name="calendar-today" />} />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="classement" hidden={hideLeaderboard}>
-          <Label>{t('nav.leaderboard')}</Label>
-          <Icon sf={{ default: 'trophy', selected: 'trophy.fill' }} androidSrc={<Md name="emoji-events" />} />
+          <NativeTabs.Trigger.Label>{t('nav.leaderboard')}</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: 'trophy', selected: 'trophy.fill' }} src={<Md name="emoji-events" />} />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profil">
-          <Label>{t('nav.profile')}</Label>
-          <Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} androidSrc={<Md name="person" />} />
+          <NativeTabs.Trigger.Label>{t('nav.profile')}</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} src={<Md name="person" />} />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="admin" hidden={!isAdmin}>
-          <Label>{t('nav.admin')}</Label>
-          <Icon sf={{ default: 'checkmark.shield', selected: 'checkmark.shield.fill' }} androidSrc={<Md name="admin-panel-settings" />} />
+          <NativeTabs.Trigger.Label>{t('nav.admin')}</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: 'checkmark.shield', selected: 'checkmark.shield.fill' }} src={<Md name="admin-panel-settings" />} />
         </NativeTabs.Trigger>
       </NativeTabs>
     </NavigationTheme>

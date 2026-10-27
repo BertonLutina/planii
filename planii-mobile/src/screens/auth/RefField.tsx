@@ -4,6 +4,7 @@ import {
   type KeyboardTypeOptions, type StyleProp, type TextInputProps, type ViewStyle,
 } from 'react-native'
 import { Ic } from '@/components/Icon'
+import { t, useI18n } from '@/lib/i18n'
 import { useTheme } from '@/theme/ThemeProvider'
 
 /* Champ de saisie du formulaire de connexion.
@@ -46,6 +47,7 @@ export const RefField = forwardRef<TextInput, RefFieldProps>(function RefField({
   style, testID,
 }, ref) {
   const { c } = useTheme()
+  useI18n()
   const [focus, setFocus] = useState(false)
   const [reveal, setReveal] = useState(false)
 
@@ -77,6 +79,7 @@ export const RefField = forwardRef<TextInput, RefFieldProps>(function RefField({
           onBlur={() => setFocus(false)}
           accessibilityLabel={label ?? placeholder}
           accessibilityState={{ disabled: !editable }}
+          accessibilityHint={error || hint || undefined}
           style={[
             s.input,
             {
@@ -94,7 +97,7 @@ export const RefField = forwardRef<TextInput, RefFieldProps>(function RefField({
             onPress={() => setReveal((r) => !r)}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel={reveal ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+            accessibilityLabel={reveal ? t('auth.hidePassword') : t('auth.showPassword')}
             accessibilityState={{ selected: reveal }}
             style={s.eye}
           >
@@ -102,7 +105,7 @@ export const RefField = forwardRef<TextInput, RefFieldProps>(function RefField({
           </Pressable>
         )}
       </View>
-      {!!error && <Text style={[s.msg, { color: c.danger }]}>{error}</Text>}
+      {!!error && <Text accessibilityLiveRegion="polite" style={[s.msg, { color: c.danger }]}>{error}</Text>}
       {!error && !!hint && <Text style={[s.msg, { color: c.hint }]}>{hint}</Text>}
     </View>
   )

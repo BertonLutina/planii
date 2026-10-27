@@ -13,9 +13,9 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
   const t = hdr.startsWith('Bearer ') ? hdr.slice(7) : null
   if (!t) return res.status(401).json({ error: 'Non authentifié' })
   try {
-    const payload = jwt.verify(t, env.JWT_SECRET) as { sub: string }
+    const payload = jwt.verify(t, env.JWT_SECRET) as { sub: string; sv?: number }
     const u = await UserModel.findById(payload.sub)
-    if (!u) return res.status(401).json({ error: 'Utilisateur introuvable' })
+    if (!u || !UserView.sessionMatches(u, payload)) return res.status(401).json({ error: 'Session invalide' })
     req.user = u
     next()
   } catch {
