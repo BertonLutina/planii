@@ -463,23 +463,13 @@ export function LangFlags() {
   )
 }
 
-export function LangPicker({ compact }: { compact?: boolean }) {
+/** Liste déroulante des langues (un <select> natif : clavier, lecteurs d'écran et mobile gratuits). */
+export function LangPicker() {
   const { lang, setLang } = useI18n()
-  if (compact) {
-    return (
-      <select className="lang-select" value={lang} onChange={(e) => setLang(e.target.value as Lang)} aria-label={t('lang.title')}>
-        {LANGS.map((l) => <option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
-      </select>
-    )
-  }
   return (
-    <div className="seg lang-seg">
-      {LANGS.map((l) => (
-        <button key={l.code} className={lang === l.code ? 'on' : ''} onClick={() => setLang(l.code)}>
-          <span aria-hidden>{l.flag}</span> {l.label}
-        </button>
-      ))}
-    </div>
+    <select className="lang-select" value={lang} onChange={(e) => setLang(e.target.value as Lang)} aria-label={t('lang.title')}>
+      {LANGS.map((l) => <option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
+    </select>
   )
 }
 
