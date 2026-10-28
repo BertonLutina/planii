@@ -40,6 +40,8 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
   const [formErr, setFormErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
+  // Lien déjà utilisé, expiré ou falsifié : le formulaire ne sert plus à rien, on propose d'en redemander un.
+  const [linkBad, setLinkBad] = useState(false)
 
   const [providers, setProviders] = useState<Providers>({})
   const [provLoading, setProvLoading] = useState(true)
@@ -112,7 +114,11 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
       const r = await api<{ token: string; user: User }>('POST', path, body)
       signIn(r.user, r.token)
     } catch (e) {
-      const msg = mode === 'reset' ? t('auth.resetInvalid') : (e as Error).message
+      const raw = (e as Error).message || ''
+      // Seul un refus du serveur sur le jeton vaut « lien invalide » ; une coupure réseau se réessaie.
+      const badLink = mode === 'reset' && /lien invalide|invalid|expir|token|jeton/i.test(raw)
+      if (badLink) setLinkBad(true)
+      const msg = badLink ? t('auth.resetInvalid') : raw
       setFormErr(msg)
       announce(msg)
     } finally {
@@ -138,7 +144,7 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
   const signup = mode === 'signup'
   const forgot = mode === 'forgot'
   const reset = mode === 'reset'
-  const resetBroken = reset && !resetToken
+  const resetBroken = reset && (!resetToken || linkBad)
   const langOpts = langOptions()
   const title = signup ? t('auth.register')
     : forgot ? t('auth.forgotTitle')
@@ -325,6 +331,7 @@ export function AuthScreen({ mode, resetToken = '' }: { mode: Mode; resetToken?:
                   onChangeText={set('password')}
                   placeholder="••••••••"
                   error={errs.password}
+                  hint={t('auth.resetHint')}
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}

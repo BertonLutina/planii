@@ -81,7 +81,7 @@ function TaskRowBase({
             {!!x.type && <Tag label={trTerm(x.type)} tone={typeTone(x.type)} />}
           </View>
           <Text
-            numberOfLines={2}
+            numberOfLines={3}
             style={[
               s.title,
               { color: x.done ? c.muted : c.text, textDecorationLine: x.done ? 'line-through' : 'none' },
@@ -90,7 +90,7 @@ function TaskRowBase({
             {x.title}
           </Text>
           {!!x.description && (
-            <Text numberOfLines={1} style={[s.desc, { color: c.muted }]}>{x.description}</Text>
+            <Text numberOfLines={2} style={[s.desc, { color: c.muted }]}>{x.description}</Text>
           )}
           <View style={s.tags}>
             <Tag

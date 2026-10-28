@@ -43,7 +43,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   /* La chrome native (Liquid Glass, barre Android) suit Appearance, pas le
      thème JS. `unspecified` = laisser le système décider (mode auto). */
   useEffect(() => {
-    Appearance.setColorScheme(pref === 'auto' ? 'unspecified' : pref)
+    // react-native-web n'implémente pas `setColorScheme` : sans ce garde, l'aperçu web plante.
+    Appearance.setColorScheme?.(pref === 'auto' ? 'unspecified' : pref)
   }, [pref])
 
   const scheme: Resolved = pref === 'auto' ? (system === 'dark' ? 'dark' : 'light') : pref
