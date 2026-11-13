@@ -46,6 +46,10 @@ const envSchema = z.object({
   YAHOO_CLIENT_SECRET: z.string().optional().default(''),
   OAUTH_CALLBACK_BASE: z.string().optional().default(''),
   SESSION_SECRET: z.string().optional().default(''),
+  /* Visio LiveKit. Les trois doivent être remplis, sinon la réunion reste au chat. */
+  LIVEKIT_URL: z.string().optional().default(''),
+  LIVEKIT_API_KEY: z.string().optional().default(''),
+  LIVEKIT_API_SECRET: z.string().optional().default(''),
 })
 
 const parsed = envSchema.safeParse({
@@ -93,6 +97,9 @@ export const env = {
   yahooClientId: raw.YAHOO_CLIENT_ID || '',
   yahooClientSecret: raw.YAHOO_CLIENT_SECRET || '',
   sessionSecret: raw.SESSION_SECRET || raw.JWT_SECRET,
+  livekitUrl: raw.LIVEKIT_URL.replace(/\/$/, ''),
+  livekitApiKey: raw.LIVEKIT_API_KEY,
+  livekitApiSecret: raw.LIVEKIT_API_SECRET,
 }
 
 if (env.isProd && env.JWT_SECRET === 'dev-secret-change-me') {

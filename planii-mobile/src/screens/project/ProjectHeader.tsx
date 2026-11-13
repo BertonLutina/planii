@@ -24,7 +24,7 @@ export function ProjectHeader({ p }: { p: Project }) {
       <View style={s.row}>
         <Avatar name={p.name} size={40} src={mediaUrl(p.imageUrl)} />
         <View style={s.body}>
-          <Text numberOfLines={1} style={[s.name, { color: c.text }]}>{p.name}</Text>
+          <Text numberOfLines={2} style={[s.name, { color: c.text }]}>{p.name}</Text>
           <View style={s.meta}>
             <Text numberOfLines={1} style={[s.sub, { color: c.muted }]}>{TYPE_LABEL[p.type]}</Text>
             <Ic name="star" s={11} c={c.gold} />
@@ -51,10 +51,10 @@ export function ProjectHeader({ p }: { p: Project }) {
 }
 
 const s = StyleSheet.create({
-  wrap: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 12, borderBottomWidth: 1 },
+  wrap: { paddingHorizontal: 18, paddingTop: 2, paddingBottom: 10, borderBottomWidth: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   body: { flex: 1, minWidth: 0 },
-  name: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
+  name: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, lineHeight: 22 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3, flexWrap: 'wrap' },
   sub: { fontSize: 12.5, flexShrink: 1 },
   bar: { marginTop: 10 },

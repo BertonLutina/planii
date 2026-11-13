@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native'
+import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Avatar, Banner, Button, EmptyState, Ic, SkeletonList } from '@/components/ui'
 import { Mic } from '@/components/Mic'
@@ -19,9 +20,8 @@ import { DelegatesSheet } from './DelegatesSheet'
 /* Onglet « Réunion » — portage de `Meeting` (planii-vite/src/components/
    Meeting.tsx).
 
-   La visioconférence Jitsi du web n'a pas d'équivalent embarqué ici (pas de
-   SDK natif installé, et un WebView Jitsi ne survit pas à un changement
-   d'onglet) : elle est reportée. Ce qui traverse, c'est le fil de discussion —
+   La visio est LiveKit, sur un écran plein : elle ne vit pas dans l'onglet,
+   donc un changement d'onglet ne coupe pas l'appel. Le fil de discussion —
    la partie qui produit les tâches — avec la même liste de délégués et le même
    `POST /projects/:id/meeting/tasks`.
 
@@ -59,6 +59,7 @@ export interface MeetingTabProps {
 export function MeetingTab({ p, me, statuses, onChanged }: MeetingTabProps) {
   const { c } = useTheme()
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   useI18n()
 
   const [items, setItems] = useState<MeetingMessage[] | null>(null)
@@ -143,6 +144,15 @@ export function MeetingTab({ p, me, statuses, onChanged }: MeetingTabProps) {
         {!!err && <Banner tone="danger" icon="alert" text={err} style={s.banner} />}
         {closed && <Banner tone="warn" icon="lock" text={t('pd.closedX')} style={s.banner} />}
         {!closed && !canCreate && <Banner tone="accent" icon="info" text={t('meet.needAuth')} style={s.banner} />}
+        {!closed && (
+          <Button
+            label={t('meet.video')}
+            icon="video"
+            variant="primary"
+            onPress={() => router.push({ pathname: '/meeting/[projectId]', params: { projectId: p.id } })}
+            style={s.delegateBtn}
+          />
+        )}
         {manage && !closed && (
           <Button
             label={t('meet.allowed')}

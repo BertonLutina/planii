@@ -18,13 +18,16 @@ export interface TabsProps<K extends string> {
   style?: StyleProp<ViewStyle>
 }
 
-/** Contrôle segmenté (`.tabs`) : piste sur `surface2`, segment actif sur
- *  `surface` avec ombre — lisible dans les deux thèmes. */
+/** Deux présentations, selon le nombre d'entrées.
+ *  — 2 ou 3 choix (`scrollable` faux) : piste segmentée, comme sur le web.
+ *  — davantage : rail de pastilles qui défile. Les pastilles ne rétrécissent
+ *    jamais, sinon l'icône finit par recouvrir le libellé à 320 pt. */
 export function Tabs<K extends string>({ items, value, onChange, scrollable = false, style }: TabsProps<K>) {
   const { c } = useTheme()
 
   const segments = items.map((it) => {
     const on = it.key === value
+    const fg = on ? (scrollable ? c.accentOn : c.text) : c.muted
     return (
       <Pressable
         key={it.key}
@@ -35,39 +38,54 @@ export function Tabs<K extends string>({ items, value, onChange, scrollable = fa
         style={[
           s.seg,
           scrollable ? s.segAuto : s.segFlex,
+          scrollable && !on && { backgroundColor: c.surface, borderColor: c.line },
+          scrollable && on && { backgroundColor: c.accentBg, borderColor: c.accentBorder },
           /* Sur fond sombre, `surface` est plus foncé que la piste `surface2` et
              l'ombre ne se voit pas : un filet garde le segment actif lisible. */
-          on && [shadow, { backgroundColor: c.surface, borderColor: c.lineStrong, borderWidth: 1, shadowColor: c.shadowColor }],
+          !scrollable && on && [shadow, { backgroundColor: c.surface, borderColor: c.lineStrong, borderWidth: 1, shadowColor: c.shadowColor }],
         ]}
       >
-        {!!it.icon && <Ic name={it.icon} s={15} c={on ? c.text : c.muted} />}
-        <Text numberOfLines={1} style={[s.label, { color: on ? c.text : c.muted }]}>{it.label}</Text>
+        {!!it.icon && (
+          <View style={s.icon}>
+            <Ic name={it.icon} s={15} c={fg} />
+          </View>
+        )}
+        <Text numberOfLines={1} style={[s.label, scrollable && s.labelFixed, { color: fg }]}>{it.label}</Text>
       </Pressable>
     )
   })
 
-  const track: StyleProp<ViewStyle> = [s.track, { backgroundColor: c.surface2 }, style]
-
   if (scrollable) {
     return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={track} accessibilityRole="tablist">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[s.rail, style]}
+        accessibilityRole="tablist"
+      >
         {segments}
       </ScrollView>
     )
   }
+
+  const track: StyleProp<ViewStyle> = [s.track, { backgroundColor: c.surface2 }, style]
   return <View accessibilityRole="tablist" style={track}>{segments}</View>
 }
 
 const s = StyleSheet.create({
   track: { flexDirection: 'row', gap: 6, padding: 5, borderRadius: radius.control },
+  rail: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 },
   seg: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    minHeight: 38, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 9,
+    minHeight: 44, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12,
     /* Bordure toujours présente (transparente au repos) : la géométrie ne bouge
        pas quand le segment devient actif. */
-    borderWidth: 1, borderColor: 'transparent',
+    borderWidth: 1, borderColor: 'transparent', overflow: 'hidden',
   },
-  segFlex: { flex: 1 },
-  segAuto: { flex: 0 },
+  segFlex: { flex: 1, minWidth: 0 },
+  /* Une pastille qui défile garde sa largeur naturelle : jamais de rétrécissement. */
+  segAuto: { flexGrow: 0, flexShrink: 0 },
+  icon: { flexGrow: 0, flexShrink: 0 },
   label: { fontSize: 13.5, fontWeight: '700', flexShrink: 1 },
+  labelFixed: { flexShrink: 0 },
 })

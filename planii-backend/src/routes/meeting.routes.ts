@@ -5,6 +5,7 @@ import { meetingMessageSchema, meetingDelegatesSchema, meetingTaskSchema } from 
 
 export function meetingRoutes() {
   const r = Router()
+  r.post('/projects/:id/meeting/livekit', ...MeetingController.livekit)
   r.get('/projects/:id/meeting/messages', ...MeetingController.listMessages)
   r.post('/projects/:id/meeting/messages', validate(meetingMessageSchema), ...MeetingController.postMessage)
   r.get('/projects/:id/meeting/task-delegates', ...MeetingController.listTaskDelegates)

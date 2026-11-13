@@ -98,6 +98,7 @@ function Root() {
         <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="project/[id]" options={{ headerShown: true, title: '' }} />
+        <Stack.Screen name="meeting/[projectId]" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="invite/[token]" options={{ headerShown: true, title: 'Invitation' }} />
       </Stack>
     </>

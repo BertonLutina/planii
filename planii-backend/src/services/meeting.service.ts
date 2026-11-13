@@ -1,10 +1,36 @@
 import { q, one, many, pool } from '../db/pool'
+import { env } from '../config/env'
+import { livekitRoom, signLiveKitToken } from '../lib/livekitToken'
 import { uid, prioOrDefault } from '../lib/utils'
 import { fail } from '../core/http-error'
 import type { DbUser } from '../models/User.model'
 import * as ProjectModel from '../models/Project.model'
 import { assertProjectOpen, ensureProjectStatuses, sendTaskAssignmentMails } from './project.service'
 import { logActivity, notifyProject, recordTaskEvent } from './notification.service'
+
+/** Jeton LiveKit pour la salle du projet. Réservé aux membres, projet ouvert. */
+export async function livekitToken(projectId: string, user: DbUser) {
+  if (!env.livekitUrl || !env.livekitApiKey || !env.livekitApiSecret) {
+    fail(503, 'La visioconférence n’est pas configurée.')
+  }
+  const p = await ProjectModel.findById(projectId)
+  if (!p) fail(404, 'Projet introuvable')
+  const m = await ProjectModel.findMembership(p.id, user.id)
+  if (!m) fail(403, 'Non membre')
+  assertProjectOpen(p)
+  const room = livekitRoom(p.id)
+  return {
+    url: env.livekitUrl,
+    room,
+    token: signLiveKitToken({
+      apiKey: env.livekitApiKey,
+      apiSecret: env.livekitApiSecret,
+      identity: user.id,
+      name: user.name,
+      room,
+    }),
+  }
+}
 
 export async function listMessages(projectId: string, userId: string) {
   const p = await ProjectModel.findById(projectId)

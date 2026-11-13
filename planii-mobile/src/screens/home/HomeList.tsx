@@ -18,6 +18,8 @@ export interface HomeListProps {
   refreshing: boolean
   onRefresh: () => void
   onOpen: (projectId: string) => void
+  /** Ouvre la feuille de la tâche. À défaut, `onOpen` ouvre le projet. */
+  onOpenTask?: (item: MyTask) => void
   onToggle: (task: Task) => void
   onMenu: (item: MyTask) => void
   /** Action de l'état vide — créer un projet. */
@@ -29,7 +31,7 @@ export interface HomeListProps {
 interface Section { key: string; color: string; label: string; data: MyTask[] }
 
 export function HomeList({
-  groups, empty, refreshing, onRefresh, onOpen, onToggle, onMenu, onCreate,
+  groups, empty, refreshing, onRefresh, onOpen, onOpenTask, onToggle, onMenu, onCreate,
   header, contentPaddingBottom = 24,
 }: HomeListProps) {
   const { c } = useTheme()
@@ -55,7 +57,7 @@ export function HomeList({
           <HomeTaskRow
             task={item.t}
             projectName={item.p.name}
-            onOpen={() => onOpen(item.p.id)}
+            onOpen={() => (onOpenTask ? onOpenTask(item) : onOpen(item.p.id))}
             onToggle={() => onToggle(item.t)}
             onMenu={() => onMenu(item)}
           />

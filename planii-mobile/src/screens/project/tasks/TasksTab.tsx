@@ -360,14 +360,15 @@ export function TasksTab({ p, me, statuses, data, newOpen, onCloseNew }: TasksTa
           size="sm"
           accessibilityLabel={`${t('projects.sort')} — ${sortLabel}`}
           onPress={() => setSortOpen(true)}
+          style={s.toolBtn}
         />
         {!closed && (
-          <Button label={t('imp.title')} icon="copy" size="sm" onPress={() => setImportOpen(true)} />
+          <Button label={t('imp.title')} icon="copy" size="sm" onPress={() => setImportOpen(true)} style={s.toolBtn} />
         )}
         {/* Sans reconnaissance vocale (Expo Go), l'assistant guidé ne serait
             qu'un formulaire de tâche plus lent : le bouton disparaît. */}
         {!closed && voiceOk && (
-          <Button label={t('pd.dictate')} icon="mic" size="sm" onPress={() => setVoiceOpen(true)} />
+          <Button label={t('pd.dictate')} icon="mic" size="sm" onPress={() => setVoiceOpen(true)} style={s.toolBtn} />
         )}
       </View>
       <ChipSelect label={t('pd.filter')} options={userItems} value={filterUser} onChange={setFilterUser} scroll style={s.filter} />
@@ -512,6 +513,7 @@ const s = StyleSheet.create({
   tools: { paddingTop: 12, paddingBottom: 6 },
   banner: { marginBottom: 10 },
   toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  toolBtn: { maxWidth: '100%' },
   filter: { marginBottom: 8 },
   group: { marginTop: 10, marginBottom: 6 },
   more: { marginTop: 8, alignSelf: 'center' },

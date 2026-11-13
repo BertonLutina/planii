@@ -2,6 +2,10 @@ import { asyncHandler, auth } from '../middleware/auth'
 import * as MeetingService from '../services/meeting.service'
 import * as TaskView from '../views/Task.view'
 
+export const livekit = [auth, asyncHandler(async (req, res) => {
+  res.json(await MeetingService.livekitToken(req.params.id, req.user!))
+})]
+
 export const listMessages = [auth, asyncHandler(async (req, res) => {
   res.json({ messages: await MeetingService.listMessages(req.params.id, req.user!.id) })
 })]

@@ -78,6 +78,18 @@ const ICONS: Record<string, ReactNode> = {
       {p('m16 12 6-4v8l-6-4z')}
     </>
   ),
+  'video-off': (
+    <>
+      <Rect x={2} y={6} width={14} height={12} rx={2} />
+      {p('m16 12 6-4v8l-6-4z', 'M2 2l20 20')}
+    </>
+  ),
+  'mic-off': (
+    <>
+      <Rect x={9} y={2} width={6} height={13} rx={3} />
+      {p('M19 10v2a7 7 0 0 1-14 0v-2', 'M12 19v3', 'M2 2l20 20')}
+    </>
+  ),
   star: p('M12 2.5l2.95 5.98 6.6.96-4.77 4.65 1.12 6.57L12 17.55l-5.9 3.11 1.12-6.57L2.45 9.44l6.6-.96z'),
   clock: (
     <>

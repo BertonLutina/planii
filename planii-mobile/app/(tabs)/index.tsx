@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { ActionMenu, Banner, Button, Fab, GroupHeader, NATIVE_TAB_BAR, Tabs, type TabItem } from '@/components/ui'
 import { NotifBell } from '@/components/NotifBell'
+import { QuickAppointment } from '@/components/QuickAppointment'
+import { QuickTask } from '@/components/QuickTask'
 import { api } from '@/lib/api'
 import { t, trTerm, useI18n } from '@/lib/i18n'
 import { useSession } from '@/lib/session'
@@ -15,6 +17,7 @@ import {
 } from '@/screens/home'
 import { afterSheet } from '@/screens/project/lib/flow'
 import { statusOf } from '@/screens/project/lib/statuses'
+import { TaskSheet } from '@/screens/project/tasks/TaskSheet'
 import { DEFAULT_PROJECT_LABELS, NewProjectSheet } from '@/screens/projects'
 import { useTheme } from '@/theme/ThemeProvider'
 
@@ -30,9 +33,10 @@ import { useTheme } from '@/theme/ThemeProvider'
  * un kanban coincé sous 400 pt de tableau de bord ne se lit pas, et l'agenda
  * non plus. Les trois vues restent à un appui l'une de l'autre.
  *
- * Le tiroir de tâche du web (`TaskDrawer`) n'a pas encore d'équivalent natif :
- * appuyer sur une tâche ouvre son projet, comme le fait déjà la vue tableau
- * du web. La dictée (`MicInput` / `VoiceTaskWizard`) est reportée. */
+ * Appuyer sur une tâche ouvre sa feuille (`TaskSheet`), comme le tiroir du
+ * web. Le « + » propose une tâche, un rendez-vous ou un projet : sur un
+ * téléphone, créer une tâche est le geste le plus fréquent, et il ne doit
+ * pas obliger à entrer dans un projet d'abord. */
 
 type HomeView = 'list' | 'board' | 'agenda'
 
@@ -45,9 +49,17 @@ export default function AccueilScreen() {
 
   const [view, setView] = useState<HomeView>('list')
   const [newOpen, setNewOpen] = useState(false)
+  const [pick, setPick] = useState(false)
+  const [quick, setQuick] = useState<'task' | 'appt' | null>(null)
   const [labels, setLabels] = useState<ProjectLabel[]>(DEFAULT_PROJECT_LABELS)
   /** Tâche dont le menu « … » est ouvert (changement de statut). */
   const [menuFor, setMenuFor] = useState<MyTask | null>(null)
+  /** Tâche ouverte dans la feuille de détail. */
+  const [detail, setDetail] = useState<MyTask | null>(null)
+  /* Gardée après la fermeture : la modale doit rester montée pour s'animer. */
+  const heldDetail = useRef<MyTask | null>(null)
+  if (detail) heldDetail.current = detail
+  const shownDetail = detail ?? heldDetail.current
 
   const home = useHome(me?.id)
 
@@ -64,6 +76,22 @@ export default function AccueilScreen() {
   const openProject = useCallback((id: string) => {
     router.push({ pathname: '/project/[id]', params: { id } })
   }, [router])
+
+  const openKnownTask = useCallback((item: MyTask) => setDetail(item), [])
+
+  /* Le tableau du jour ne porte qu'un résumé. Si la tâche est déjà dans les
+     projets chargés, on ouvre sa feuille ; sinon on entre dans le projet. */
+  const openTodayTask = useCallback((task: { id: string; projectId: string }) => {
+    for (const p of home.projects || []) {
+      const t = p.tasks.find((x) => x.id === task.id)
+      if (t) { setDetail({ t, p }); return }
+    }
+    openProject(task.projectId)
+  }, [home.projects, openProject])
+
+  const openQuick = useCallback((k: 'task' | 'appt') => {
+    setTimeout(() => setQuick(k), 340)
+  }, [])
 
   const statusItems = useMemo(() => {
     if (!menuFor) return []
@@ -95,6 +123,7 @@ export default function AccueilScreen() {
         today={home.today}
         error={home.todayError}
         onOpen={openProject}
+        onOpenTask={openTodayTask}
         style={s.today}
       />
       <GroupHeader title={t('home.todo')} count={home.todo.length} />
@@ -122,6 +151,7 @@ export default function AccueilScreen() {
         refreshing={home.refreshing}
         onRefresh={home.refresh}
         onOpen={openProject}
+        onOpenTask={openKnownTask}
         onToggle={home.toggle}
         onMenu={setMenuFor}
         contentPaddingBottom={padBottom}
@@ -137,6 +167,7 @@ export default function AccueilScreen() {
         refreshing={home.refreshing}
         onRefresh={home.refresh}
         onOpen={openProject}
+        onOpenTask={openKnownTask}
         onToggle={home.toggle}
         onMenu={setMenuFor}
         onCreate={() => setNewOpen(true)}
@@ -163,7 +194,47 @@ export default function AccueilScreen() {
       {body}
 
       {/* Dernier enfant du conteneur `flex: 1` — jamais dans une liste. */}
-      <Fab onPress={() => setNewOpen(true)} accessibilityLabel={t('cmd.newProject')} />
+      <Fab onPress={() => setPick(true)} accessibilityLabel={t('action.new')} />
+
+      <ActionMenu
+        open={pick}
+        onClose={() => setPick(false)}
+        title={t('action.new')}
+        items={[
+          { label: t('qa.task'), icon: 'tasks', onPress: () => openQuick('task') },
+          { label: t('qa.appt'), icon: 'calendar', onPress: () => openQuick('appt') },
+          { label: t('cmd.newProject'), icon: 'folder', onPress: () => setTimeout(() => setNewOpen(true), 340) },
+        ]}
+      />
+
+      <QuickTask
+        open={quick === 'task'}
+        onClose={() => setQuick(null)}
+        onCreated={() => { setQuick(null); home.reload() }}
+        me={me}
+      />
+      <QuickAppointment
+        open={quick === 'appt'}
+        onClose={() => setQuick(null)}
+        onCreated={() => { setQuick(null); home.reload() }}
+      />
+
+      {!!shownDetail && !!me && (
+        <TaskSheet
+          open={!!detail}
+          onClose={() => setDetail(null)}
+          task={shownDetail.t}
+          p={shownDetail.p}
+          me={me}
+          statuses={shownDetail.p.statuses?.length ? shownDetail.p.statuses : home.statuses}
+          onSaved={home.reload}
+          onOpenProject={() => {
+            const id = shownDetail.p.id
+            setDetail(null)
+            setTimeout(() => openProject(id), 340)
+          }}
+        />
+      )}
 
       <ActionMenu
         open={!!menuFor}

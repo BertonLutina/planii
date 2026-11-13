@@ -2,10 +2,12 @@ import { memo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ic, PriorityFlag, priorityColors } from '@/components/ui'
 import { formatDue, isOverdue } from '@/lib/dates'
-import { t } from '@/lib/i18n'
+import { t, trTerm } from '@/lib/i18n'
 import { taskPoints } from '@/lib/points'
 import { prioMeta } from '@/lib/priority'
+import { typeTone } from '@/lib/tasktype'
 import type { Task } from '@/lib/types'
+import { Tag } from '@/screens/project/tasks/Tag'
 import { useTheme } from '@/theme/ThemeProvider'
 import { radius } from '@/theme/tokens'
 
@@ -36,7 +38,6 @@ function HomeTaskRowBase({ task: x, projectName, onOpen, onToggle, onMenu }: Hom
       onPress={onOpen}
       accessibilityRole="button"
       accessibilityLabel={x.title}
-      accessibilityHint={t('td.openProject')}
       style={({ pressed }) => [
         s.row,
         {
@@ -57,9 +58,14 @@ function HomeTaskRowBase({ task: x, projectName, onOpen, onToggle, onMenu }: Hom
       </Pressable>
 
       <View style={s.body}>
-        {pm.n < 6 && <PriorityFlag priority={pm.n} style={s.flag} />}
+        {(pm.n < 6 || !!x.type) && (
+          <View style={s.chips}>
+            {pm.n < 6 && <PriorityFlag priority={pm.n} />}
+            {!!x.type && <Tag label={trTerm(x.type)} tone={typeTone(x.type)} />}
+          </View>
+        )}
         <Text
-          numberOfLines={2}
+          numberOfLines={3}
           style={[
             s.title,
             { color: x.done ? c.muted : c.text, textDecorationLine: x.done ? 'line-through' : 'none' },
@@ -68,7 +74,7 @@ function HomeTaskRowBase({ task: x, projectName, onOpen, onToggle, onMenu }: Hom
           {x.title}
         </Text>
         {!!x.description && (
-          <Text numberOfLines={1} style={[s.desc, { color: c.muted }]}>{x.description}</Text>
+          <Text numberOfLines={2} style={[s.desc, { color: c.muted }]}>{x.description}</Text>
         )}
         <View style={s.meta}>
           {!!projectName && (
@@ -124,7 +130,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginTop: 1, flex: 0,
   },
   body: { flex: 1, minWidth: 0 },
-  flag: { marginBottom: 4 },
+  chips: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
   title: { fontSize: 15, fontWeight: '600', lineHeight: 20 },
   desc: { fontSize: 12.5, marginTop: 3, lineHeight: 17 },
   meta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 7 },

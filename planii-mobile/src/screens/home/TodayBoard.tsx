@@ -45,10 +45,12 @@ export interface TodayBoardProps {
   error?: string | null
   /** Ouvre le projet porteur de la tâche / de la discussion. */
   onOpen: (projectId: string) => void
+  /** Ouvre la feuille de la tâche quand on la connaît. */
+  onOpenTask?: (task: TodayTask) => void
   style?: StyleProp<ViewStyle>
 }
 
-export function TodayBoard({ today, error, onOpen, style }: TodayBoardProps) {
+export function TodayBoard({ today, error, onOpen, onOpenTask, style }: TodayBoardProps) {
   const { c } = useTheme()
   const [open, setOpen] = useState<SectionKey | null>(null)
   const defs = useMemo(() => SECTIONS(), [])
@@ -108,7 +110,7 @@ export function TodayBoard({ today, error, onOpen, style }: TodayBoardProps) {
             <Ic name={openDef.icon} s={16} c={toneColors(c, openDef.tone).fg} />
             <Text numberOfLines={1} style={[s.panelTitle, { color: c.text }]}>{openDef.title}</Text>
           </View>
-          <PanelBody def={openDef} today={today} onOpen={onOpen} />
+          <PanelBody def={openDef} today={today} onOpen={onOpen} onOpenTask={onOpenTask} />
         </View>
       )}
     </View>
@@ -165,7 +167,14 @@ function TileSkeleton() {
 
 /* ── Volet déplié ─────────────────────────────────────────────────────── */
 
-function PanelBody({ def, today, onOpen }: { def: SectionDef; today: TodayPayload; onOpen: (id: string) => void }) {
+function PanelBody({
+  def, today, onOpen, onOpenTask,
+}: {
+  def: SectionDef
+  today: TodayPayload
+  onOpen: (id: string) => void
+  onOpenTask?: (task: TodayTask) => void
+}) {
   const { c } = useTheme()
 
   if (def.key === 'activeDiscussions') {
@@ -202,10 +211,9 @@ function PanelBody({ def, today, onOpen }: { def: SectionDef; today: TodayPayloa
       {items.slice(0, MAX_ROWS).map((x) => (
         <Pressable
           key={def.key + x.id}
-          onPress={() => onOpen(x.projectId)}
+          onPress={() => (onOpenTask ? onOpenTask(x) : onOpen(x.projectId))}
           accessibilityRole="button"
           accessibilityLabel={`${x.title} — ${x.projectName}`}
-          accessibilityHint={t('td.openProject')}
           style={({ pressed }) => [s.row, { borderTopColor: c.line, backgroundColor: pressed ? c.surface2 : 'transparent' }]}
         >
           <PriorityFlag priority={x.priority} style={s.rowFlag} />

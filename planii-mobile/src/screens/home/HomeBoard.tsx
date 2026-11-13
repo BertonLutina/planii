@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import {
-  FlatList, RefreshControl, ScrollView, StyleSheet, Text, View,
+  FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View,
   useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native'
 import { Chip, EmptyState } from '@/components/ui'
@@ -33,13 +33,15 @@ export interface HomeBoardProps {
   refreshing: boolean
   onRefresh: () => void
   onOpen: (projectId: string) => void
+  /** Ouvre la feuille de la tâche. À défaut, `onOpen` ouvre le projet. */
+  onOpenTask?: (item: MyTask) => void
   onToggle: (task: Task) => void
   onMenu: (item: MyTask) => void
   contentPaddingBottom?: number
 }
 
 export function HomeBoard({
-  cols, refreshing, onRefresh, onOpen, onToggle, onMenu, contentPaddingBottom = 24,
+  cols, refreshing, onRefresh, onOpen, onOpenTask, onToggle, onMenu, contentPaddingBottom = 24,
 }: HomeBoardProps) {
   const { c } = useTheme()
   const { width } = useWindowDimensions()
@@ -114,6 +116,7 @@ export function HomeBoard({
             refreshing={refreshing}
             onRefresh={onRefresh}
             onOpen={onOpen}
+            onOpenTask={onOpenTask}
             onToggle={onToggle}
             onMenu={onMenu}
             paddingBottom={contentPaddingBottom}
@@ -125,13 +128,14 @@ export function HomeBoard({
 }
 
 function Column({
-  col, width, refreshing, onRefresh, onOpen, onToggle, onMenu, paddingBottom,
+  col, width, refreshing, onRefresh, onOpen, onOpenTask, onToggle, onMenu, paddingBottom,
 }: {
   col: BoardCol
   width: number
   refreshing: boolean
   onRefresh: () => void
   onOpen: (projectId: string) => void
+  onOpenTask?: (item: MyTask) => void
   onToggle: (task: Task) => void
   onMenu: (item: MyTask) => void
   paddingBottom: number
@@ -142,10 +146,16 @@ function Column({
 
   return (
     <View style={[s.col, { width, backgroundColor: c.surface, borderColor: c.line }]}>
-      <View accessibilityRole="header" style={[s.colHead, { borderBottomColor: c.line }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={p.name}
+        accessibilityHint={t('td.openProject')}
+        onPress={() => onOpen(p.id)}
+        style={[s.colHead, { borderBottomColor: c.line }]}
+      >
         <Text numberOfLines={2} style={[s.colName, { color: c.text }]}>{p.name}</Text>
         <Text style={[s.colSub, { color: c.muted }]}>{left} {t('home.colTodo')}</Text>
-      </View>
+      </Pressable>
       <FlatList
         data={col.tasks}
         keyExtractor={(x) => x.id}
@@ -153,7 +163,7 @@ function Column({
           <View style={s.item}>
             <HomeTaskRow
               task={item}
-              onOpen={() => onOpen(p.id)}
+              onOpen={() => (onOpenTask ? onOpenTask({ t: item, p }) : onOpen(p.id))}
               onToggle={() => onToggle(item)}
               onMenu={() => onMenu({ t: item, p })}
             />

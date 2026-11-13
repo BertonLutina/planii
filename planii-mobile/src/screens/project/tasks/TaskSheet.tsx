@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import {
   Banner, Button, Field, PriorityFlag, Sheet, Tabs, type TabItem,
 } from '@/components/ui'
@@ -46,6 +46,8 @@ export interface TaskSheetProps {
   statuses: TaskStatus[]
   /** Rechargement du projet après enregistrement. */
   onSaved: () => void
+  /** Depuis l'accueil : la feuille n'est pas déjà dans le projet. */
+  onOpenProject?: () => void
 }
 
 interface Draft {
@@ -78,7 +80,7 @@ const draftOf = (x: Task): Draft => ({
 
 const num = (v: string): number | null => (v.trim() === '' ? null : Number(v.replace(',', '.')))
 
-export function TaskSheet({ open, onClose, task, p, me, statuses, onSaved }: TaskSheetProps) {
+export function TaskSheet({ open, onClose, task, p, me, statuses, onSaved, onOpenProject }: TaskSheetProps) {
   const { c } = useTheme()
   useI18n()
   /* Hauteur ferme : `Sheet` plafonne à 90 % de l'écran, en-tête et pied
@@ -236,6 +238,17 @@ export function TaskSheet({ open, onClose, task, p, me, statuses, onSaved }: Tas
                     )}
                     {task.transferable && <Tag label={t('pd.transferableTag')} icon="transfer" tone="accent" />}
                   </View>
+                  {!!onOpenProject && (
+                    <Pressable
+                      onPress={onOpenProject}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('td.openProject')}
+                      style={s.openProject}
+                    >
+                      <Text style={[s.openProjectTxt, { color: c.accentOn }]}>{t('td.openProject')}</Text>
+                    </Pressable>
+                  )}
                   {!!task.transferHistory?.length && (
                     <View style={s.path}>
                       {task.transferHistory.map((h) => (
@@ -373,6 +386,8 @@ const s = StyleSheet.create({
   desc: { fontSize: 14, lineHeight: 20 },
   path: { gap: 3, marginTop: 2 },
   pathTxt: { fontSize: 12.5 },
+  openProject: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  openProjectTxt: { fontSize: 14.5, fontWeight: '700' },
   sep: { height: 1, marginVertical: 16 },
   check: { marginBottom: 14 },
   day: { marginBottom: 14, alignSelf: 'flex-start' },

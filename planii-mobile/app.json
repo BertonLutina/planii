@@ -19,7 +19,8 @@
       ],
       "infoPlist": {
         "NSSpeechRecognitionUsageDescription": "Planii convertit votre voix en texte pour remplir vos champs à la dictée.",
-        "NSMicrophoneUsageDescription": "Planii utilise le micro pour dicter vos tâches et vos messages.",
+        "NSMicrophoneUsageDescription": "Planii utilise le micro pour dicter et pour la visioconférence.",
+        "NSCameraUsageDescription": "Planii utilise la caméra pour la visioconférence du projet.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -33,18 +34,38 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
+        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
       "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": ["BROWSABLE", "DEFAULT"],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": [
-            { "scheme": "https", "host": "planii.app", "pathPrefix": "/reset-password" },
-            { "scheme": "https", "host": "www.planii.app", "pathPrefix": "/reset-password" },
-            { "scheme": "https", "host": "planii.app", "pathPrefix": "/invite" },
-            { "scheme": "https", "host": "www.planii.app", "pathPrefix": "/invite" }
+            {
+              "scheme": "https",
+              "host": "planii.app",
+              "pathPrefix": "/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "www.planii.app",
+              "pathPrefix": "/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "planii.app",
+              "pathPrefix": "/invite"
+            },
+            {
+              "scheme": "https",
+              "host": "www.planii.app",
+              "pathPrefix": "/invite"
+            }
           ]
         }
       ]
@@ -66,7 +87,7 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Planii utilise le micro pour dicter vos tâches et vos messages.",
+          "microphonePermission": "Planii utilise le micro pour dicter et pour la visioconférence.",
           "speechRecognitionPermission": "Planii convertit votre voix en texte pour remplir vos champs à la dictée.",
           "androidSpeechServicePackages": [
             "com.google.android.googlequicksearchbox"
@@ -87,7 +108,15 @@
       "expo-image",
       "expo-localization",
       "expo-web-browser",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@livekit/react-native-expo-plugin",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Planii utilise la caméra pour la visioconférence du projet.",
+          "microphonePermission": "Planii utilise le micro pour dicter et pour la visioconférence."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
