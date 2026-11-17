@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { api, apiUpload, mediaUrl } from '@/lib/api'
 import { toast, toastErr, Avatar, health, Modal } from '@/lib/ui'
-import { TYPE_LABEL, ROLE_LABEL, INVITE_ROLES, canManage, formatDue, isOverdue } from '@/lib/dates'
+import { TYPE_LABEL, ROLE_LABEL, INVITE_ROLES, canManage, formatDue, isOverdue, parseISO, todayMid, initials } from '@/lib/dates'
 import { memberPoints, projectPoints, levelOf, taskPoints } from '@/lib/points'
 import { prio, prioMeta, PRIORITIES } from '@/lib/priority'
 import { taskTypesOf, roleLibraryOf, typeTone } from '@/lib/tasktype'
@@ -13,14 +13,18 @@ import { Ic } from './Icon'
 import { t as tt, trTerm } from '@/lib/i18n'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
 import { TaskImportWizard } from './TaskImportWizard'
-import { TaskDrawer } from './TaskDrawer'
+import { PvDropdown } from './PvDropdown'
+import { PvDialog } from './PvDialog'
+import { NewTaskModal } from './NewTaskModal'
+import { TaskTable } from './TaskTable'
+import { PvAvatar } from './PvBits'
 import { TaskFiles } from './TaskFiles'
 import { useRealtime } from '@/lib/realtime'
 import { taskComparator, type TaskSort, type Dir } from '@/lib/sort'
 import { TaskGrid, type GridGroup } from './TaskGrid'
 
-/** Vue de l'onglet Tâches. `columns` = colonnes par personne (historique), `grid` = tableau. */
-type TaskView = 'columns' | 'grid'
+/** Vue de l'onglet Tâches. `table` = liste par statut (défaut), `grid` = grille d'origine, `columns` = colonnes par statut. */
+type TaskView = 'table' | 'columns' | 'grid'
 const TVIEW_KEY = 'planii.taskView'
 
 /** Vrai sous 900px — la grille demande trop de largeur, on retombe sur les colonnes. */
@@ -47,6 +51,7 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
   const [editing, setEditing] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
+  const [more, setMore] = useState(false)
 
   const loadTasks = useCallback(async (page: number, replace: boolean) => {
     setTasksLoading(true)
@@ -101,37 +106,79 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
     } catch (e: any) { toastErr(e.message) }
   }
 
+  const taskTotal = h.total
+  const deadlineDate = parseISO(p.deadline || null)
+  const deadlineLate = !!deadlineDate && deadlineDate < todayMid() && !closed
+  const ringOffset = 138.2 * (1 - (h.total ? h.done / h.total : 0))
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+  const tabs = [
+    ['taches', tt('ad.tasks'), taskTotal || ''],
+    ['rendezvous', tt('qa.appt'), (p.appointments || []).length || ''],
+    ['equipe', tt('pd.tabTeam'), ''],
+    ['membres', tt('proj.thMembers'), p.members.length || ''],
+    ['sondages', tt('pd.tabPolls'), ''],
+    ['activite', tt('pd.tabActivity'), ''],
+  ] as const
+
   return (
-    <div className="app project-detail-app">
-      <div className="topbar">
-        <div className="brand"><span className="logo"><b /></span><span>Planii</span></div>
-        <div className="who"><span className="role-tag">{ROLE_LABEL[p.my_role] || p.my_role}</span><Avatar name={me.name} src={mediaUrl(me.avatarUrl)} /></div>
-      </div>
-      <div className="wrap">
-        <button className="btn-link" onClick={onBack}>{tt('pd.back')}</button>
-        <div className="card" style={{ marginTop: 10 }}>
-          <div className="row">
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', minWidth: 0 }}>
-              <Avatar name={p.name} size={48} src={mediaUrl(p.imageUrl)} />
-              <div style={{ minWidth: 0 }}>
-                <p className="title-lg">{p.name}</p>
-                <p className="sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span className="role-tag">{TYPE_LABEL[p.type]}</span> · <Ic name="star" s={12} c="var(--gold)" /> {projectPoints(p)} pts{p.deadline ? ` · ${tt('pd.delivery')} ${formatDue(p.deadline)}` : ''}</p>
+    <div className="app project-detail-app pv">
+      <div className="pv-frame">
+        <div className="pv-appbar">
+          <div className="brand"><span className="logo"><b /></span><span>Planii</span></div>
+          <span className="pv-sp" />
+          <span className="pv-chip">{ROLE_LABEL[p.my_role] || p.my_role}</span>
+          <PvAvatar name={me.name} src={mediaUrl(me.avatarUrl)} />
+        </div>
+
+        <div className="pv-head">
+          <button type="button" className="pv-back" onClick={onBack}><Ic name="chevron-left" s={18} />{tt('pd.back').replace(/^‹\s*/, '')}</button>
+          <div className="pv-ptitle">
+            <span className="pv-av lg">
+              {p.imageUrl ? <img src={mediaUrl(p.imageUrl) || ''} alt="" /> : initials(p.name)}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <h1>{p.name}</h1>
+              <div className="pv-meta">
+                <span className="pv-chip">{TYPE_LABEL[p.type]}</span>
+                <span>{projectPoints(p)} pts</span>
+                {p.deadline && (
+                  <span className={'pv-chip' + (deadlineLate ? ' dg' : '')}>
+                    {deadlineLate && <Ic name="alert" s={14} />}{cap(tt('pd.delivery'))} {formatDue(p.deadline)}
+                  </span>
+                )}
               </div>
             </div>
-            <span className={'pill ' + (p.status === 'done' ? 'ok' : 'acc')}>{p.status === 'done' ? tt('term.doneSt') : `${h.done}/${h.total}`}</span>
           </div>
-          <div className="mini-bar"><i style={{ width: h.pct + '%', background: p.status === 'done' ? 'var(--ok)' : 'var(--accent)' }} /></div>
-          <div className="sheet-actions" style={{ marginTop: 12, flexWrap: 'wrap' }}>
-            {!closed && <button className="btn sm primary" onClick={() => setMeet(true)}><Ic name="video" s={15} />{tt('meet.title')}</button>}
-            {manage && !closed && <button className="btn sm ghost" onClick={() => setConfirmClose(true)}><Ic name="check" s={15} />{tt('pd.close')}</button>}
-            {isOwner && closed && p.canReopen && <button className="btn sm primary" onClick={reopenProject}>{tt('pd.reopen')}</button>}
-            {isOwner && !closed && <button className="btn sm ghost" onClick={() => setEditing(true)}><Ic name="edit" s={15} />{tt('action.edit')}</button>}
-            {isOwner && <button className="btn sm danger" onClick={() => setConfirmDel(true)}><Ic name="trash" s={15} />{tt('action.delete')}</button>}
+          <div className="pv-kpi">
+            <div className="pv-ring">
+              <svg viewBox="0 0 56 56" aria-hidden="true"><circle className="t" cx="28" cy="28" r="22" /><circle className="v" cx="28" cy="28" r="22" style={{ strokeDashoffset: ringOffset }} /></svg>
+              <b className="pv-tnum">{closed ? '✓' : `${h.done}/${h.total}`}</b>
+            </div>
+            <div className="pv-kpi-txt">
+              <strong>{closed ? tt('term.doneSt') : (h.done === 1 ? tt('pv.doneOne') : tt('pv.doneN', { n: h.done }))}</strong>
+              {!closed && <small>{(h.total - h.done === 1 ? tt('pv.leftOne') : tt('pv.leftN', { n: Math.max(0, h.total - h.done) }))}</small>}
+            </div>
+            <div className="pv-bar" aria-hidden="true"><span className="track"><i style={{ width: (h.total ? Math.round((h.done / h.total) * 100) : 0) + '%' }} /></span><b className="pv-tnum">{h.done}/{h.total}</b></div>
+          </div>
+          <div className="pv-pact">
+            {!closed && <button type="button" className="pv-btn acc" onClick={() => setMeet(true)}><Ic name="video" s={18} />{tt('meet.title')}</button>}
+            {manage && !closed && <button type="button" className="pv-btn" onClick={() => setConfirmClose(true)}><Ic name="check" s={18} />{tt('pd.close')}</button>}
+            {isOwner && closed && p.canReopen && <button type="button" className="pv-btn acc" onClick={reopenProject}>{tt('pd.reopen')}</button>}
+            {isOwner && (
+              <PvDropdown btnClass="pv-btn ghost sq" align="right" label={tt('pv.projectActions')} button={<Ic name="more" s={18} />}>
+                {(close) => (
+                  <>
+                    {!closed && <button type="button" role="menuitem" className="pv-dd-item" onClick={() => { close(); setEditing(true) }}><Ic name="edit" s={17} />{tt('action.edit')}</button>}
+                    <button type="button" role="menuitem" className="pv-dd-item dg" onClick={() => { close(); setConfirmDel(true) }}><Ic name="trash" s={17} />{tt('action.delete')}</button>
+                  </>
+                )}
+              </PvDropdown>
+            )}
           </div>
         </div>
 
         {closed && (
-          <div className="banner closed-project-banner">
+          <div className="pv-banner closed-project-banner">
             <b>{tt('pd.closedT')}</b> {tt('pd.closedX')}
             {isOwner && p.canReopen && p.reopenUntil ? ' ' + tt('pd.reopenUntil', { d: new Date(p.reopenUntil).toLocaleDateString() }) : ''}
             {isOwner && !p.canReopen ? ' ' + tt('pd.reopenLate') : ''}
@@ -162,19 +209,37 @@ export function ProjectDetail({ id, me, onBack }: { id: string; me: User; onBack
           </Modal>
         )}
 
-        <div className="tabs" style={{ marginTop: 6 }}>
-          {([['taches', tt('ad.tasks')], ['rendezvous', tt('qa.appt')], ['equipe', tt('pd.tabTeam')], ['membres', tt('proj.thMembers')], ['sondages', tt('pd.tabPolls')], ['activite', tt('pd.tabActivity')]] as const).map(([k, l]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
+        <nav className="pv-tabs" aria-label={tt('pv.projectNav')}>
+          {tabs.map(([k, l, n]) => (
+            <button key={k} type="button" className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => setTab(k)}>{l}{n !== '' && <em>{n}</em>}</button>
           ))}
-        </div>
+        </nav>
 
         {tab === 'taches' && <TasksTab p={p} me={me} memberName={memberName} reload={load} loadMore={loadMoreTasks} hasMore={tasksHasMore} loadingMore={tasksLoading} />}
-        {tab === 'rendezvous' && <AppointmentsTab p={p} me={me} reload={load} />}
-        {tab === 'equipe' && <TeamBoard p={p} me={me} reload={load} />}
-        {tab === 'membres' && <MembersTab p={p} me={me} manage={manage} reload={load} />}
-        {tab === 'sondages' && <PollsTab p={p} reload={load} />}
-        {tab === 'activite' && <ActivityTab projectId={id} />}
+        {tab !== 'taches' && (
+          <div className="pv-legacy">
+            {tab === 'rendezvous' && <AppointmentsTab p={p} me={me} reload={load} />}
+            {tab === 'equipe' && <TeamBoard p={p} me={me} reload={load} />}
+            {tab === 'membres' && <MembersTab p={p} me={me} manage={manage} reload={load} />}
+            {tab === 'sondages' && <PollsTab p={p} reload={load} />}
+            {tab === 'activite' && <ActivityTab projectId={id} />}
+          </div>
+        )}
       </div>
+
+      {/* Mobile : les six onglets passent dans une barre fixe en bas */}
+      <nav className="pv-mtab" aria-label={tt('pv.projectNav')}>
+        {([['taches', 'list', tt('ad.tasks')], ['rendezvous', 'calendar', tt('pv.tabAppt')], ['equipe', 'users', tt('pd.tabTeam')], ['activite', 'activity', tt('pd.tabActivity')]] as const).map(([k, ic, l]) => (
+          <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => setTab(k)} aria-current={tab === k ? 'page' : undefined}><Ic name={ic} s={24} />{l}</button>
+        ))}
+        <button type="button" className={tab === 'membres' || tab === 'sondages' ? 'on' : ''} onClick={() => setMore(true)}><Ic name="menu" s={24} />{tt('pv.more')}</button>
+      </nav>
+      {more && (
+        <Modal title={tt('pv.more')} onClose={() => setMore(false)}>
+          <button type="button" className="mact" onClick={() => { setTab('membres'); setMore(false) }}><span className="mi"><Ic name="users" s={17} /></span>{tt('proj.thMembers')}</button>
+          <button type="button" className="mact" onClick={() => { setTab('sondages'); setMore(false) }}><span className="mi"><Ic name="poll" s={17} /></span>{tt('pd.tabPolls')}</button>
+        </Modal>
+      )}
     </div>
   )
 }
@@ -184,11 +249,9 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
   loadMore?: () => void; hasMore?: boolean; loadingMore?: boolean
 }) {
   const myTypes = taskTypesOf(me)
-  const [adding, setAdding] = useState(false)
+  const [newOpen, setNewOpen] = useState<null | { status?: string; assignee?: string }>(null)
   const [voice, setVoice] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
-  const [detailId, setDetailId] = useState<string | null>(null)
-  const [nf, setNf] = useState<{ title: string; desc: string; type: string; assigneeId: string; due: string; est: string; priority: number; transferable: boolean }>({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6, transferable: false })
   const [editId, setEditId] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [prioId, setPrioId] = useState<string | null>(null)
@@ -198,24 +261,30 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
   const [subTitle, setSubTitle] = useState('')
   const [sortMode, setSortMode] = useState<TaskSort>('priority')
   const [sortDir, setSortDir] = useState<Dir>('asc')
-  const [grouped, setGrouped] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
   const [filterUser, setFilterUser] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [doneOpen, setDoneOpen] = useState<Record<string, boolean>>({})
+  const [shownEmpty, setShownEmpty] = useState<Record<string, boolean>>({})
+  const [search, setSearch] = useState('')
+  const [onlyLate, setOnlyLate] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [statusBusy, setStatusBusy] = useState(false)
   const [statusId, setStatusId] = useState<string | null>(null)
   const narrow = useNarrow()
   const [taskView, setTaskView] = useState<TaskView>(() => {
-    try { return localStorage.getItem(TVIEW_KEY) === 'grid' ? 'grid' : 'columns' } catch { return 'columns' }
+    try {
+      const v = localStorage.getItem(TVIEW_KEY)
+      return v === 'grid' || v === 'columns' || v === 'table' ? v : 'table'
+    } catch { return 'table' }
   })
   const setTaskViewP = (v: TaskView) => {
     setTaskView(v)
     try { localStorage.setItem(TVIEW_KEY, v) } catch { /* stockage indisponible */ }
   }
-  // sous 900px la grille est illisible : on force les colonnes sans effacer la préférence
-  const effView: TaskView = narrow ? 'columns' : taskView
+  // sous 900px : liste de cartes (vue Tableau), sans effacer la préférence
+  const effView: TaskView = narrow ? 'table' : taskView
   const member = (id: string | null) => p.members.find((x) => x.id === id)
   const statuses = (p.statuses && p.statuses.length ? p.statuses : [
     { id: 'todo', key: 'todo', label: tt('term.todo'), color: '#9a988f', position: 0, fixed: true },
@@ -227,22 +296,8 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
   const statusOf = (t: Task) => t.statusKey || (t.done ? 'done' : 'todo')
   const nameOf = (id?: string | null) => id ? (member(id)?.name || '—') : '—'
   const closed = p.status === 'done'
+  const manageAll = canManage(p.my_role)
 
-  function dropOn(targetId: string) {
-    if (sortMode !== 'manual' || !dragId || dragId === targetId) { setDragId(null); return }
-    const ids = roots.map((r) => r.id)
-    const from = ids.indexOf(dragId), to = ids.indexOf(targetId)
-    if (from < 0 || to < 0) { setDragId(null); return }
-    ids.splice(to, 0, ids.splice(from, 1)[0])
-    setDragId(null)
-    api('PUT', '/projects/' + p.id + '/tasks/order', { ids }).then(reload).catch((e: any) => toastErr(e.message))
-  }
-
-  async function addTask() {
-    if (!nf.title.trim()) return
-    try { await api('POST', '/projects/' + p.id + '/tasks', { title: nf.title.trim(), description: nf.desc || null, type: nf.type || null, assigneeId: nf.assigneeId || null, due: nf.due || null, estHours: nf.est || null, priority: nf.priority, transferable: nf.transferable }); setNf({ title: '', desc: '', type: myTypes[0] || '', assigneeId: '', due: '', est: '', priority: 6, transferable: false }); setAdding(false); toast(tt('qt.created')); reload() }
-    catch (e: any) { toastErr(e.message) }
-  }
   async function addSub(parentId: string) {
     if (!subTitle.trim()) return
     try { await api('POST', '/projects/' + p.id + '/tasks', { title: subTitle.trim(), parentId, priority: 6 }); setSubTitle(''); setAddSubFor(null); reload() }
@@ -276,10 +331,9 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
     finally { setStatusBusy(false) }
   }
   async function removeStatus(key: string) {
-    try { await api('DELETE', '/projects/' + p.id + '/task-statuses/' + encodeURIComponent(key)); reload() }
+    try { await api('DELETE', '/projects/' + p.id + '/task-statuses/' + encodeURIComponent(key)); if (statusFilter === key) setStatusFilter('all'); reload() }
     catch (e: any) { toastErr(e.message) }
   }
-
   async function relance(t: Task) {
     try {
       await api('POST', '/tasks/' + t.id + '/remind', {})
@@ -290,147 +344,37 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
 
   const overdue = p.tasks.filter((t) => isOverdue(t))
   const cmp = taskComparator(sortMode, sortDir)
-  const roots = p.tasks.filter((t) => !t.parentId).slice().sort(cmp)
-  const canDrag = false
+  const q = search.trim().toLowerCase()
+  const subsOf = (id: string) => p.tasks.filter((s) => s.parentId === id).slice().sort(cmp)
+  const matches = (t: Task) => {
+    if (onlyLate && !isOverdue(t) && !p.tasks.some((s) => s.parentId === t.id && isOverdue(s))) return false
+    if (!q) return true
+    return t.title.toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q)
+      || p.tasks.some((s) => s.parentId === t.id && s.title.toLowerCase().includes(q))
+  }
+  const roots = p.tasks.filter((t) => !t.parentId && matches(t)).slice().sort(cmp)
+  const taskById = (id: string | null) => (id ? p.tasks.find((t) => t.id === id) || null : null)
 
-  const renderTask = (t: Task, isSub = false) => {
+  /** Droits de l'utilisateur sur une tâche (menu ⋯, édition, déplacement…). */
+  const perms = (t: Task) => {
     const over = isOverdue(t)
     const mine = t.assigneeId === me.id
     const unassigned = !t.assigneeId
     const am = member(t.assigneeId)
-    const manage = canManage(p.my_role)
-    const canRelance = !closed && over && !mine && !unassigned && am && am.email && (manage || t.createdBy === me.id)
-    const canDel = !closed && (t.createdBy === me.id || manage)
-    const canEditMeta = !closed && (t.createdBy === me.id || manage)
-    const canLogHours = !closed && (mine || manage)
-    const hasHours = t.spentHours != null || t.estHours != null
-    const pm = prioMeta(t.priority)
+    const canRelance = !closed && over && !mine && !unassigned && !!am && !!am.email && (manageAll || t.createdBy === me.id)
+    const canDel = !closed && (t.createdBy === me.id || manageAll)
+    const canEditMeta = !closed && (t.createdBy === me.id || manageAll)
+    const canLogHours = !closed && (mine || manageAll)
     const canPrio = !closed && (mine || canEditMeta)
-    const canMove = !closed && (mine || t.createdBy === me.id || manage)
+    const canMove = !closed && (mine || t.createdBy === me.id || manageAll)
     const canTransfer = canMove && t.transferable === true && p.members.some((m) => m.id !== (t.assigneeId || me.id))
-    const subs = isSub ? [] : p.tasks.filter((s) => s.parentId === t.id)
-    const subDone = subs.filter((s) => s.done).length
     const hasMenu = canEditMeta || canLogHours || canDel || canPrio || canTransfer || canMove || (unassigned && !closed)
-    return (
-      <div key={t.id} className={'task status-task' + (isSub ? ' subtask' : '') + (t.done ? ' done' : '') + (over ? ' overdue' : '') + (dragId === t.id ? ' dragging' : '')}
-        draggable={!isSub && !closed}
-        onDragStart={!isSub && !closed ? () => setDragId(t.id) : undefined}
-        onDragEnd={!isSub && !closed ? () => setDragId(null) : undefined}
-        // Souris : toute la carte ouvre le détail. Clavier / lecteur d'écran : le titre est un vrai bouton (voir plus bas).
-        onClick={(e) => { if (!(e.target as HTMLElement).closest('button,a,input,select,textarea,label')) setDetailId(t.id) }}>
-        <div className="tt">
-          <button className={'check' + (t.done ? ' done' : ' ' + pm.ringCls) + (mine && !closed ? '' : ' locked')} disabled={!mine || closed} onClick={mine && !closed ? () => toggle(t) : undefined} title={closed ? tt('pd.closedShort') : mine ? '' : tt('pd.onlyOwner')} aria-label={tt('home.check')}>{t.done ? <Ic name="check" s={13} c="#fff" strokeWidth={2.6} /> : (mine && !closed ? '' : <Ic name="lock" s={11} />)}</button>
-          <div className="tname">
-            {(pm.n < 6 || t.type) && (
-              <div className="t-chips">
-                {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
-                {t.type && <span className={'ttype ' + typeTone(t.type)}>{trTerm(t.type)}</span>}
-              </div>
-            )}
-            <button type="button" className="t-title" aria-haspopup="dialog" onClick={() => setDetailId(t.id)}>{t.title}</button>
-            {t.description && <div className="sub t-desc">{t.description}</div>}
-            <div className="meta">
-              <span className={'tag ' + (unassigned ? 'due' : 'client')}>{unassigned ? <><Ic name="hand" s={12} /> {tt('vw.toTake')}</> : <><Ic name="user" s={12} /> {memberName(t.assigneeId)}</>}</span>
-              {t.due && <span className={'tag ' + (over ? 'late' : 'due')}>📅 {formatDue(t.due)}</span>}
-              {hasHours && <span className="tag hours">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? ` / ~${t.estHours}h` : ''}</span>}
-              {t.transferable && <span className="tag acc">⇄ {tt('pd.transferableTag')}</span>}
-              {!!t.commentCount && <span className="tag due">💬 {t.commentCount}</span>}
-              {!!t.attachmentCount && <span className="tag due" title={tt('files.title')}>📎 {t.attachmentCount}</span>}
-              {subs.length > 0 && <span className="tag due">☑ {subDone}/{subs.length}</span>}
-              <span className="tag due">{statuses.find((s) => s.key === statusOf(t))?.label ? trTerm(statuses.find((s) => s.key === statusOf(t))!.label) : tt('term.todo')}</span>
-              {statusOf(t) === 'transferred' && <span className="tag acc">↪ {nameOf(t.transferredFrom)} → {nameOf(t.transferredTo)}</span>}
-              {t.transferHistory && t.transferHistory.length > 0 && <span className="tag due">{tt('pd.pathN')} {t.transferHistory.length}</span>}
-            </div>
-            {t.transferHistory && t.transferHistory.length > 0 && (
-              <div className="transfer-path">
-                {t.transferHistory.map((h) => <span key={h.id}>{h.fromName || tt('pd.depart')} → {h.toName}</span>)}
-              </div>
-            )}
-          </div>
-          {hasMenu && <button className="more-btn" onClick={() => setMenuId(t.id)} aria-label={tt('pd.actions')}>⋯</button>}
-        </div>
-        {canRelance && <div className="relance"><span>{tt('pd.lateRemind', { n: memberName(t.assigneeId) })}</span><button onClick={() => relance(t)}>{tt('pd.remindBtn')}</button></div>}
-        {menuId === t.id && (
-          <Modal title={t.title} onClose={() => setMenuId(null)}>
-            {(canEditMeta || canLogHours) && <button className="mact" onClick={() => { setMenuId(null); setEditId(t.id) }}><span className="mi"><Ic name="edit" s={17} /></span>{tt('pd.mEdit')}</button>}
-            {!isSub && !closed && <button className="mact" onClick={() => { setMenuId(null); setSubTitle(''); setAddSubFor(t.id) }}><span className="mi"><Ic name="plus" s={17} /></span>{tt('pd.mSub')}</button>}
-            {canMove && !isSub && statuses.filter((s) => s.key !== statusOf(t) && (s.key !== 'transferred' || t.transferable)).map((s) => (
-              <button key={s.key} className="mact" onClick={() => { setMenuId(null); moveTask(t, s.key) }}><span className="mi"><i className="mact-dot" style={{ background: s.color }} /></span>{tt('pd.mMoveTo', { s: trTerm(s.label) })}</button>
-            ))}
-            {canPrio && <button className="mact" onClick={() => { setMenuId(null); setPrioId(t.id) }}><span className="mi">🚩</span>{tt('pd.mPrio')}</button>}
-            {canTransfer && <button className="mact" onClick={() => { setMenuId(null); setTransferId(t.id) }}><span className="mi">⇄</span>{tt('pd.mTransfer')}</button>}
-            {unassigned && !closed && <button className="mact" onClick={() => { setMenuId(null); claim(t) }}><span className="mi">👐</span>{tt('pd.mClaim')}</button>}
-            {canRelance && <button className="mact" onClick={() => { setMenuId(null); relance(t) }}><span className="mi"><Ic name="mail" s={17} /></span>{tt('pd.mRemind')}</button>}
-            {canDel && <button className="mact danger" onClick={() => { setMenuId(null); setDeleteId(t.id) }}><span className="mi"><Ic name="trash" s={17} /></span>{tt('action.delete')}{subs.length > 0 ? tt('pd.andSubs') : ''}</button>}
-          </Modal>
-        )}
-        {transferId === t.id && <TransferTaskModal p={p} t={t} me={me} onClose={() => setTransferId(null)} onTransfer={(userId) => transferTask(t, userId)} />}
-        {deleteId === t.id && (
-          <Modal title="Supprimer la tâche ?" onClose={() => setDeleteId(null)}>
-            <p className="sub" style={{ marginTop: 0 }}>
-              La tâche <b>« {t.title} »</b>{subs.length > 0 ? tt('pd.andSubs2') : ''} seront supprimées définitivement.
-            </p>
-            <div className="sheet-actions">
-              <button className="btn danger" onClick={() => del(t)}>{tt('pd.yesDel')}</button>
-              <button className="btn ghost" onClick={() => setDeleteId(null)}>{tt('action.cancel')}</button>
-            </div>
-          </Modal>
-        )}
-        {prioId === t.id && (
-          <Modal title={tt('td.priority')} onClose={() => setPrioId(null)}>
-            {PRIORITIES.map((n) => (
-              <button key={n} className="prow" onClick={() => setPriority(t, n)}>
-                <span className={'pflag ' + prioMeta(n).flagCls} style={{ width: 30, textAlign: 'center' }}>{prioMeta(n).tag}</span>
-                <span style={{ flex: 1 }}>{tt('td.priority')} {n}{n === 1 ? tt('pd.mostUrgent') : n === 6 ? tt('pd.lowest') : ''}</span>
-                {prio(t.priority) === n ? '✓' : ''}
-              </button>
-            ))}
-          </Modal>
-        )}
-        {editId === t.id && <EditTask p={p} t={t} types={myTypes} canEditMeta={canEditMeta} canLogHours={canLogHours} onClose={() => setEditId(null)} onSaved={() => { setEditId(null); reload() }} />}
-      </div>
-    )
+    return { over, mine, unassigned, canRelance, canDel, canEditMeta, canLogHours, canPrio, canMove, canTransfer, hasMenu }
   }
 
-  const renderRoot = (t: Task) => {
-    const subs = p.tasks.filter((s) => s.parentId === t.id).slice().sort(cmp)
-    return (
-      <div key={t.id} className={'task-group' + (canDrag ? ' draggable' : '') + (dragId === t.id ? ' dragging' : '')}
-        draggable={canDrag}
-        onDragStart={canDrag ? () => setDragId(t.id) : undefined}
-        onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
-        onDrop={canDrag ? () => dropOn(t.id) : undefined}>
-        {canDrag && <span className="drag-handle" aria-hidden="true" title="Glisser pour réordonner">⠿</span>}
-        {renderTask(t)}
-        {(subs.length > 0 || addSubFor === t.id) && (
-          <div className="subtasks">
-            {subs.map((s) => renderTask(s, true))}
-            {addSubFor === t.id && (
-              <div className="subtask-add">
-                <input autoFocus value={subTitle} onChange={(e) => setSubTitle(e.target.value)} placeholder={tt('pd.newSub')} onKeyDown={(e) => { if (e.key === 'Enter') addSub(t.id) }} />
-                <Mic value={subTitle} onChange={setSubTitle} />
-                <button className="btn sm primary" onClick={() => addSub(t.id)}>{tt('action.add')}</button>
-                <button className="btn sm ghost" onClick={() => { setAddSubFor(null); setSubTitle('') }}>✕</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  const groupByAssignee = () => {
-    const map = new Map<string, Task[]>()
-    for (const t of roots) { const k = t.assigneeId || ''; if (!map.has(k)) map.set(k, []); map.get(k)!.push(t) }
-    const keys = [...map.keys()].sort((a, b) => (a === '' ? 1 : b === '' ? -1 : (member(a)?.name || '').localeCompare(member(b)?.name || '', 'fr', { sensitivity: 'base' })))
-    return keys.map((k) => (
-      <div key={k || 'none'}>
-        <div className="grp-h" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Ic name={k ? 'user' : 'hand'} s={13} />{k ? (member(k)?.name || '—') : 'À prendre'} · {map.get(k)!.length}</div>
-        {map.get(k)!.map(renderRoot)}
-      </div>
-    ))
-  }
-
+  // --- Personnes / statuts visibles ---
+  const personMatch = (t: Task) => filterUser === 'all'
+    || (filterUser === 'none' ? !t.assigneeId : (t.assigneeId === filterUser || t.transferredFrom === filterUser || t.transferredTo === filterUser))
   const sectionMembers = () => {
     const base = p.members.map((m) => ({ id: m.id, name: m.name }))
     const hasUnassigned = roots.some((t) => !t.assigneeId)
@@ -443,49 +387,16 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
     return direct || transferVisible
   })
   const tasksForStatus = (personId: string, statusKey: string) => tasksForPerson(personId).filter((t) => statusOf(t) === statusKey)
-  const renderUserStatusBoard = () => sectionMembers().map((u) => {
-    const personTasks = tasksForPerson(u.id)
-    if (!personTasks.length && filterUser !== u.id) return null
-    const isCollapsed = collapsed[u.id]
-    const initials = u.id === 'none' ? '👐' : undefined
-    const visibleStatuses = statusFilter === 'all' ? statuses : statuses.filter((s) => s.key === statusFilter)
-    return (
-      <div key={u.id} className={'user-status-section' + (isCollapsed ? ' collapsed' : '')}>
-        <button className="user-status-head" onClick={() => setCollapsed((c) => ({ ...c, [u.id]: !c[u.id] }))}>
-          <span className="chev">{isCollapsed ? '›' : '⌄'}</span>
-          {initials ? <span className="avatar">{initials}</span> : <Avatar name={u.name} size={34} />}
-          <span className="user-status-name">{u.name}</span>
-          <span className="user-status-count">{personTasks.length} {tt('pd.taskCount')}</span>
-        </button>
-        {!isCollapsed && (
-          <div className="user-status-board">
-            {visibleStatuses.map((s) => {
-              const list = tasksForStatus(u.id, s.key).sort(cmp)
-              const activeDrop = dragId && list.every((t) => t.id !== dragId)
-              return (
-                <div key={s.key} className={'status-col' + (activeDrop ? ' can-drop' : '')}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => {
-                    const dragged = roots.find((t) => t.id === dragId)
-                    if (dragged) moveTask(dragged, s.key)
-                  }}>
-                  <div className="status-col-head">
-                    <span><i style={{ background: s.color }} />{s.label}</span>
-                    <b>{list.length}</b>
-                    {canManage(p.my_role) && !closed && !s.fixed && <button className="status-remove" onClick={() => removeStatus(s.key)} title="Supprimer ce statut">×</button>}
-                  </div>
-                  <div className="status-drop-label">{tt('pd.dropHere')}</div>
-                  {list.map((t) => renderRoot(t))}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    )
-  })
+  const personTasks = roots.filter(personMatch)
 
-  // --- vue Grille : mêmes sections que la vue Colonnes, mêmes filtres, même tri ---
+  // --- Vue Tableau : un groupe par statut, statuts vides masqués ---
+  const tGroups = statuses
+    .filter((s) => statusFilter === 'all' || s.key === statusFilter)
+    .map((s) => ({ status: s, tasks: personTasks.filter((t) => statusOf(t) === s.key) }))
+    .filter((g) => g.tasks.length > 0 || shownEmpty[g.status.key] || statusFilter === g.status.key)
+  const tEmpties = statusFilter === 'all' ? statuses.filter((s) => !tGroups.some((g) => g.status.key === s.key)) : []
+
+  // --- Vue Grille : mêmes sections que la vue Colonnes, mêmes filtres, même tri ---
   const gridGroups = (): GridGroup[] => sectionMembers().map((u) => ({
     id: u.id,
     name: u.name,
@@ -493,157 +404,330 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
       .filter((t) => statusFilter === 'all' || statusOf(t) === statusFilter)
       .slice().sort(cmp),
   })).filter((g) => g.tasks.length > 0 || filterUser === g.id)
-  const taskById = (id: string | null) => (id ? p.tasks.find((t) => t.id === id) || null : null)
+
+  // --- Vue Colonnes ---
+  function dropOnStatus(statusKey: string) {
+    const dragged = roots.find((t) => t.id === dragId)
+    if (dragged) moveTask(dragged, statusKey)
+    else setDragId(null)
+  }
+  const renderCard = (t: Task) => {
+    const pr = perms(t)
+    const pm = prioMeta(t.priority)
+    const am = member(t.assigneeId)
+    const subs = subsOf(t.id)
+    const files = t.attachmentCount || 0
+    const canDragIt = !closed
+    return (
+      <article key={t.id}
+        className={'pv-kc' + (t.done ? ' done' : '') + (pr.over ? ' late' : '') + (dragId === t.id ? ' dragging' : '')}
+        draggable={canDragIt}
+        onDragStart={canDragIt ? () => setDragId(t.id) : undefined}
+        onDragEnd={canDragIt ? () => setDragId(null) : undefined}
+        onClick={(e) => { if (!(e.target as HTMLElement).closest('button,a,input,select,textarea,label')) setEditId(t.id) }}>
+        <div className="pv-kc-top">
+          <span className={'pv-pr p' + pm.n}><Ic name="flag" s={13} />{pm.tag}</span>
+          {t.type && <small>{trTerm(t.type)}</small>}
+          <span className="pv-sp" />
+          {!pr.mine && !closed && !t.done && <Ic name="lock" s={14} className="l" />}
+          {pr.hasMenu && <button type="button" className="pv-more" onClick={() => setMenuId(t.id)} aria-label={tt('pd.actions')}><Ic name="more" s={18} /></button>}
+        </div>
+        <h3><button type="button" aria-haspopup="dialog" onClick={() => setEditId(t.id)} title={tt('pd.mEdit')}>{t.title}</button></h3>
+        <div className="pv-kc-foot">
+          {am ? <PvAvatar name={am.name} /> : <span className="pv-none"><Ic name="hand" s={16} />{tt('pd.toTakeCap')}</span>}
+          {t.due && <span className={'pv-due pv-tnum' + (pr.over ? ' late' : '')}><Ic name={pr.over ? 'alert' : 'calendar'} s={15} />{formatDue(t.due)}</span>}
+          <span className="pv-sp" />
+          {!!t.commentCount && <span className="pv-msgs"><Ic name="message" s={15} />{t.commentCount}</span>}
+          {files > 0 && <span className="pv-fb" title={tt('files.title')}><Ic name="paperclip" s={15} />{files}</span>}
+        </div>
+        {statusOf(t) === 'transferred' && <div className="pv-kc-xfer">↪ {nameOf(t.transferredFrom)} → {nameOf(t.transferredTo)}</div>}
+        {(subs.length > 0 || addSubFor === t.id) && (
+          <div className="pv-kc-subs">
+            {subs.map((s) => (
+              <div key={s.id} className={'pv-kc-sub' + (s.done ? ' done' : '')}>
+                <button type="button" className={'pv-box' + (s.done ? ' done' : '')} disabled={s.assigneeId !== me.id || closed} onClick={() => toggle(s)} aria-label={tt('home.check')}>
+                  {s.done && <Ic name="check" s={12} c="#fff" strokeWidth={3} />}
+                </button>
+                <span>{s.title}</span>
+              </div>
+            ))}
+            {addSubFor === t.id && (
+              <div className="subtask-add">
+                <input autoFocus value={subTitle} onChange={(e) => setSubTitle(e.target.value)} placeholder={tt('pd.newSub')} onKeyDown={(e) => { if (e.key === 'Enter') addSub(t.id) }} />
+                <Mic value={subTitle} onChange={setSubTitle} />
+                <button type="button" className="pv-btn sm acc" onClick={() => addSub(t.id)}>{tt('action.add')}</button>
+                <button type="button" className="pv-btn sm ghost" onClick={() => { setAddSubFor(null); setSubTitle('') }} aria-label={tt('action.cancel')}>✕</button>
+              </div>
+            )}
+          </div>
+        )}
+      </article>
+    )
+  }
+
+  const renderBoard = () => {
+    const secs = sectionMembers().filter((u) => tasksForPerson(u.id).length > 0 || filterUser === u.id)
+    const visible = statusFilter === 'all' ? statuses : statuses.filter((s) => s.key === statusFilter)
+    return (
+      <div className="pv-sections">
+        {secs.map((u) => {
+          const mineTasks = tasksForPerson(u.id)
+          const isCol = !!collapsed[u.id] && secs.length > 1
+          return (
+            <section key={u.id}>
+              {secs.length > 1 && (
+                <button type="button" className={'pv-gtitle pv-gbtn' + (isCol ? ' collapsed' : '')} aria-expanded={!isCol}
+                  onClick={() => setCollapsed((c) => ({ ...c, [u.id]: !c[u.id] }))}>
+                  <span className="pv-chev"><Ic name="chevron-down" s={18} /></span>
+                  {u.id === 'none' ? <span className="pv-av" style={{ ['--c' as string]: 'var(--pv-hint)' }}><Ic name="hand" s={14} c="#fff" /></span> : <PvAvatar name={u.name} />}
+                  <b>{u.name}</b>
+                  <span className="pv-tnum">{mineTasks.length} {tt('pd.taskCount')}</span>
+                </button>
+              )}
+              {!isCol && (
+                <div className="pv-board">
+                  {visible.map((s) => {
+                    const list = tasksForStatus(u.id, s.key).sort(cmp)
+                    const canDrop = !!dragId && list.every((t) => t.id !== dragId)
+                    const style = { '--s': s.color } as CSSProperties
+                    if (list.length === 0 && statusFilter === 'all') {
+                      return (
+                        <div key={s.key} style={style} className={'pv-rail' + (canDrop ? ' can-drop' : '')}
+                          onDragOver={(e) => e.preventDefault()} onDrop={() => dropOnStatus(s.key)}>
+                          <span className="pv-cnt">0</span>
+                          <span className="rl">{trTerm(s.label)}</span>
+                          <span className="drop">{tt('pd.dropHere')}</span>
+                        </div>
+                      )
+                    }
+                    const limited = s.key === 'done' && list.length > 2 && !doneOpen[u.id]
+                    const shown = limited ? list.slice(0, 2) : list
+                    const preset = { status: s.key, assignee: u.id === 'none' ? '' : u.id }
+                    return (
+                      <div key={s.key} style={style} className={'pv-kcol' + (canDrop ? ' can-drop' : '')}
+                        onDragOver={(e) => e.preventDefault()} onDrop={() => dropOnStatus(s.key)}>
+                        <div className="pv-kh">
+                          <span className="pv-pill"><i />{trTerm(s.label)}</span>
+                          <span className="pv-cnt">{list.length}</span>
+                          <span className="pv-sp" />
+                          {!closed && <button type="button" className="pv-ib" onClick={() => setNewOpen(preset)} aria-label={tt('pv.addIn', { s: trTerm(s.label) })}><Ic name="plus" s={18} /></button>}
+                        </div>
+                        {shown.map(renderCard)}
+                        {limited && <button type="button" className="pv-kmore" onClick={() => setDoneOpen((d) => ({ ...d, [u.id]: true }))}>{tt('pv.moreDone', { n: list.length - 2 })}</button>}
+                        {s.key === 'done' && list.length > 2 && doneOpen[u.id] && <button type="button" className="pv-kmore" onClick={() => setDoneOpen((d) => ({ ...d, [u.id]: false }))}>{tt('pv.lessDone')}</button>}
+                        {!closed && <button type="button" className="pv-kadd" onClick={() => setNewOpen(preset)}><Ic name="plus" s={18} />{tt('action.add')}</button>}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // --- Fenêtres communes à toutes les vues ---
+  const mt = taskById(menuId), trT = taskById(transferId), dt = taskById(deleteId)
+  const pt = taskById(prioId), stT = taskById(statusId), et = taskById(editId)
+  const sortLabel: Record<TaskSort, string> = { priority: tt('td.priority'), due: tt('td.due'), title: tt('projects.sortTitle'), manual: tt('projects.sortManual') }
+  const statusCount = (k: string) => personTasks.filter((t) => statusOf(t) === k).length
+  const presetFor = (k?: string) => ({ status: k, assignee: filterUser !== 'all' && filterUser !== 'none' ? filterUser : undefined })
 
   return (
-    <div>
-      {overdue.length > 0 && <div className="banner" style={{ background: 'var(--danger-bg)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>⚠ {overdue.length} tâche(s) en retard.</div>}
-      {p.status !== 'done' && (
-        <div className="sheet-actions" style={{ marginBottom: 12 }}>
-          <button className="btn" style={{ flex: 1 }} onClick={() => setAdding((v) => !v)}>＋ Nouvelle tâche</button>
-          <button className="btn" onClick={() => setImportOpen(true)} title={tt('imp.title')}>{tt('imp.title')}</button>
-          <button className="btn primary" onClick={() => setVoice(true)} title="Créer une tâche à la voix"><Ic name="mic" s={16} />{tt('pd.dictate')}</button>
-        </div>
+    <div className="pv-body">
+      <div className="pv-tools">
+        {!closed && (
+          <>
+            <div className="pv-split">
+              <button type="button" className="pv-btn acc" onClick={() => setNewOpen(presetFor())}><Ic name="plus" s={18} />{tt('qt.title')}</button>
+              <PvDropdown btnClass="pv-btn acc" label={tt('pv.moreCreate')} button={<Ic name="chevron-down" s={18} />}>
+                {(close) => (
+                  <>
+                    <button type="button" role="menuitem" className="pv-dd-item" onClick={() => { close(); setImportOpen(true) }}><Ic name="upload" s={17} />{tt('imp.title')}</button>
+                    <button type="button" role="menuitem" className="pv-dd-item" onClick={() => { close(); setVoice(true) }}><Ic name="mic" s={17} />{tt('pd.dictate')}</button>
+                  </>
+                )}
+              </PvDropdown>
+            </div>
+            <button type="button" className="pv-btn sq ghost" onClick={() => setVoice(true)} aria-label={tt('pd.dictate')} title={tt('pd.dictate')}><Ic name="mic" s={18} /></button>
+          </>
+        )}
+        <span className="pv-sp" />
+        <label className="pv-search"><Ic name="search" s={18} /><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tt('pv.search')} aria-label={tt('pv.search')} /></label>
+        <PvDropdown btnClass="pv-btn ghost" label={tt('pv.filter')} align="right" button={<><Ic name="filter" s={18} />{statusFilter === 'all' ? tt('pv.filter') : trTerm(statuses.find((s) => s.key === statusFilter)?.label || tt('pv.filter'))}</>}>
+          {(close) => (
+            <>
+              <button type="button" role="menuitem" className={'pv-dd-item' + (statusFilter === 'all' ? ' on' : '')} onClick={() => { setStatusFilter('all'); close() }}>{tt('pd.allStatuses')}</button>
+              {statuses.map((s) => (
+                <div key={s.key} className="pv-dd-row">
+                  <button type="button" role="menuitem" className={'pv-dd-item' + (statusFilter === s.key ? ' on' : '')} onClick={() => { setStatusFilter(s.key); close() }}><i style={{ background: s.color }} />{trTerm(s.label)}</button>
+                  {manageAll && !closed && !s.fixed && <button type="button" className="pv-ib" onClick={() => removeStatus(s.key)} aria-label={tt('pv.removeStatus', { n: trTerm(s.label) })} title={tt('pv.removeStatus', { n: trTerm(s.label) })}><Ic name="trash" s={16} /></button>}
+                </div>
+              ))}
+              {manageAll && !closed && (
+                <>
+                  <div className="pv-dd-sep" />
+                  <div className="pv-dd-add">
+                    <input value={newStatus} onChange={(e) => setNewStatus(e.target.value)} placeholder={tt('pv.newStatus')} aria-label={tt('pv.newStatus')} onKeyDown={(e) => { if (e.key === 'Enter') addStatus() }} />
+                    <button type="button" className="pv-btn sm" disabled={statusBusy} onClick={addStatus}>{tt('action.add')}</button>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </PvDropdown>
+        <PvDropdown btnClass="pv-btn ghost" label={tt('projects.sort')} align="right" button={<><Ic name="sort" s={18} />{sortLabel[sortMode]}</>}>
+          {(close) => (
+            <>
+              {(['priority', 'due', 'title', 'manual'] as TaskSort[]).map((k) => (
+                <button key={k} type="button" role="menuitem" className={'pv-dd-item' + (sortMode === k ? ' on' : '')} onClick={() => { setSortMode(k); close() }}>{sortLabel[k]}</button>
+              ))}
+              <div className="pv-dd-sep" />
+              <button type="button" role="menuitem" className="pv-dd-item" onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}>{sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}</button>
+            </>
+          )}
+        </PvDropdown>
+        {!narrow && (
+          <div className="pv-seg" role="group" aria-label={tt('pd.viewLabel')}>
+            {([['table', 'table', tt('pv.viewTable')], ['grid', 'grid', tt('pd.viewGrid')], ['columns', 'columns', tt('pd.viewColumns')]] as const).map(([k, ic, l]) => (
+              <button key={k} type="button" className={effView === k ? 'on' : ''} aria-pressed={effView === k} onClick={() => setTaskViewP(k)} aria-label={l} title={l}><Ic name={ic} s={18} /></button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="pv-who" role="group" aria-label={tt('pv.byPerson')}>
+        <button type="button" className={'txt' + (filterUser === 'all' ? ' on' : '')} onClick={() => setFilterUser('all')}>{tt('pd.everyone')}</button>
+        {p.members.map((m) => (
+          <button key={m.id} type="button" className={filterUser === m.id ? 'on' : ''} onClick={() => setFilterUser(m.id)}><PvAvatar name={m.name} size="sm" />{m.name.split(' ')[0]}</button>
+        ))}
+        <button type="button" className={'txt' + (filterUser === 'none' ? ' on' : '')} onClick={() => setFilterUser('none')}>{tt('pd.toTakeCap')}</button>
+        {overdue.length > 0 && (
+          <button type="button" className={'late' + (onlyLate ? ' on' : '')} aria-pressed={onlyLate} onClick={() => setOnlyLate((v) => !v)}>
+            <Ic name="alert" s={16} />{tt('pv.lateN', { n: overdue.length })}
+          </button>
+        )}
+      </div>
+
+      <div className="pv-fchips" role="group" aria-label={tt('meet.status')}>
+        <button type="button" className={statusFilter === 'all' ? 'on' : ''} onClick={() => setStatusFilter('all')}>{tt('pv.all')} {personTasks.length}</button>
+        {statuses.map((s) => (
+          <button key={s.key} type="button" style={{ '--s': s.color } as CSSProperties} className={statusFilter === s.key ? 'on' : ''} onClick={() => setStatusFilter(s.key)}><i />{trTerm(s.label)} {statusCount(s.key)}</button>
+        ))}
+      </div>
+
+      {p.tasks.length === 0 && !loadingMore && (
+        <div className="pv-gwrap"><div className="pv-empty"><b>{tt('pv.noTaskT')}</b>{tt('pd.noTasks')}</div></div>
       )}
-      {voice && <VoiceTaskWizard p={p} me={me} onClose={() => setVoice(false)} onCreated={() => { setVoice(false); reload() }} />}
-      {detailId && p.tasks.find((x) => x.id === detailId) && (
-        <TaskDrawer t={p.tasks.find((x) => x.id === detailId)!} p={p} me={me} onClose={() => setDetailId(null)} onChanged={reload} />
-      )}
-      {importOpen && (
-        <TaskImportWizard
-          projectId={p.id}
-          onClose={() => setImportOpen(false)}
-          onImported={() => { setImportOpen(false); reload() }}
+      {p.tasks.length > 0 && effView === 'table' && (
+        <TaskTable
+          groups={tGroups} empties={tEmpties} me={me} closed={closed} memberName={memberName} subsOf={subsOf}
+          onToggle={toggle} onOpen={(t) => setEditId(t.id)} onStatus={(t) => setStatusId(t.id)} onPrio={(t) => setPrioId(t.id)}
+          onMenu={closed ? null : (t) => setMenuId(t.id)} canMenu={(t) => perms(t).hasMenu}
+          onAdd={(k) => setNewOpen(presetFor(k))} onShowEmpty={(k) => setShownEmpty((s) => ({ ...s, [k]: true }))}
         />
       )}
-      {adding && (
-        <div className="card">
-          <div className="field"><label>{tt('qt.label')}</label>
-            <MicInput value={nf.title} onChange={(v) => setNf({ ...nf, title: v })} placeholder="Ex. Envoyer les visuels" /></div>
-          <div className="field"><label>{tt('pd.descOpt')}</label>
-            <MicTextarea value={nf.desc} onChange={(v) => setNf({ ...nf, desc: v })} placeholder="Détails, contexte…" /></div>
-          <div className="field"><label>{tt('qt.type')}</label>
-            <div className="type-pick">
-              <button className={nf.type === '' ? 'on' : ''} onClick={() => setNf({ ...nf, type: '' })}>{tt('vw.none')}</button>
-              {myTypes.map((t) => <button key={t} className={nf.type === t ? 'on ' + typeTone(t) : ''} onClick={() => setNf({ ...nf, type: t })}>{t}</button>)}
-            </div></div>
-          <div className="field"><label>{tt('td.assignee')}</label>
-            <select value={nf.assigneeId} onChange={(e) => setNf({ ...nf, assigneeId: e.target.value })}>
-              <option value="">— À prendre (non assignée)</option>
-              {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}{m.id === me.id ? ' ' + tt('vw.me') : ''}</option>)}
-            </select></div>
-          <div className="field"><label>Échéance</label><input type="date" value={nf.due} onChange={(e) => setNf({ ...nf, due: e.target.value })} /></div>
-          <div className="field"><label>{tt('td.priority')}</label>
-            <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={nf.priority === n ? 'on o' + n : ''} onClick={() => setNf({ ...nf, priority: n })}>P{n}</button>)}</div></div>
-          <label className="checkline"><input type="checkbox" checked={nf.transferable} onChange={(e) => setNf({ ...nf, transferable: e.target.checked })} /> {tt('meet.transferable')}</label>
-          <div className="field"><label>{tt('pd.estOpt')}</label><input type="number" min="0" step="0.5" value={nf.est} onChange={(e) => setNf({ ...nf, est: e.target.value })} placeholder="ex. 5" /></div>
-          <div className="sheet-actions"><button className="btn primary sm" onClick={addTask}>{tt('action.add')}</button><button className="btn ghost sm" onClick={() => setAdding(false)}>{tt('action.cancel')}</button></div>
+      {p.tasks.length > 0 && effView === 'grid' && (
+        <TaskGrid
+          groups={gridGroups()} statuses={statuses} statusOf={statusOf} me={me} closed={closed}
+          memberName={memberName} subsOf={subsOf}
+          onToggle={toggle} onStatus={(t) => setStatusId(t.id)} onPrio={(t) => setPrioId(t.id)} onEdit={(t) => setEditId(t.id)}
+        />
+      )}
+      {p.tasks.length > 0 && effView === 'columns' && renderBoard()}
+
+      {hasMore && loadMore && (
+        <div className="pv-gwrap" style={{ paddingTop: 0 }}>
+          <button type="button" className="pv-btn ghost" disabled={loadingMore} onClick={loadMore}>
+            {loadingMore ? tt('common.loading') : `Charger plus (${p.tasks.length}/${p.taskCount ?? '?'})`}
+          </button>
         </div>
       )}
-      <div className="status-workspace">
-        <aside className="status-filter">
-          <div className="status-filter-title">{tt('pd.filter')}</div>
-          <button className={filterUser === 'all' ? 'on' : ''} onClick={() => setFilterUser('all')}>👥 {tt('pd.everyone')}</button>
-          {p.members.map((m) => <button key={m.id} className={filterUser === m.id ? 'on' : ''} onClick={() => setFilterUser(m.id)}><Avatar name={m.name} size={26} />{m.name.split(' ')[0]}</button>)}
-          <button className={filterUser === 'none' ? 'on' : ''} onClick={() => setFilterUser('none')}><Ic name="hand" s={13} /> {tt('pd.toTakeCap')}</button>
-          <div className="status-filter-sep" />
-          <button className={statusFilter === 'all' ? 'on' : ''} onClick={() => setStatusFilter('all')}>{tt('pd.allStatuses')}</button>
-          {statuses.map((s) => <button key={s.key} className={statusFilter === s.key ? 'on' : ''} onClick={() => setStatusFilter(s.key)}><i style={{ background: s.color }} />{trTerm(s.label)}</button>)}
-          {canManage(p.my_role) && !closed && (
-            <div className="status-admin">
-              <input value={newStatus} onChange={(e) => setNewStatus(e.target.value)} placeholder="Nouveau statut…" onKeyDown={(e) => { if (e.key === 'Enter') addStatus() }} />
-              <button className="btn sm" disabled={statusBusy} onClick={addStatus}>{tt('action.add')}</button>
-            </div>
-          )}
-        </aside>
-        <section className="status-main">
-          {!narrow && (
-            <div className="tview" role="tablist" aria-label={tt('pd.viewLabel')}>
-              <button role="tab" aria-selected={effView === 'columns'} className={effView === 'columns' ? 'on' : ''}
-                onClick={() => setTaskViewP('columns')}><Ic name="board" s={15} />{tt('pd.viewColumns')}</button>
-              <button role="tab" aria-selected={effView === 'grid'} className={effView === 'grid' ? 'on' : ''}
-                onClick={() => setTaskViewP('grid')}><Ic name="tasks" s={15} />{tt('pd.viewGrid')}</button>
-            </div>
-          )}
-          <div className="status-hint">{closed ? tt('pd.closedRO') : effView === 'grid' ? tt('pd.gridHint') : 'Glissez une tâche d’un statut à un autre. Les tâches se créent avec le bouton principal, puis se déplacent ici.'}</div>
-          {p.tasks.length > 0 && (
-            <div className="list-tools status-sort">
-              <label className="lt-lbl">{tt('projects.sort')}</label>
-              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as TaskSort)} aria-label="Trier les tâches par">
-                <option value="priority">{tt('td.priority')}</option>
-                <option value="due">{tt('td.due')}</option>
-                <option value="title">{tt('projects.sortTitle')}</option>
-                <option value="manual">{tt('projects.sortManual')}</option>
-              </select>
-              <button className="btn sm" onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}</button>
-            </div>
-          )}
-          <div className="section-h">{tt('ad.tasks')}</div>
-      {p.tasks.length === 0 && !loadingMore && <div className="empty"><div className="big">✓</div>{tt('pd.noTasks')}</div>}
-          {effView === 'columns' ? renderUserStatusBoard() : (
-            <TaskGrid
-              groups={gridGroups()}
-              statuses={statuses}
-              statusOf={statusOf}
-              me={me}
-              closed={closed}
-              memberName={memberName}
-              subsOf={(id) => p.tasks.filter((s) => s.parentId === id).slice().sort(cmp)}
-              onToggle={toggle}
-              onStatus={(t) => setStatusId(t.id)}
-              onPrio={(t) => setPrioId(t.id)}
-              onEdit={(t) => setEditId(t.id)}
-            />
-          )}
-          {/* En vue Colonnes ces fenêtres sont rendues par renderTask ; en Grille il faut les monter ici. */}
-          {effView === 'grid' && (() => {
-            const st = taskById(statusId), pt = taskById(prioId), et = taskById(editId)
-            const manage = canManage(p.my_role)
-            return (
-              <>
-                {st && (
-                  <Modal title={tt('pd.evStatus')} onClose={() => setStatusId(null)}>
-                    {statuses.map((s) => (
-                      <button key={s.key} className="prow" onClick={() => { moveTask(st, s.key); setStatusId(null) }}>
-                        <span style={{ width: 11, height: 11, borderRadius: 3, background: s.color, flex: 'none', display: 'block' }} />
-                        <span style={{ flex: 1 }}>{trTerm(s.label)}</span>
-                        {statusOf(st) === s.key ? '✓' : ''}
-                      </button>
-                    ))}
-                  </Modal>
-                )}
-                {pt && (
-                  <Modal title={tt('td.priority')} onClose={() => setPrioId(null)}>
-                    {PRIORITIES.map((n) => (
-                      <button key={n} className="prow" onClick={() => setPriority(pt, n)}>
-                        <span className={'pflag ' + prioMeta(n).flagCls} style={{ width: 30, textAlign: 'center' }}>{prioMeta(n).tag}</span>
-                        <span style={{ flex: 1 }}>{tt('td.priority')} {n}{n === 1 ? tt('pd.mostUrgent') : n === 6 ? tt('pd.lowest') : ''}</span>
-                        {prio(pt.priority) === n ? '✓' : ''}
-                      </button>
-                    ))}
-                  </Modal>
-                )}
-                {et && (
-                  <EditTask
-                    p={p} t={et} types={myTypes}
-                    canEditMeta={!closed && (et.createdBy === me.id || manage)}
-                    canLogHours={!closed && (et.assigneeId === me.id || manage)}
-                    onClose={() => setEditId(null)}
-                    onSaved={() => { setEditId(null); reload() }}
-                  />
-                )}
-              </>
-            )
-          })()}
-          {hasMore && loadMore && (
-            <div className="sheet-actions" style={{ marginTop: 12 }}>
-              <button className="btn ghost" disabled={loadingMore} onClick={loadMore}>
-                {loadingMore ? tt('common.loading') : `Charger plus (${p.tasks.length}/${p.taskCount ?? '?'})`}
-              </button>
-            </div>
-          )}
-        </section>
-      </div>
+
+      {/* Mobile : un seul groupe de boutons flottants */}
+      {!closed && (
+        <div className="pv-fab">
+          <button type="button" className="m" onClick={() => setVoice(true)} aria-label={tt('pd.dictate')}><Ic name="mic" s={20} /></button>
+          <button type="button" className="m" onClick={() => setImportOpen(true)} aria-label={tt('imp.title')}><Ic name="upload" s={20} /></button>
+          <button type="button" className="p" onClick={() => setNewOpen(presetFor())} aria-label={tt('qt.title')}><Ic name="plus" s={26} /></button>
+        </div>
+      )}
+
+      {newOpen && (
+        <NewTaskModal p={p} me={me} types={myTypes} statuses={statuses} presetStatus={newOpen.status} presetAssignee={newOpen.assignee}
+          onClose={() => setNewOpen(null)} onCreated={() => { setNewOpen(null); reload() }} />
+      )}
+      {voice && <VoiceTaskWizard p={p} me={me} onClose={() => setVoice(false)} onCreated={() => { setVoice(false); reload() }} />}
+      {importOpen && (
+        <TaskImportWizard projectId={p.id} onClose={() => setImportOpen(false)} onImported={() => { setImportOpen(false); reload() }} />
+      )}
+
+      {mt && (() => {
+        const pr = perms(mt)
+        const isSub = !!mt.parentId
+        const subsN = p.tasks.filter((s) => s.parentId === mt.id).length
+        return (
+          <Modal title={mt.title} onClose={() => setMenuId(null)}>
+            {(pr.canEditMeta || pr.canLogHours) && <button className="mact" onClick={() => { setMenuId(null); setEditId(mt.id) }}><span className="mi"><Ic name="edit" s={17} /></span>{tt('pd.mEdit')}</button>}
+            {!isSub && !closed && <button className="mact" onClick={() => { setMenuId(null); setSubTitle(''); setAddSubFor(mt.id) }}><span className="mi"><Ic name="plus" s={17} /></span>{tt('pd.mSub')}</button>}
+            {pr.canMove && !isSub && statuses.filter((s) => s.key !== statusOf(mt) && (s.key !== 'transferred' || mt.transferable)).map((s) => (
+              <button key={s.key} className="mact" onClick={() => { setMenuId(null); moveTask(mt, s.key) }}><span className="mi"><i className="mact-dot" style={{ background: s.color }} /></span>{tt('pd.mMoveTo', { s: trTerm(s.label) })}</button>
+            ))}
+            {pr.canPrio && <button className="mact" onClick={() => { setMenuId(null); setPrioId(mt.id) }}><span className="mi">🚩</span>{tt('pd.mPrio')}</button>}
+            {pr.canTransfer && <button className="mact" onClick={() => { setMenuId(null); setTransferId(mt.id) }}><span className="mi">⇄</span>{tt('pd.mTransfer')}</button>}
+            {pr.unassigned && !closed && <button className="mact" onClick={() => { setMenuId(null); claim(mt) }}><span className="mi">👐</span>{tt('pd.mClaim')}</button>}
+            {pr.canRelance && <button className="mact" onClick={() => { setMenuId(null); relance(mt) }}><span className="mi"><Ic name="mail" s={17} /></span>{tt('pd.mRemind')}</button>}
+            {pr.canDel && <button className="mact danger" onClick={() => { setMenuId(null); setDeleteId(mt.id) }}><span className="mi"><Ic name="trash" s={17} /></span>{tt('action.delete')}{subsN > 0 ? tt('pd.andSubs') : ''}</button>}
+          </Modal>
+        )
+      })()}
+      {trT && <TransferTaskModal p={p} t={trT} me={me} onClose={() => setTransferId(null)} onTransfer={(userId) => transferTask(trT, userId)} />}
+      {dt && (
+        <Modal title="Supprimer la tâche ?" onClose={() => setDeleteId(null)}>
+          <p className="sub" style={{ marginTop: 0 }}>
+            La tâche <b>« {dt.title} »</b>{p.tasks.some((s) => s.parentId === dt.id) ? tt('pd.andSubs2') : ''} seront supprimées définitivement.
+          </p>
+          <div className="sheet-actions">
+            <button className="btn danger" onClick={() => del(dt)}>{tt('pd.yesDel')}</button>
+            <button className="btn ghost" onClick={() => setDeleteId(null)}>{tt('action.cancel')}</button>
+          </div>
+        </Modal>
+      )}
+      {pt && (
+        <Modal title={tt('td.priority')} onClose={() => setPrioId(null)}>
+          {PRIORITIES.map((n) => (
+            <button key={n} className="prow" onClick={() => setPriority(pt, n)}>
+              <span className={'pflag ' + prioMeta(n).flagCls} style={{ width: 30, textAlign: 'center' }}>{prioMeta(n).tag}</span>
+              <span style={{ flex: 1 }}>{tt('td.priority')} {n}{n === 1 ? tt('pd.mostUrgent') : n === 6 ? tt('pd.lowest') : ''}</span>
+              {prio(pt.priority) === n ? '✓' : ''}
+            </button>
+          ))}
+        </Modal>
+      )}
+      {stT && (
+        <Modal title={tt('pd.evStatus')} onClose={() => setStatusId(null)}>
+          {statuses.map((s) => (
+            <button key={s.key} className="prow" onClick={() => { moveTask(stT, s.key); setStatusId(null) }}>
+              <span style={{ width: 11, height: 11, borderRadius: 3, background: s.color, flex: 'none', display: 'block' }} />
+              <span style={{ flex: 1 }}>{trTerm(s.label)}</span>
+              {statusOf(stT) === s.key ? '✓' : ''}
+            </button>
+          ))}
+        </Modal>
+      )}
+      {et && (() => {
+        const pr = perms(et)
+        return (
+          <EditTask
+            p={p} t={et} types={myTypes}
+            canEditMeta={pr.canEditMeta} canLogHours={pr.canLogHours}
+            onClose={() => setEditId(null)}
+            onSaved={() => { setEditId(null); reload() }}
+          />
+        )
+      })()}
     </div>
   )
 }
@@ -1168,6 +1252,7 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
   })
   const typeOpts = [...new Set([...types, ...(t.type ? [t.type] : [])])]
   const [busy, setBusy] = useState(false)
+  const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((x) => ({ ...x, [k]: v }))
   async function save() {
     const body: any = { priority: f.prio }
     if (canEditMeta) {
@@ -1193,63 +1278,75 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
     catch (e: any) { toastErr(e.message); setBusy(false) }
   }
   return (
-    <Modal title="Modifier la tâche" onClose={onClose}>
+    <PvDialog
+      title={tt('pd.mEdit')}
+      onClose={onClose}
+      footer={<>
+        <button type="button" className="pv-btn ghost" onClick={onClose}>{tt('action.cancel')}</button>
+        <button type="button" className="pv-btn acc" disabled={busy} onClick={save}>{tt('action.save')}</button>
+      </>}
+    >
       {canEditMeta && (
         <>
-          <div className="field"><label>{tt('qt.label')}</label>
-            <MicInput value={f.title} onChange={(v) => setF({ ...f, title: v })} /></div>
-          <div className="field"><label>{tt('pd.desc')}</label>
-            <MicTextarea value={f.desc} onChange={(v) => setF({ ...f, desc: v })} placeholder="Détails, contexte…" /></div>
-          <div className="field"><label>{tt('qt.type')}</label>
-            <div className="type-pick">
-              <button className={f.type === '' ? 'on' : ''} onClick={() => setF({ ...f, type: '' })}>{tt('vw.none')}</button>
-              {typeOpts.map((t) => <button key={t} className={f.type === t ? 'on ' + typeTone(t) : ''} onClick={() => setF({ ...f, type: t })}>{t}</button>)}
-            </div></div>
-          <div className="field"><label>{tt('td.assignee')}</label>
-            <select value={f.assigneeId} onChange={(e) => setF({ ...f, assigneeId: e.target.value })}>
-              <option value="">— À prendre (non assignée)</option>
-              {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          <div className="pv-fld"><label htmlFor="et-title">{tt('pv.title')}</label>
+            <input id="et-title" type="text" autoComplete="off" value={f.title} onChange={(e) => set('title', e.target.value)} /></div>
+          <div className="pv-fld"><label htmlFor="et-desc">{tt('pv.desc')}</label>
+            <textarea id="et-desc" rows={3} value={f.desc} onChange={(e) => set('desc', e.target.value)} placeholder={tt('pv.descPh')} /></div>
+        </>
+      )}
+      <TaskFiles task={t} projectClosed={p.status === 'done'} />
+      <div className="pv-g2">
+        {canEditMeta && (
+          <div className="pv-fld"><label htmlFor="et-who">{tt('td.assignee')}</label>
+            <select id="et-who" value={f.assigneeId} onChange={(e) => set('assigneeId', e.target.value)}>
+              {p.members.map((m) => <option key={m.id} value={m.id}>{m.name.split(' ')[0]}</option>)}
+              <option value="">{tt('pd.toTakeCap')}</option>
             </select></div>
-          <div className="field"><label>Échéance</label>
-            <input type="date" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></div>
-          <label className="checkline"><input type="checkbox" checked={f.transferable} onChange={(e) => setF({ ...f, transferable: e.target.checked, statusKey: e.target.checked ? f.statusKey : (f.statusKey === 'transferred' ? 'todo' : f.statusKey) })} /> {tt('meet.transferable')}</label>
-        </>
-      )}
-      {canLogHours && (
-        <>
-          <div className="field"><label>{tt('pd.estH')}</label>
-            <input type="number" min="0" step="0.5" value={f.est} onChange={(e) => setF({ ...f, est: e.target.value })} placeholder="ex. 5" /></div>
-          <div className="field"><label>{tt('pd.spentH')}</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input type="number" min="0" step="0.5" style={{ flex: 1 }} value={f.spent} onChange={(e) => setF({ ...f, spent: e.target.value })} placeholder="ex. 3" />
-              <button className="btn sm" onClick={() => setF({ ...f, spent: '8' })} title={tt('pd.fullDay')}>{tt('pd.day8')}</button>
+        )}
+        <div className="pv-fld"><label htmlFor="et-st">{tt('meet.status')}</label>
+          <select id="et-st" value={f.statusKey} onChange={(e) => set('statusKey', e.target.value)}>
+            {(p.statuses || []).map((s) => <option key={s.key} value={s.key} disabled={s.key === 'transferred' && !f.transferable}>{trTerm(s.label)}</option>)}
+          </select></div>
+        <div className="pv-fld"><label htmlFor="et-p">{tt('td.priority')}</label>
+          <select id="et-p" value={f.prio} onChange={(e) => set('prio', Number(e.target.value))}>
+            {PRIORITIES.map((n) => <option key={n} value={n}>P{n}</option>)}
+          </select></div>
+        {canEditMeta && (
+          <div className="pv-fld"><label htmlFor="et-type">{tt('qt.type')}</label>
+            <select id="et-type" value={f.type} onChange={(e) => set('type', e.target.value)}>
+              <option value="">{tt('vw.none')}</option>
+              {typeOpts.map((x) => <option key={x} value={x}>{trTerm(x)}</option>)}
+            </select></div>
+        )}
+        {canEditMeta && (
+          <div className="pv-fld"><label htmlFor="et-due">{tt('td.due')}</label>
+            <input id="et-due" type="date" value={f.due} onChange={(e) => set('due', e.target.value)} /></div>
+        )}
+        {canLogHours && (
+          <div className="pv-fld"><label htmlFor="et-est">{tt('pd.estH')}</label>
+            <input id="et-est" type="number" min="0" step="0.5" inputMode="decimal" value={f.est} onChange={(e) => set('est', e.target.value)} placeholder="3" /></div>
+        )}
+        {canLogHours && (
+          <div className="pv-fld"><label htmlFor="et-spent">{tt('pd.spentH')}</label>
+            <div className="pv-spent">
+              <input id="et-spent" type="number" min="0" step="0.5" inputMode="decimal" value={f.spent} onChange={(e) => set('spent', e.target.value)} placeholder="3" />
+              <button type="button" className="pv-btn" onClick={() => set('spent', '8')} title={tt('pd.fullDay')}>{tt('pd.day8')}</button>
             </div></div>
-        </>
-      )}
-      <div className="field"><label>{tt('td.priority')}</label>
-        <div className="prio-pick">{PRIORITIES.map((n) => <button key={n} className={f.prio === n ? 'on o' + n : ''} onClick={() => setF({ ...f, prio: n })}>P{n}</button>)}</div></div>
-      <div className="field"><label>{tt('meet.status')}</label>
-        <div className="type-pick">
-          {(p.statuses || []).map((s) => {
-            const blocked = s.key === 'transferred' && !f.transferable
-            return <button key={s.key} disabled={blocked} className={(f.statusKey === s.key ? 'on' : '') + (blocked ? ' disabled' : '')} onClick={() => !blocked && setF({ ...f, statusKey: s.key })}><span className="status-dot-inline" style={{ background: s.color }} />{s.label}</button>
-          })}
-        </div></div>
+        )}
+      </div>
       {f.statusKey === 'transferred' && (
-        <div className="field"><label>{tt('pd.transferTo')}</label>
-          <select value={f.transferredTo} onChange={(e) => setF({ ...f, transferredTo: e.target.value })}>
-            <option value="">— Choisir une personne</option>
+        <div className="pv-fld"><label htmlFor="et-tr">{tt('pd.transferTo')}</label>
+          <select id="et-tr" value={f.transferredTo} onChange={(e) => set('transferredTo', e.target.value)}>
+            <option value="">{tt('pd.chooseOne')}</option>
             {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select></div>
       )}
-      <TaskFiles task={t} projectClosed={p.status === 'done'} />
+      {canEditMeta && (
+        <label className="pv-checkline"><input type="checkbox" checked={f.transferable} onChange={(e) => setF((x) => ({ ...x, transferable: e.target.checked, statusKey: e.target.checked ? x.statusKey : (x.statusKey === 'transferred' ? 'todo' : x.statusKey) }))} /> {tt('meet.transferable')}</label>
+      )}
       <TaskComments task={t} projectClosed={p.status === 'done'} />
       <TaskTimeline taskId={t.id} />
-      <div className="sheet-actions">
-        <button className="btn primary" disabled={busy} onClick={save}>{tt('action.save')}</button>
-        <button className="btn ghost" onClick={onClose}>{tt('action.cancel')}</button>
-      </div>
-    </Modal>
+    </PvDialog>
   )
 }
 

@@ -110,7 +110,7 @@ test('axe: project detail and task actions menu', async ({ page }) => {
   await scan(page, 'project detail')
 
   // Task actions menu: status can be changed without dragging.
-  await page.getByRole('button', { name: 'Actions' }).first().click()
+  await page.locator('.pv-row').first().getByRole('button', { name: 'Actions' }).click()
   const menu = page.getByRole('dialog')
   await expect(menu.getByRole('button', { name: /Move to/ }).first()).toBeVisible()
   await scan(page, 'task actions menu')
@@ -165,8 +165,10 @@ async function openProject(page: Page) {
 
 test('axe: task import wizard and voice wizard dialogs', async ({ page }) => {
   await openProject(page)
-  const opener = page.getByRole('button', { name: 'Import tasks' })
+  // « Importer » vit dans le menu de la flèche à côté de « Nouvelle tâche » : le focus revient à ce bouton.
+  const opener = page.getByRole('button', { name: 'Import or dictate tasks' })
   await opener.click()
+  await page.getByRole('menuitem', { name: 'Import tasks' }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
   await scan(page, 'task import wizard')

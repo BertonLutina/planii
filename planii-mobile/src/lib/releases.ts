@@ -20,6 +20,18 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.3.0', date: '2026-11-17',
+    title: { fr: 'Page projet redessinée', en: 'Redesigned project page' },
+    items: [
+      a('« Nouvelle tâche » s’ouvre dans une fenêtre, avec l’ajout de photos et de fichiers par glisser-déposer.', '“New task” opens in a dialog, with photo and file upload by drag and drop.', 'web'),
+      a('Un trombone avec le nombre de fichiers apparaît sur les tâches qui en contiennent (tableau, grille, colonnes).', 'A paperclip with the file count shows on tasks that have files (table, grid, columns).', 'web'),
+      a('Nouvelle vue « Tableau » : tâches groupées par statut, statuts vides masqués, avec recherche, filtre par statut et tri.', 'New “Table” view: tasks grouped by status, empty statuses hidden, with search, status filter and sort.', 'web'),
+      c('Page projet redessinée : en-tête compact avec anneau de progression, filtres par personne en pastilles, colonnes vides repliées. Sur téléphone : barre d’onglets en bas et boutons flottants.', 'Redesigned project page: compact header with a progress ring, people filters as pills, empty columns collapsed. On phones: bottom tab bar and floating buttons.', 'web'),
+      c('Un clic sur une tâche ouvre « Modifier la tâche » (fichiers, commentaires, historique).', 'Clicking a task opens “Edit the task” (files, comments, history).', 'web'),
+      f('Thème sombre : les champs de formulaire suivent la couleur du thème au lieu d’être plus foncés que leur fenêtre.', 'Dark theme: form fields now follow the theme colour instead of being darker than their dialog.', 'web'),
+    ],
+  },
+  {
     version: '1.2.0', date: '2026-11-17',
     title: { fr: 'Connecteur IA, pièces jointes et notes de version', en: 'AI connector, attachments and release notes' },
     items: [

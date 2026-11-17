@@ -4,8 +4,8 @@ import { prio, prioMeta } from '@/lib/priority'
 import { formatDue, isOverdue } from '@/lib/dates'
 import { t as tt, trTerm } from '@/lib/i18n'
 import { typeTone } from '@/lib/tasktype'
-import { Avatar } from '@/lib/ui'
 import { Ic } from './Icon'
+import { PvAvatar } from './PvBits'
 
 export type GridGroup = { id: string; name: string; tasks: Task[] }
 
@@ -63,7 +63,7 @@ export function TaskGrid({
     const fg = st ? readableOn(st.color) : '#ffffff'
 
     return (
-      <div key={t.id} className={'tg-row' + (isSub ? ' sub' : '') + (t.done ? ' done' : '') + (over ? ' over' : '')}>
+      <div key={t.id} style={{ ['--st' as string]: st?.color || 'var(--pv-line2)' }} className={'tg-row' + (isSub ? ' sub' : '') + (t.done ? ' done' : '') + (over ? ' over' : '')}>
         {/* --- Tâche --- */}
         <div className="tg-c tg-title">
           <span className="tg-edge" style={{ background: st?.color || 'var(--line-strong)' }} aria-hidden="true" />
@@ -100,7 +100,7 @@ export function TaskGrid({
         {/* --- Responsable --- */}
         <div className="tg-c tg-who">
           {t.assigneeId
-            ? <><Avatar name={memberName(t.assigneeId)} size={22} /><span className="tg-ell">{memberName(t.assigneeId)}</span></>
+            ? <><PvAvatar name={memberName(t.assigneeId)} /><span className="tg-ell">{memberName(t.assigneeId)}</span></>
             : <span className="tg-none"><Ic name="hand" s={13} /> {tt('pd.toTakeCap')}</span>}
         </div>
 
@@ -138,6 +138,11 @@ export function TaskGrid({
             ? <>{t.spentHours != null ? t.spentHours + ' h' : '0 h'}{t.estHours != null ? ` / ~${t.estHours} h` : ''}</>
             : <span className="tg-dash">—</span>}
         </div>
+
+        {/* --- Fichiers : trombone + nombre dès qu'un fichier a été ajouté --- */}
+        <div className="tg-c tg-files">
+          {!!t.attachmentCount && <span className="pv-fb" title={tt('files.title')}><Ic name="paperclip" s={15} />{t.attachmentCount}</span>}
+        </div>
       </div>
     )
   }
@@ -146,15 +151,16 @@ export function TaskGrid({
     <div className="tgrid">
       {groups.map((g) => (
         <section className="tg-group" key={g.id}>
-          <header className="tg-ghead">
-            <span className="tg-gname">{g.name}</span>
-            <span className="tg-gcount tnum">{g.tasks.length} {tt('pd.taskCount')}</span>
+          <header className="pv-gtitle">
+            {g.id === 'none' ? <span className="pv-av" style={{ ['--c' as string]: 'var(--pv-hint)' }}><Ic name="hand" s={14} c="#fff" /></span> : <PvAvatar name={g.name} />}
+            <b>{g.name}</b>
+            <span className="tnum">{g.tasks.length} {tt('pd.taskCount')}</span>
           </header>
 
           {g.tasks.length === 0
             ? <div className="tg-empty">{tt('pd.noTask')}</div>
             : (
-              <div className="tg-table" role="table" aria-label={g.name}>
+              <div className="pv-gwrap"><div className="tg-table" role="table" aria-label={g.name}>
                 <div className="tg-row tg-head" role="row">
                   <span className="tg-c">{tt('ad.tasks')}</span>
                   <span className="tg-c">{tt('td.assignee')}</span>
@@ -162,6 +168,7 @@ export function TaskGrid({
                   <span className="tg-c tg-mid">{tt('td.priority')}</span>
                   <span className="tg-c">{tt('td.due')}</span>
                   <span className="tg-c">{tt('td.hours')}</span>
+                  <span className="tg-c">{tt('files.title')}</span>
                 </div>
                 {g.tasks.map((t) => (
                   <div key={t.id} className="tg-block">
@@ -169,7 +176,7 @@ export function TaskGrid({
                     {open[t.id] && subsOf(t.id).map((s) => cell(s, true))}
                   </div>
                 ))}
-              </div>
+              </div></div>
             )}
         </section>
       ))}

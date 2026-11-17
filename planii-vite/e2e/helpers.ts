@@ -50,6 +50,7 @@ export async function mockApi(context: BrowserContext, opts: { extraTasks?: Reco
     if (path.endsWith('/tasks/mine')) return route.fulfill({ json: { projects: [{ ...proj, tasks: allTasks.filter((t) => t.assigneeId === 'u1') }] } })
     if (path.endsWith('/api/projects') && !route.request().url().includes('page=')) return route.fulfill({ json: { projects: [summary, summary2] } })
     if (path.endsWith('/api/projects')) return route.fulfill({ json: { ...page([summary, summary2]), counts: { active: 2, done: 0 } } })
+    if (/\/tasks\/t\d+\/attachments$/.test(path)) return route.fulfill({ json: { attachments: [], accept: ['png', 'jpg', 'pdf', 'docx', 'xlsx'], maxFileBytes: 20 * 1048576, quotaBytes: 1e9, usedBytes: 0 } })
     if (/\/tasks\/t\d+\/(comments|events)$/.test(path)) return route.fulfill({ json: { comments: [], events: [] } })
     // Empty but well-shaped payloads for everything else the shell asks for.
     return route.fulfill({

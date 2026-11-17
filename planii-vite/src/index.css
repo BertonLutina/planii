@@ -2225,3 +2225,30 @@ textarea:focus-visible,[tabindex]:focus-visible,[role="button"]:focus-visible,[c
 .rn-target{display:inline-block;margin-left:8px;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);vertical-align:1px}
 .side-version{font-size:11.5px;font-weight:600;color:var(--muted);padding:0 8px 6px;background:none;border:0;text-align:left;cursor:pointer}
 .side-version:hover{color:var(--accent)}
+
+/* ==========================================================================
+   Champs de formulaire en thème sombre
+   Avant : fond = --bg (#100e1a), plus FONCÉ que la fenêtre qui les porte (--surface #191426) :
+   les champs paraissaient « creusés » et sortaient de la palette. Désormais le fond d'un champ
+   est une teinte au-dessus de sa fenêtre (--surface-2), comme dans la refonte de la page projet.
+   En clair rien ne change (--field-bg = --bg).
+   ========================================================================== */
+:root{--field-bg:var(--bg)}
+:root[data-theme="dark"]{--field-bg:#231d3a}
+.field input,.field select,.field textarea,
+.subtask-add input,.meet-input input,.status-admin input,
+.prio-pick button,.seg button,.type-pick button{background:var(--field-bg)}
+.field input::placeholder,.field textarea::placeholder,
+.subtask-add input::placeholder,.status-admin input::placeholder,
+.meet-input input::placeholder{color:var(--hint);opacity:1}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field option{background:var(--surface);color:var(--text)}
+
+/* Champs « nus » (sans classe) : le navigateur leur donne un gris système qui ne suit pas la palette
+   en sombre (ex. « Nouveau rôle… »). :where() garde une spécificité nulle : tout champ qui a déjà
+   son propre style (recherche, palette de commandes, connexion…) le garde. */
+:where(input:not([type]),input[type="text"],input[type="email"],input[type="password"],input[type="search"],input[type="url"],input[type="tel"],input[type="number"],input[type="date"],input[type="time"],select,textarea){
+  background-color:var(--field-bg);color:var(--text);border:1px solid var(--line-strong);border-radius:10px;
+  padding:10px 12px;font:inherit;font-size:15px;
+}
+:where(input,textarea)::placeholder{color:var(--hint);opacity:1}
