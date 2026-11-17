@@ -14,6 +14,7 @@ import { t as tt, trTerm } from '@/lib/i18n'
 import { VoiceTaskWizard } from './VoiceTaskWizard'
 import { TaskImportWizard } from './TaskImportWizard'
 import { TaskDrawer } from './TaskDrawer'
+import { TaskFiles } from './TaskFiles'
 import { useRealtime } from '@/lib/realtime'
 import { taskComparator, type TaskSort, type Dir } from '@/lib/sort'
 import { TaskGrid, type GridGroup } from './TaskGrid'
@@ -334,6 +335,7 @@ function TasksTab({ p, me, memberName, reload, loadMore, hasMore, loadingMore }:
               {hasHours && <span className="tag hours">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? ` / ~${t.estHours}h` : ''}</span>}
               {t.transferable && <span className="tag acc">⇄ {tt('pd.transferableTag')}</span>}
               {!!t.commentCount && <span className="tag due">💬 {t.commentCount}</span>}
+              {!!t.attachmentCount && <span className="tag due" title={tt('files.title')}>📎 {t.attachmentCount}</span>}
               {subs.length > 0 && <span className="tag due">☑ {subDone}/{subs.length}</span>}
               <span className="tag due">{statuses.find((s) => s.key === statusOf(t))?.label ? trTerm(statuses.find((s) => s.key === statusOf(t))!.label) : tt('term.todo')}</span>
               {statusOf(t) === 'transferred' && <span className="tag acc">↪ {nameOf(t.transferredFrom)} → {nameOf(t.transferredTo)}</span>}
@@ -1240,6 +1242,7 @@ function EditTask({ p, t, types, canEditMeta, canLogHours, onClose, onSaved }: {
             {p.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select></div>
       )}
+      <TaskFiles task={t} projectClosed={p.status === 'done'} />
       <TaskComments task={t} projectClosed={p.status === 'done'} />
       <TaskTimeline taskId={t.id} />
       <div className="sheet-actions">
@@ -1346,6 +1349,8 @@ const EVENT_LABEL: Record<string, string> = {
   task_deleted: tt('pd.evDeleted'),
   comment_added: tt('pd.evCAdd'),
   comment_deleted: tt('pd.evCDel'),
+  attachment_added: tt('pd.evFAdd'),
+  attachment_deleted: tt('pd.evFDel'),
 }
 
 function TaskTimeline({ taskId }: { taskId: string }) {

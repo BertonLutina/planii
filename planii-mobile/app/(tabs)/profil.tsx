@@ -12,6 +12,8 @@ import { LangPicker } from '@/screens/profile/LangPicker'
 import { ListEditor } from '@/screens/profile/ListEditor'
 import { ProfileHero } from '@/screens/profile/ProfileHero'
 import { ProjectLabelEditor } from '@/screens/profile/ProjectLabelEditor'
+import { BiometricRow } from '@/screens/profile/BiometricRow'
+import { AiAssistantsSection } from '@/screens/profile/AiAssistantsSection'
 import { ThemeControl } from '@/screens/profile/ThemeControl'
 import { useTheme } from '@/theme/ThemeProvider'
 import { radius } from '@/theme/tokens'
@@ -45,6 +47,8 @@ export default function ProfilScreen() {
             <InfoSection me={me} />
 
             <EmailNotifsSection me={me} />
+
+            <AiAssistantsSection />
 
             <ListEditor
               me={me}
@@ -82,6 +86,8 @@ export default function ProfilScreen() {
             )}
 
             <ThemeControl />
+
+            <BiometricRow />
 
             <SectionHeader title={t('lang.title')} />
             <LangPicker />

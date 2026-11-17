@@ -21,6 +21,7 @@ import { taskPerms } from '../lib/perms'
 import { findStatus, statusOf } from '../lib/statuses'
 import { Tag } from './Tag'
 import { TaskComments } from './TaskComments'
+import { TaskFiles } from './TaskFiles'
 import { TaskHistory } from './TaskHistory'
 
 /* Détail d'une tâche — portage de `TaskDrawer` + `EditTask`
@@ -35,7 +36,7 @@ import { TaskHistory } from './TaskHistory'
 
    La dictée (`MicInput`) est reportée : champs simples. */
 
-type Pane = 'task' | 'comments' | 'history'
+type Pane = 'task' | 'files' | 'comments' | 'history'
 
 export interface TaskSheetProps {
   open: boolean
@@ -160,6 +161,7 @@ export function TaskSheet({ open, onClose, task, p, me, statuses, onSaved, onOpe
 
   const panes: TabItem<Pane>[] = [
     { key: 'task', label: t('qa.task'), icon: 'tasks' },
+    { key: 'files', label: t('files.title'), icon: 'paperclip' },
     { key: 'comments', label: t('pd.commentBtn'), icon: 'message' },
     { key: 'history', label: t('pd.history'), icon: 'activity' },
   ]
@@ -195,7 +197,9 @@ export function TaskSheet({ open, onClose, task, p, me, statuses, onSaved, onOpe
 
       {!task || !f
         ? null
-        : pane === 'comments'
+        : pane === 'files'
+          ? <TaskFiles taskId={task.id} closed={p.status === 'done'} />
+          : pane === 'comments'
           ? <TaskComments taskId={task.id} closed={p.status === 'done'} />
           : pane === 'history'
             ? <View style={s.fill}><TaskHistory taskId={task.id} /></View>

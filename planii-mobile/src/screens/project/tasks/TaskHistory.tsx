@@ -21,6 +21,8 @@ const EVENT_KEY: Record<string, string> = {
   task_deleted: 'pd.evDeleted',
   comment_added: 'pd.evCAdd',
   comment_deleted: 'pd.evCDel',
+  attachment_added: 'pd.evFAdd',
+  attachment_deleted: 'pd.evFDel',
 }
 
 const stamp = (at: string) =>

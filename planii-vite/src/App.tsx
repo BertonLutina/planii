@@ -22,6 +22,7 @@ import { useI18n, LangPicker, trTerm, t as tt } from '@/lib/i18n'
 import { Admin } from './components/Admin'
 import { StyleGuide } from './components/StyleGuide'
 import { Privacy } from './components/Privacy'
+import { AiAssistantsEntry, OAuthConsent, isOAuthConsentRoute } from './components/AiAssistants'
 import { applyTheme, effectiveTheme, getTheme, type Theme } from '@/lib/theme'
 import { useProjectSummaries } from '@/lib/useProjects'
 import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
@@ -447,6 +448,8 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
             <Ic name="mail" s={16} /> {tr('profile.emailNotifs')}
           </button>
 
+          <AiAssistantsEntry />
+
           <ListEditor me={me} onUpdate={onUpdate}
             title={tr('profile.roles')} field="roleLibrary" get={roleLibraryOf}
             desc={tr('profile.rolesDesc')}
@@ -703,7 +706,8 @@ export default function App() {
   useEffect(() => { if (resetToken) stripResetTokenFromUrl() }, [resetToken])
   const [me, setMe] = useState<User | null | undefined>(undefined)
   /** Visiteur non connecté : landing publique, puis connexion ou inscription. */
-  const [gate, setGate] = useState<'landing' | 'login' | 'signup'>('landing')
+  const consent = isOAuthConsentRoute()
+  const [gate, setGate] = useState<'landing' | 'login' | 'signup'>(consent ? 'login' : 'landing')
   useEffect(() => {
     if (styleGuide || privacy || inReset) {
       if (inReset) setMe(null)
@@ -730,7 +734,7 @@ export default function App() {
     return () => disconnectRealtime()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const onLogout = () => { disconnectRealtime(); setTok(null); setMe(null); setGate('landing') }
+  const onLogout = () => { disconnectRealtime(); setTok(null); setMe(null); setGate(consent ? 'login' : 'landing') }
   if (styleGuide) return <StyleGuide />
   if (privacy) return <Privacy />
   return (
@@ -745,6 +749,7 @@ export default function App() {
           onAuth={(u) => { leaveResetUrl(); setInReset(false); setMe(u); connectRealtime() }}
         />
       ) : me === undefined ? <div className="boot">Connexion…</div>
+        : me && consent ? <OAuthConsent me={me} onSwitchAccount={onLogout} />
         : me ? <Shell me={me} onLogout={onLogout} onUpdate={setMe} />
         : gate === 'landing'
           ? <Landing onLogin={() => setGate('login')} onStart={() => setGate('signup')} />

@@ -1,3 +1,5 @@
+import os from 'os'
+import path from 'path'
 import { defineConfig } from 'vitest/config'
 
 // Les variables sont posées ICI et non dans tests/setup.ts : les `import` d'un fichier sont exécutés avant
@@ -16,6 +18,10 @@ export default defineConfig({
       JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret',
       DATABASE_URL: process.env.TEST_DATABASE_URL || 'postgres://localhost:5432/planii_test',
       SMTP_PASS: '', // jamais d'envoi réel d'e-mail depuis les tests
+      // Les fichiers joints des tests vont dans un dossier jetable, jamais dans ./uploads.
+      UPLOAD_DIR: path.join(os.tmpdir(), 'planii-test-uploads'),
+      MAX_UPLOAD_MB: '1', // 1 Mo suffit pour tester le refus « trop lourd »
+      PROJECT_QUOTA_MB: '2',
       // Le limiteur par IP est en mémoire et partagé par tous les tests du run (tous en 127.0.0.1) : sans cela,
       // le 21e appel /auth/* d'un run répond 429 et fait échouer des tests sans rapport.
       AUTH_RATE_LIMIT_MAX: '100000',

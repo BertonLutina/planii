@@ -24,13 +24,18 @@ export const authRateLimit: RequestHandler = rateLimit({
   message: { error: 'Trop de tentatives de connexion.' },
 })
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof HttpError) {
     if (!res.headersSent) res.status(err.status).json({ error: err.message })
     return
   }
   if (err?.name === 'MulterError' || (err instanceof Error && /Format invalide|File too large/i.test(err.message))) {
-    const msg = err.code === 'LIMIT_FILE_SIZE' || /File too large/i.test(err.message)
+    const tooBig = err.code === 'LIMIT_FILE_SIZE' || /File too large/i.test(err.message)
+    if (tooBig && /\/attachments$/.test(req.path)) {
+      if (!res.headersSent) res.status(413).json({ error: `Fichier trop lourd (max ${Math.round(env.maxUploadBytes / 1048576)} Mo)` })
+      return
+    }
+    const msg = tooBig
       ? 'Image trop lourde (max 2 Mo)'
       : (err.message || 'Fichier invalide')
     if (!res.headersSent) res.status(400).json({ error: msg })

@@ -12,6 +12,7 @@ import { audit } from './audit.service'
 import { imapList, imapRead } from './imap.service'
 import { sendRaw } from './mail.service'
 import { deleteProjectCascade } from './project.service'
+import { removeProjectFiles } from './attachment.service'
 import { parsePagination, paginated } from '../lib/pagination'
 
 export async function getStats() {
@@ -101,6 +102,7 @@ export async function deleteUser(actor: DbUser, targetId: string) {
   } finally {
     client.release()
   }
+  for (const pr of owned) removeProjectFiles(pr.id as string)
   await audit(actor, 'delete_user', `${target.name} (${target.email})${owned.length ? ` + ${owned.length} projet(s)` : ''}`)
   return owned.length
 }
@@ -235,5 +237,6 @@ export async function deleteProject(actor: DbUser, projectId: string) {
   } finally {
     client.release()
   }
+  removeProjectFiles(p.id)
   await audit(actor, 'delete_project', `« ${p.name} »`)
 }

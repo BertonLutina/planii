@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import * as TaskController from '../controllers/Task.controller'
+import * as AttachmentController from '../controllers/Attachment.controller'
 import { validate } from '../middleware/validate'
 import { idsSchema, taskCreateSchema, taskBulkCreateSchema, googleSheetImportSchema, taskUpdateSchema, commentSchema } from '../schemas'
 
@@ -18,5 +19,10 @@ export function tasksRoutes() {
   r.post('/tasks/:id/comments', validate(commentSchema), ...TaskController.addComment)
   r.delete('/task-comments/:id', ...TaskController.deleteComment)
   r.get('/tasks/:id/events', ...TaskController.listEvents)
+  r.get('/tasks/:id/attachments', ...AttachmentController.list)
+  r.post('/tasks/:id/attachments', ...AttachmentController.create)
+  r.delete('/attachments/:id', ...AttachmentController.remove)
+  r.get('/attachments/:id/link', ...AttachmentController.link)
+  r.get('/files/:token', AttachmentController.download)
   return r
 }

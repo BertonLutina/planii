@@ -56,3 +56,24 @@ export async function apiUpload<T = any>(path: string, file: File, field = 'file
   if (!res.ok) throw new Error((data && data.error) || `Erreur ${res.status}`)
   return data as T
 }
+
+/** Envoi multipart avec progression (0-100) : un fichier de 20 Mo prend du temps, l'utilisateur doit le voir avancer. */
+export function apiUploadProgress<T = any>(path: string, file: File, onProgress: (pct: number) => void, field = 'file'): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', API + path)
+    const tok = getTok()
+    if (tok) xhr.setRequestHeader('Authorization', 'Bearer ' + tok)
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100)) }
+    xhr.onload = () => {
+      let data: any = null
+      try { data = JSON.parse(xhr.responseText) } catch { /* ignore */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data as T)
+      else reject(new Error((data && data.error) || `Erreur ${xhr.status}`))
+    }
+    xhr.onerror = () => reject(new Error('Connexion perdue pendant l’envoi'))
+    const fd = new FormData()
+    fd.append(field, file)
+    xhr.send(fd)
+  })
+}

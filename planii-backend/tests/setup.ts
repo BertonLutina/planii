@@ -32,9 +32,10 @@ export async function resetDb() {
   if (!dbAvailable) return
   assertTestDatabase()
   await pool.query(`TRUNCATE
-    appointment_participants, appointments, poll_votes, poll_options, polls, task_reminders, task_events, task_comments,
+    task_attachments, appointment_participants, appointments, poll_votes, poll_options, polls, task_reminders, task_events, task_comments,
     task_transfers, meeting_messages, notifications, activity, invites,
     member_roles, project_roles, task_statuses, tasks, memberships, projects,
-    project_labels, admin_audit, password_reset_tokens, users
+    project_labels, admin_audit, password_reset_tokens,
+    oauth_clients, oauth_connections, oauth_codes, oauth_tokens, mcp_audit, users
     RESTART IDENTITY CASCADE`)
 }

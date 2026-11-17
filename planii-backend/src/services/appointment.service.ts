@@ -274,3 +274,24 @@ export async function appointmentsForProject(projectId: string) {
   }
   return items
 }
+
+/** Rendez-vous des projets dont je suis membre, sur une période (YYYY-MM-DD), optionnellement pour un seul projet. */
+export async function listMyAppointments(userId: string, from: string, to: string, projectId?: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) fail(400, 'from et to requis (YYYY-MM-DD)')
+  if (from > to) fail(400, 'from doit être antérieur à to')
+  const vals: unknown[] = [userId, from, to]
+  let extra = ''
+  if (projectId) { vals.push(projectId); extra = `AND a.project_id=$${vals.length}` }
+  const rows = await many(
+    `SELECT a.*, p.name AS project_name FROM appointments a
+      JOIN projects p ON p.id=a.project_id
+      JOIN memberships m ON m.project_id=p.id AND m.user_id=$1
+      WHERE a.appointment_date >= $2 AND a.appointment_date <= $3 ${extra}
+      ORDER BY a.appointment_date ASC, a.time_start ASC LIMIT 200`, vals)
+  const items = []
+  for (const row of rows) {
+    const participants = await loadParticipants(String(row.id))
+    items.push({ ...appointmentView(row, participants.map((x) => ({ id: x.id, name: x.name }))), projectId: row.project_id, projectName: row.project_name })
+  }
+  return items
+}

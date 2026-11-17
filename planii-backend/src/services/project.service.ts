@@ -59,7 +59,7 @@ export async function defaultProjectLabelId(userId: string) {
   return (labels.find((l) => String(l.label).toLowerCase() === 'travail') || labels[0]).id
 }
 
-async function enrichTasks(projectId: string, rows: Record<string, unknown>[]) {
+export async function enrichTasks(projectId: string, rows: Record<string, unknown>[]) {
   if (!rows.length) return []
   const taskIds = rows.map((t) => t.id as string)
   const transferRows = await many(
@@ -88,10 +88,16 @@ async function enrichTasks(projectId: string, rows: Record<string, unknown>[]) {
       FROM task_comments WHERE project_id=$1 AND deleted_at IS NULL AND task_id = ANY($2::text[])
       GROUP BY task_id`, [projectId, taskIds])
   const commentCountByTask = Object.fromEntries(commentRows.map((r) => [r.task_id, Number(r.c) || 0]))
+  const attachmentRows = await many<{ task_id: string; c: number }>(
+    `SELECT task_id, count(*)::int AS c
+      FROM task_attachments WHERE project_id=$1 AND task_id = ANY($2::text[])
+      GROUP BY task_id`, [projectId, taskIds])
+  const attachmentCountByTask = Object.fromEntries(attachmentRows.map((r) => [r.task_id, Number(r.c) || 0]))
   return rows.map((t) => TaskView.fromRow({
     ...t,
     transferHistory: transfersByTask[t.id as string] || [],
     commentCount: commentCountByTask[t.id as string] || 0,
+    attachmentCount: attachmentCountByTask[t.id as string] || 0,
   }))
 }
 
@@ -457,6 +463,7 @@ export async function deleteProject(projectId: string, userId: string, userName:
   // Remove image from disk after DB delete
   const { deleteProjectImageFiles } = await import('./upload.service')
   deleteProjectImageFiles(p.id, p.image_url)
+  ;(await import('./attachment.service')).removeProjectFiles(p.id)
   return members.length - 1
 }
 

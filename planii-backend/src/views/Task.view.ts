@@ -23,6 +23,7 @@ export const fromRow = (t: Record<string, unknown>) => ({
   transferredTo: t.transferred_to || null,
   transferHistory: t.transferHistory || [],
   commentCount: t.commentCount || 0,
+  attachmentCount: t.attachmentCount || 0,
 })
 
 export const meetingCreated = (task: Record<string, unknown>) => ({ task })

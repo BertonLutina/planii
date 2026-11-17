@@ -9,6 +9,8 @@ import { ToastProvider } from '@/components/ui'
 import { hydrateLang } from '@/lib/i18n'
 import { NotificationsProvider } from '@/lib/notifications'
 import { SessionProvider, useSession } from '@/lib/session'
+import { useBiometricOffer } from '@/lib/useBiometricOffer'
+import { BiometricLock } from '@/screens/auth/BiometricLock'
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider'
 
 SplashScreen.preventAutoHideAsync().catch(() => { /* déjà masqué */ })
@@ -33,7 +35,8 @@ export default function RootLayout() {
 
 function Root() {
   const { c, dark } = useTheme()
-  const { me, loading } = useSession()
+  const { me, loading, locked } = useSession()
+  useBiometricOffer()
   const segments = useSegments()
   const router = useRouter()
   const [langReady, setLangReady] = useState(false)
@@ -50,7 +53,7 @@ function Root() {
   }, [ready])
 
   useEffect(() => {
-    if (!ready) return
+    if (!ready || locked) return
     const segs = segments as unknown as string[]
     const root = segs[0]
     const inAuth = root === '(auth)'
@@ -71,7 +74,7 @@ function Root() {
        dans l'app. */
     if (inAuth && segs[1] === 'reset-password') return
     if (inAuth) router.replace('/')
-  }, [ready, me, segments, router])
+  }, [ready, locked, me, segments, router])
 
   if (!ready) {
     return (
@@ -79,6 +82,17 @@ function Root() {
         <StatusBar style={dark ? 'light' : 'dark'} />
         <ActivityIndicator color={c.accent} />
       </View>
+    )
+  }
+
+  /* Verrou à la place du navigateur : aucun écran connecté ne se monte
+     tant que la biométrie n'a pas réussi. */
+  if (locked) {
+    return (
+      <>
+        <StatusBar style={dark ? 'light' : 'dark'} />
+        <BiometricLock />
+      </>
     )
   }
 

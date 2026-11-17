@@ -67,6 +67,7 @@ export interface Task {
   statusKey?: string | null
   transferable?: boolean
   commentCount?: number
+  attachmentCount?: number
   transferredFrom?: string | null
   transferredTo?: string | null
   transferHistory?: {
@@ -240,4 +241,27 @@ export interface ApiCalEvent {
   deadline?: boolean
   projectId: string
   projectName?: string
+}
+
+export interface TaskAttachment {
+  id: string
+  taskId: string
+  name: string
+  ext: string
+  mime: string
+  size: number
+  kind: 'image' | 'pdf' | 'file'
+  previewable: boolean
+  uploaderId: string | null
+  uploaderName: string | null
+  canDelete: boolean
+  at: string
+}
+
+export interface TaskAttachmentList {
+  attachments: TaskAttachment[]
+  usedBytes: number
+  quotaBytes: number
+  maxFileBytes: number
+  accept: string[]
 }

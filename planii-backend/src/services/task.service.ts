@@ -7,8 +7,9 @@ import * as TaskModel from '../models/Task.model'
 import * as ProjectModel from '../models/Project.model'
 import * as UserModel from '../models/User.model'
 import * as TaskView from '../views/Task.view'
-import { assertProjectOpen, ensureProjectStatuses, sendTaskAssignmentMails } from './project.service'
+import { assertProjectOpen, ensureProjectStatuses, sendTaskAssignmentMails, enrichTasks } from './project.service'
 import { logActivity, recordTaskEvent, notify, notifyProject, bump } from './notification.service'
+import { removeFiles } from './attachment.service'
 import { mt } from '../lib/mail-i18n'
 import { sendMail } from './mail.service'
 
@@ -370,7 +371,11 @@ export async function deleteTask(taskId: string, userId: string) {
   assertProjectOpen(p)
   if (t.created_by !== userId && !ProjectModel.canManageRole(m.role)) fail(403, 'Suppression réservée au créateur ou au propriétaire')
   await recordTaskEvent(t.id, t.project_id, userId, 'task_deleted', { title: t.title })
+  // Les lignes de fichiers partent avec la tâche (FK en cascade) ; on retire aussi les octets du disque.
+  const files = await many<{ storage_key: string }>(
+    'SELECT storage_key FROM task_attachments WHERE task_id IN (SELECT id FROM tasks WHERE id=$1 OR parent_id=$1)', [t.id])
   await q('DELETE FROM tasks WHERE id=$1 OR parent_id=$1', [t.id])
+  removeFiles(files.map((f) => f.storage_key))
   bump(t.project_id)
 }
 
@@ -479,4 +484,31 @@ export async function listMyTasks(userId: string) {
     })
   }
   return projects
+}
+
+/** Une tâche (lecture). Réservé aux membres du projet. */
+export async function getTask(taskId: string, userId: string) {
+  const t = await TaskModel.findById(taskId)
+  if (!t) fail(404, 'Tâche introuvable')
+  const m = await ProjectModel.findMembership(t.project_id, userId)
+  if (!m) fail(403, 'Non membre')
+  const p = await ProjectModel.findById(t.project_id)
+  const [task] = await enrichTasks(t.project_id, [t])
+  return { task, project: { id: t.project_id, name: p?.name || '', status: p?.status || 'active' }, myRole: m.role }
+}
+
+/** Tâches dont je suis le responsable, tous projets confondus (projets clos exclus). Borné. */
+export async function listMyAssignedTasks(userId: string, opts: { done?: boolean; limit?: number } = {}) {
+  const limit = Math.min(100, Math.max(1, opts.limit || 30))
+  const filters = ['t.assignee_id=$1', `p.status <> 'done'`]
+  if (opts.done === true) filters.push('t.done=true')
+  if (opts.done === false) filters.push('t.done=false')
+  const rows = await many(
+    `SELECT t.*, p.name AS project_name FROM tasks t
+      JOIN projects p ON p.id=t.project_id
+      JOIN memberships m ON m.project_id=p.id AND m.user_id=$1
+      WHERE ${filters.join(' AND ')}
+      ORDER BY t.done ASC, t.priority ASC, t.due ASC NULLS LAST, t.created_at ASC
+      LIMIT ${limit}`, [userId])
+  return rows.map((r) => ({ ...TaskView.fromRow(r), projectId: r.project_id as string, projectName: r.project_name as string }))
 }

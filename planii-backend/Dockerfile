@@ -13,6 +13,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY migrations ./migrations
+COPY assets ./assets
 COPY server.js ./
 RUN test -f dist/index.js
 EXPOSE 4000

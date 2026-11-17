@@ -36,6 +36,9 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
   UPLOAD_DIR: z.string().min(1).default(path.join(process.cwd(), 'uploads')),
+  /* Fichiers joints aux tâches : taille max par fichier et quota par projet (en Mo). */
+  MAX_UPLOAD_MB: z.coerce.number().positive().default(25),
+  PROJECT_QUOTA_MB: z.coerce.number().positive().default(1024),
   GOOGLE_CLIENT_ID: z.string().optional().default(''),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
   MICROSOFT_CLIENT_ID: z.string().optional().default(''),
@@ -46,6 +49,8 @@ const envSchema = z.object({
   YAHOO_CLIENT_SECRET: z.string().optional().default(''),
   OAUTH_CALLBACK_BASE: z.string().optional().default(''),
   SESSION_SECRET: z.string().optional().default(''),
+  /* Interrupteur du connecteur IA (MCP + OAuth). 'false' = /mcp, /oauth/* et la découverte répondent 404 (retour arrière sans redéployer le code). */
+  MCP_ENABLED: z.enum(['true', 'false']).default('true'),
   /* Visio LiveKit. Les trois doivent être remplis, sinon la réunion reste au chat. */
   LIVEKIT_URL: z.string().optional().default(''),
   LIVEKIT_API_KEY: z.string().optional().default(''),
@@ -66,6 +71,8 @@ const raw = parsed.data
 const port = raw.PORT
 const appUrl = (raw.APP_URL || `http://localhost:${port}`).replace(/\/$/, '')
 const webUrl = (raw.APP_WEB_URL || appUrl).replace(/\/$/, '')
+// URL publique de l'API (≠ APP_URL, qui est le site web) : base du connecteur MCP et d'OAuth. Même variable que les callbacks sociaux.
+const apiUrl = (raw.OAUTH_CALLBACK_BASE || (raw.NODE_ENV === 'production' ? 'https://api.planii.app' : `http://localhost:${port}`)).replace(/\/$/, '')
 const smtpSecure = raw.SMTP_SECURE ? raw.SMTP_SECURE === 'true' : raw.SMTP_PORT === 465
 const PROD_ORIGINS = ['https://planii.app', 'https://www.planii.app']
 // Sécurité : le wildcard '*' n'est jamais autorisé en production. En dev il reste
@@ -78,6 +85,7 @@ const corsOrigins = raw.CORS_ORIGINS === '*'
 export const env = {
   ...raw,
   appUrl,
+  apiUrl,
   webUrl,
   smtpSecure,
   corsOrigins,
@@ -85,9 +93,15 @@ export const env = {
   mailOn: !!raw.SMTP_PASS,
   superAdminEmails: raw.SUPER_ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
   pgSsl: raw.PGSSL === 'true',
+  mcpEnabled: raw.MCP_ENABLED === 'true',
   isProd: raw.NODE_ENV === 'production',
   isTest: raw.NODE_ENV === 'test',
   UPLOAD_DIR: path.resolve(raw.UPLOAD_DIR),
+  // PRIVÉ : ce dossier n'est jamais servi par express.static (voir app.ts), les fichiers
+  // ne sortent que par un lien signé à courte durée.
+  attachmentsDir: path.join(path.resolve(raw.UPLOAD_DIR), 'private', 'attachments'),
+  maxUploadBytes: Math.round(raw.MAX_UPLOAD_MB * 1024 * 1024),
+  projectQuotaBytes: Math.round(raw.PROJECT_QUOTA_MB * 1024 * 1024),
   googleClientId: raw.GOOGLE_CLIENT_ID || '',
   googleClientSecret: raw.GOOGLE_CLIENT_SECRET || '',
   microsoftClientId: raw.MICROSOFT_CLIENT_ID || '',

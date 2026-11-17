@@ -12,6 +12,7 @@ import { todayRoutes } from './today.routes'
 import { calendarRoutes } from './calendar.routes'
 import { adminRoutes } from './admin.routes'
 import { healthRoutes } from './health.routes'
+import { oauthApiRoutes } from '../oauth/oauth.routes'
 
 export function apiRoutes() {
   const r = Router()
@@ -28,5 +29,6 @@ export function apiRoutes() {
   r.use(calendarRoutes())
   r.use(adminRoutes())
   r.use(healthRoutes())
+  r.use(oauthApiRoutes())
   return r
 }

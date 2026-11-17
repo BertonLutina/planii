@@ -243,3 +243,53 @@ Vérification :
 ```bash
 curl https://api.planii.app/api/health
 ```
+
+---
+
+## Fichiers joints aux tâches (PDF, Word, Excel, images…)
+
+**Où ils vivent.** Les octets sont sur le disque du VPS, dans le volume Docker `planii_uploads`
+(`/data/uploads/private/attachments/<projet>/<fichier>`). La base ne garde que les métadonnées
+(table `task_attachments`). Ce dossier `private/` n'est **jamais** servi tel quel : un fichier ne sort
+que par un lien signé de 5 minutes, demandé par un membre du projet.
+
+**Réglages** (`.env`, tous facultatifs) :
+
+| Variable | Défaut | Rôle |
+|----------|--------|------|
+| `MAX_UPLOAD_MB` | `25` | taille max d'un fichier |
+| `PROJECT_QUOTA_MB` | `1024` | espace max par projet (1 Go) |
+
+Limites fixes dans le code : 30 fichiers par tâche ; liste blanche de types (PDF, Word, Excel,
+PowerPoint, OpenDocument, CSV/TXT, ZIP, images). HTML, SVG, scripts et exécutables sont refusés.
+
+### Surveiller l'espace disque
+
+```bash
+df -h /                                  # place libre sur le VPS
+docker system df                         # ce que Docker occupe (images, volumes)
+docker volume ls | grep uploads          # nom exact du volume
+du -sh /var/lib/docker/volumes/*uploads*/_data
+```
+
+Chaque déploiement reconstruit l'image sans cache : pense à libérer les anciennes images de temps en temps.
+
+```bash
+docker image prune -f
+```
+
+### Sauvegarder les fichiers
+
+`pg_dump` ne couvre **pas** les fichiers. Sauvegarde aussi le volume (remplace le nom par celui de `docker volume ls`) :
+
+```bash
+docker run --rm -v planii-backend_planii_uploads:/data -v "$PWD":/backup alpine \
+  tar czf /backup/uploads-$(date +%F).tar.gz -C /data .
+```
+
+### Quand changer de stockage
+
+Surveille `df -h` : au-delà de ~70 % d'occupation (ou si plusieurs serveurs deviennent nécessaires),
+passe à un stockage objet compatible S3 (Cloudflare R2, Backblaze B2, Hetzner…). Seules les fonctions de
+stockage de `src/services/attachment.service.ts` changent : la base référence chaque fichier par une
+`storage_key`, il suffit de copier les fichiers existants vers le bucket.

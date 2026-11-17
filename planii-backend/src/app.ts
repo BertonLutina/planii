@@ -1,3 +1,4 @@
+import path from 'path'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -10,6 +11,8 @@ import { apiRateLimit, errorHandler } from './middleware/security'
 import { apiRoutes } from './routes'
 import { uploadDir, ensureUploadDirs } from './services/upload.service'
 import { configurePassport } from './auth/passport'
+import { oauthRootRoutes } from './oauth/oauth.routes'
+import { mcpRoutes } from './mcp/routes'
 
 export function createApp() {
   ensureUploadDirs()
@@ -29,6 +32,14 @@ export function createApp() {
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     hsts: { maxAge: 15552000, includeSubDomains: true },
   }))
+
+  // Connecteur MCP + OAuth : montés avant le CORS global (leurs clients sont des serveurs d'assistants IA,
+  // pas le frontend) ; ils portent leur propre CORS ouvert, sans cookies.
+  app.use(pinoHttp({ logger }))
+  if (env.mcpEnabled) {
+    app.use(oauthRootRoutes())
+    app.use(mcpRoutes())
+  }
 
   const corsOptions = env.corsOrigins === '*'
     ? { origin: true, credentials: true }
@@ -54,8 +65,10 @@ export function createApp() {
   }))
   app.use(passport.initialize())
   app.use(passport.session())
-  app.use(pinoHttp({ logger }))
-  app.use('/api/uploads', express.static(uploadDir, { maxAge: '7d', fallthrough: false }))
+  // Seuls les dossiers d'images publiques sont servis. `private/` (fichiers de tâches) ne l'est jamais.
+  for (const sub of ['avatars', 'projects']) {
+    app.use(`/api/uploads/${sub}`, express.static(path.join(uploadDir, sub), { maxAge: '7d', fallthrough: false }))
+  }
   app.use('/api', apiRateLimit)
   app.use('/api', apiRoutes())
   app.use(errorHandler)
