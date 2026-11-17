@@ -111,7 +111,7 @@ export function TaskComments({
             placeholderTextColor={c.hint}
             multiline
             accessibilityLabel={t('pd.commentPh')}
-            style={[s.input, { backgroundColor: c.bg, borderColor: c.lineStrong, color: c.text }]}
+            style={[s.input, { backgroundColor: c.field, borderColor: c.lineStrong, color: c.text }]}
           />
           {/* Dictée : le refus d'autorisation part dans le bandeau au-dessus —
               une feuille ouverte recouvre le calque des toasts. */}

@@ -20,6 +20,18 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.4.0', date: '2026-11-17',
+    title: { fr: 'Écran projet mobile redessiné', en: 'Redesigned mobile project screen' },
+    items: [
+      c('Écran projet redessiné comme sur le web : en-tête compact avec barre de progression et pastille de retard, pastilles de statut et de personnes qui défilent, tâches groupées par statut (statuts vides masqués).', 'Project screen redesigned like the web: compact header with progress bar and late badge, scrolling status and people pills, tasks grouped by status (empty statuses hidden).', 'mobile'),
+      c('Nouvelles cartes de tâche : pastille de statut, priorité, titre, échéance, avatar du responsable, et recherche, filtre de statut et tri en haut de la liste.', 'New task cards: status pill, priority, title, due date, assignee avatar, with search, status filter and sort above the list.', 'mobile'),
+      a('Un trombone avec le nombre de fichiers apparaît sur les tâches qui en contiennent.', 'A paperclip with the file count shows on tasks that have files.', 'mobile'),
+      a('Bouton flottant « + » avec le micro et l’import au-dessus, et barre d’onglets du projet en bas de l’écran.', 'Floating “+” button with the microphone and import above it, and a project tab bar at the bottom of the screen.', 'mobile'),
+      a('« Nouvelle tâche » s’ouvre en feuille du bas : titre, description, photos et fichiers, responsable, statut, priorité, type, échéance et heures.', '“New task” opens as a bottom sheet: title, description, photos and files, assignee, status, priority, type, due date and hours.', 'mobile'),
+      f('Thème sombre : les champs de formulaire suivent la couleur du thème au lieu d’être plus foncés que leur feuille.', 'Dark theme: form fields now follow the theme colour instead of being darker than their sheet.', 'mobile'),
+    ],
+  },
+  {
     version: '1.3.0', date: '2026-11-17',
     title: { fr: 'Page projet redessinée', en: 'Redesigned project page' },
     items: [

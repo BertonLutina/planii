@@ -37,6 +37,8 @@ export interface Colors {
   elevated: string
   onAccent: string
   accentBorder: string
+  /** Fond d'un champ de saisie : en sombre, une teinte AU-DESSUS de sa feuille (jamais plus foncé). */
+  field: string
   /* Texte posé SUR le fond pâle de la même famille (`accentOn` sur `accentBg`).
      En thème clair les teintes de marque tombent entre 3.6:1 et 4.4:1 sur leur
      fond pâle : illisibles en petit corps. Ces variantes assombries passent le
@@ -82,6 +84,7 @@ export const light: Colors = {
   elevated: '#ffffff',
   onAccent: '#ffffff',
   accentBorder: 'rgba(109,92,255,0.30)',
+  field: '#f7f7f8',
   // Contrastes sur le fond pâle correspondant : 5.07 · 4.73 · 5.55 · 4.57 · 5.75
   accentOn: '#5a48e8',
   okOn: '#0b7a5a',
@@ -119,6 +122,8 @@ export const dark: Colors = {
   elevated: '#221c38',
   onAccent: '#12101c',
   accentBorder: 'rgba(139,123,255,0.38)',
+  // Plus clair que la feuille (#191426) : un champ « creusé » sortait de la palette.
+  field: '#231d3a',
   // Déjà 4.79 · 9.06 · 10.10 · 7.22 · 6.86 sur leur fond pâle : rien à corriger.
   accentOn: '#8b7bff',
   okOn: '#3ce0ab',
@@ -175,3 +180,52 @@ export const shadow = {
 
 /** Cible tactile minimale (44 pt). */
 export const HIT = 44
+
+/* ==========================================================================
+   Page projet — palette du prototype validé (planii-vite/src/project-v3.css, jetons --pv-*).
+   Mêmes valeurs que le web, clair et sombre. */
+export interface PvColors {
+  bg: string; glow: string; surface: string; raised: string; col: string; col2: string
+  line: string; line2: string
+  text: string; muted: string; hint: string
+  acc: string; accFg: string; accBg: string; onAcc: string; accShadow: string
+  dg: string; dgBg: string; wn: string; wnBg: string; ok: string
+  field: string; scrim: string
+}
+
+export const pvLight: PvColors = {
+  bg: '#f3f2f8', glow: 'rgba(109,92,255,0.10)', surface: '#ffffff', raised: '#faf9fd',
+  col: 'rgba(30,20,90,0.035)', col2: '#f1f0f7',
+  line: 'rgba(30,20,90,0.09)', line2: 'rgba(30,20,90,0.17)',
+  text: '#0d0b18', muted: '#5d5a78', hint: '#6a6784',
+  acc: '#6d5cff', accFg: '#5a48e8', accBg: '#efecff', onAcc: '#ffffff', accShadow: '#6d5cff',
+  dg: '#c8362f', dgBg: '#fdecec', wn: '#8a5608', wnBg: '#fdf1dc', ok: '#18a97c',
+  field: '#faf9fd', scrim: 'rgba(5,3,12,0.64)',
+}
+
+export const pvDark: PvColors = {
+  bg: '#07050e', glow: 'rgba(109,92,255,0.17)', surface: '#0f0b1c', raised: '#161029',
+  col: 'rgba(255,255,255,0.028)', col2: '#1d1733',
+  line: 'rgba(255,255,255,0.075)', line2: 'rgba(255,255,255,0.13)',
+  text: '#f6f4fd', muted: '#aaa4c8', hint: '#9691b3',
+  acc: '#6d5cff', accFg: '#b6a9ff', accBg: 'rgba(109,92,255,0.17)', onAcc: '#ffffff', accShadow: '#6d5cff',
+  dg: '#ff8a91', dgBg: 'rgba(255,129,137,0.15)', wn: '#ffc44d', wnBg: 'rgba(255,196,77,0.14)', ok: '#27c997',
+  field: '#1d1733', scrim: 'rgba(5,3,12,0.64)',
+}
+
+/** Les jetons « historiques » réaffectés sur la palette de la page projet — comme le web
+ *  (`--bg: var(--pv-surface)`, `--surface: var(--pv-raised)`…) : les onglets non refaits
+ *  (équipe, sondages, activité…) restent cohérents avec le nouvel écran. */
+export function pvAsColors(base: Colors, pv: PvColors): Colors {
+  return {
+    ...base,
+    bg: pv.surface, surface: pv.raised, surface2: pv.col2, soft: pv.col2, elevated: pv.raised,
+    line: pv.line, lineStrong: pv.line2,
+    text: pv.text, muted: pv.muted, hint: pv.hint,
+    accent: pv.acc, accentOn: pv.accFg, accentBg: pv.accBg, accentSoft: pv.accBg, onAccent: pv.onAcc,
+    danger: pv.dg, dangerOn: pv.dg, dangerBg: pv.dgBg,
+    warn: pv.wn, warnOn: pv.wn, warnBg: pv.wnBg,
+    ok: pv.ok, okOn: pv.ok,
+    field: pv.field, scrim: pv.scrim,
+  }
+}

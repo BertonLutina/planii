@@ -80,7 +80,7 @@ function PollCard({ poll, closed, onVote }: { poll: Poll; closed: boolean; onVot
                 {
                   borderColor: mine ? c.accent : c.line,
                   borderWidth: mine ? 1.5 : 1,
-                  backgroundColor: pressed && !closed ? c.surface2 : c.bg,
+                  backgroundColor: pressed && !closed ? c.surface2 : c.field,
                 },
               ]}
             >

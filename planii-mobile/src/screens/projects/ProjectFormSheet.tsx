@@ -111,7 +111,7 @@ function LabelPicker({ labels, value, onChange }: { labels: ProjectLabel[]; valu
               style={({ pressed }) => [
                 s.labelChip,
                 {
-                  backgroundColor: on ? c.accentBg : pressed ? c.surface2 : c.bg,
+                  backgroundColor: on ? c.accentBg : pressed ? c.surface2 : c.field,
                   borderColor: on ? c.accent : c.lineStrong,
                   borderWidth: on ? 1.5 : 1,
                 },

@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ic } from '@/components/Icon'
 import { t } from '@/lib/i18n'
-import { useTheme } from '@/theme/ThemeProvider'
+import { usePv, useTheme } from '@/theme/ThemeProvider'
 import { useReduceMotion } from './useReduceMotion'
 
 export interface SheetProps {
@@ -30,6 +30,8 @@ export interface SheetProps {
    * l'œil reste au milieu de l'écran au lieu de descendre en bas.
    */
   placement?: 'bottom' | 'center'
+  /** `pv` — habillage de la page projet (prototype v3) : fond `surface`, coins 24, titre 22, pied à filet. */
+  variant?: 'default' | 'pv'
 }
 
 /** Feuille modale — ancrée en bas par défaut, centrée avec `placement="center"`.
@@ -37,9 +39,11 @@ export interface SheetProps {
  *  Dans les deux cas la hauteur est plafonnée et le corps défile au-delà. */
 export function Sheet({
   open, onClose, title, children, actions,
-  scrollable = true, hideClose = false, contentStyle, placement = 'bottom',
+  scrollable = true, hideClose = false, contentStyle, placement = 'bottom', variant = 'default',
 }: SheetProps) {
   const { c } = useTheme()
+  const pv = usePv()
+  const isPv = variant === 'pv'
   const insets = useSafeAreaInsets()
   const reduce = useReduceMotion()
   const centered = placement === 'center'
@@ -52,7 +56,7 @@ export function Sheet({
     ? (
       <ScrollView
         style={s.scroll}
-        contentContainerStyle={[s.scrollInner, contentStyle]}
+        contentContainerStyle={[s.scrollInner, isPv && s.bodyPv, contentStyle]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -92,16 +96,17 @@ export function Sheet({
             accessibilityViewIsModal
             style={[
               centered ? s.dialog : s.sheet,
-              { backgroundColor: c.surface },
+              isPv && !centered && { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 0, borderWidth: 1, borderBottomWidth: 0, borderColor: pv.line2, maxHeight: Math.round(winH * 0.92) },
+              { backgroundColor: isPv ? pv.surface : c.surface },
               centered ? { maxHeight: Math.round(winH * 0.78) } : null,
               // En bas, on dégage l'indicateur d'accueil ; centré, il n'y a rien à dégager.
               centered ? null : { paddingBottom: insets.bottom + 12 },
             ]}
           >
-            {!centered && <View style={[s.handle, { backgroundColor: c.lineStrong }]} />}
+            {!centered && !isPv && <View style={[s.handle, { backgroundColor: c.lineStrong }]} />}
             {(!!title || !hideClose) && (
-              <View style={[s.head, { borderBottomColor: c.line }]}>
-                <Text numberOfLines={2} style={[s.title, { color: c.text }]}>{title}</Text>
+              <View style={[s.head, { borderBottomColor: c.line }, isPv && s.headPv]}>
+                <Text numberOfLines={2} style={[s.title, { color: c.text }, isPv && s.titlePv]}>{title}</Text>
                 {!hideClose && (
                   <Pressable
                     onPress={onClose}
@@ -110,17 +115,27 @@ export function Sheet({
                     accessibilityLabel={t('action.close')}
                     style={({ pressed }) => [
                       s.close,
-                      { borderColor: c.line, backgroundColor: pressed ? c.surface2 : 'transparent' },
+                      isPv
+                        ? { width: 32, height: 32, borderRadius: 10, borderWidth: 0, backgroundColor: pressed ? pv.col2 : 'transparent' }
+                        : { borderColor: c.line, backgroundColor: pressed ? c.surface2 : 'transparent' },
                     ]}
                   >
-                    <Ic name="x" s={17} c={c.muted} strokeWidth={2.1} />
+                    <Ic name="x" s={isPv ? 18 : 17} c={isPv ? pv.hint : c.muted} strokeWidth={2.1} />
                   </Pressable>
                 )}
               </View>
             )}
             {body}
             {!!actions && (
-              <View style={[s.actions, { borderTopColor: c.line, backgroundColor: c.surface }]}>{actions}</View>
+              <View
+                style={[
+                  s.actions,
+                  { borderTopColor: c.line, backgroundColor: isPv ? pv.surface : c.surface },
+                  isPv && s.actionsPv,
+                ]}
+              >
+                {actions}
+              </View>
             )}
           </View>
         </KeyboardAvoidingView>
@@ -158,4 +173,8 @@ const s = StyleSheet.create({
   scroll: { flexGrow: 0, flexShrink: 1 },
   scrollInner: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 6 },
   actions: { flexDirection: 'row', gap: 10, paddingHorizontal: 18, paddingTop: 12, borderTopWidth: 1 },
+  headPv: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 6, borderBottomWidth: 0 },
+  bodyPv: { paddingHorizontal: 20, paddingTop: 14 },
+  titlePv: { fontSize: 22, letterSpacing: -0.55 },
+  actionsPv: { paddingHorizontal: 20, paddingTop: 18, marginTop: 8 },
 })

@@ -83,7 +83,7 @@ export const RefField = forwardRef<TextInput, RefFieldProps>(function RefField({
           style={[
             s.input,
             {
-              backgroundColor: c.bg,
+              backgroundColor: c.field,
               borderColor: border,
               borderWidth: focus || error ? 1.5 : 1,
               color: c.text,

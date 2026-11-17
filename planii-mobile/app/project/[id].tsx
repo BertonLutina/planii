@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import {
-  ActionMenu, Banner, Button, Confirm, Fab, Ic, Tabs,
-  type ActionItem, type TabItem,
+  ActionMenu, Banner, Button, Confirm, Ic,
+  type ActionItem,
 } from '@/components/ui'
 import { api } from '@/lib/api'
 import { canManage } from '@/lib/dates'
@@ -12,6 +12,7 @@ import { useSession } from '@/lib/session'
 import type { ProjectLabel } from '@/lib/types'
 import { ProjectHeader } from '@/screens/project/ProjectHeader'
 import { ProjectSkeleton } from '@/screens/project/ProjectSkeleton'
+import { ProjectTabBar, type ProjectTab } from '@/screens/project/ProjectTabBar'
 import { ActivityTab } from '@/screens/project/activity/ActivityTab'
 import { AppointmentsTab } from '@/screens/project/appointments/AppointmentsTab'
 import { afterSheet, errMsg, toastAfterSheet, toastErrAfterSheet } from '@/screens/project/lib/flow'
@@ -23,7 +24,7 @@ import { StatusAdminSheet } from '@/screens/project/tasks/StatusAdminSheet'
 import { TasksTab } from '@/screens/project/tasks/TasksTab'
 import { TeamTab } from '@/screens/project/team/TeamTab'
 import { DEFAULT_PROJECT_LABELS, EditProjectSheet } from '@/screens/projects'
-import { useTheme } from '@/theme/ThemeProvider'
+import { PvThemeScope, usePv, useTheme } from '@/theme/ThemeProvider'
 
 /* Détail d'un projet — portage de `ProjectDetail`
    (planii-vite/src/components/ProjectDetail.tsx, 1 300 lignes).
@@ -53,11 +54,17 @@ import { useTheme } from '@/theme/ThemeProvider'
    d'onglets, donc `tabBarHeight={0}` — le bouton se pose à
    `insets.bottom + 18`, et les listes réservent `insets.bottom + 96`. */
 
-type Tab = 'tasks' | 'meet' | 'team' | 'appts' | 'polls' | 'activity'
+type Tab = ProjectTab
 
+/** La page projet vit dans sa propre palette (prototype v3, clair et sombre). */
 export default function ProjectDetailScreen() {
+  return <PvThemeScope><ProjectDetail /></PvThemeScope>
+}
+
+function ProjectDetail() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { c } = useTheme()
+  const pv = usePv()
   const router = useRouter()
   const { me } = useSession()
   useI18n()
@@ -71,7 +78,7 @@ export default function ProjectDetailScreen() {
   const [statusOpen, setStatusOpen] = useState(false)
   const [closeOpen, setCloseOpen] = useState(false)
   const [delOpen, setDelOpen] = useState(false)
-  const [newTask, setNewTask] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [labels, setLabels] = useState<ProjectLabel[]>(DEFAULT_PROJECT_LABELS)
 
@@ -144,19 +151,18 @@ export default function ProjectDetailScreen() {
     return out
   }, [p, owner, manage, closed, pd.reload, reopenProject])
 
-  const tabs: TabItem<Tab>[] = [
-    { key: 'tasks', label: t('ad.tasks'), icon: 'tasks' },
-    { key: 'meet', label: t('meet.title'), icon: 'message' },
-    { key: 'team', label: t('pd.tabTeam'), icon: 'users' },
-    { key: 'appts', label: t('qa.appt'), icon: 'calendar' },
-    { key: 'polls', label: t('pd.tabPolls'), icon: 'poll' },
-    { key: 'activity', label: t('pd.tabActivity'), icon: 'activity' },
+  const moreItems: ActionItem[] = [
+    { label: t('meet.title'), icon: 'message', onPress: () => setTab('meet') },
+    { label: t('pd.tabPolls'), icon: 'poll', onPress: () => setTab('polls') },
   ]
 
   const screenOptions = (
     <Stack.Screen
       options={{
-        title: p?.name ?? t('nav.projects'),
+        // Le nom du projet est dans l'en-tête de page : le bandeau reste sobre, à la couleur de la page.
+        title: '',
+        headerStyle: { backgroundColor: pv.surface },
+        contentStyle: { backgroundColor: pv.surface },
         headerRight: () => (p
           ? (
             <Pressable
@@ -166,7 +172,7 @@ export default function ProjectDetailScreen() {
               accessibilityLabel={t('pd.actions')}
               style={s.headBtn}
             >
-              <Ic name="more-vertical" s={21} c={c.text} />
+              <Ic name="more-vertical" s={21} c={pv.text} />
             </Pressable>
           )
           : null),
@@ -196,32 +202,32 @@ export default function ProjectDetailScreen() {
     )
   }
 
+  const closedBanner = closed
+    ? (
+      <View style={s.pad}>
+        <Banner
+          tone="warn"
+          icon="lock"
+          style={s.closedBanner}
+          text={
+            `${t('pd.closedT')} ${t('pd.closedX')}`
+            + (owner && p.canReopen && p.reopenUntil
+              ? ' ' + t('pd.reopenUntil', { d: new Date(p.reopenUntil).toLocaleDateString('fr-FR') })
+              : '')
+            + (owner && !p.canReopen ? ' ' + t('pd.reopenLate') : '')
+          }
+        />
+      </View>
+    )
+    : null
+
   return (
     <View style={[s.screen, { backgroundColor: c.bg }]}>
       {screenOptions}
 
-      <ProjectHeader p={p} />
-
-      {closed && (
-        <View style={s.pad}>
-          <Banner
-            tone="warn"
-            icon="lock"
-            style={s.closedBanner}
-            text={
-              `${t('pd.closedT')} ${t('pd.closedX')}`
-              + (owner && p.canReopen && p.reopenUntil
-                ? ' ' + t('pd.reopenUntil', { d: new Date(p.reopenUntil).toLocaleDateString('fr-FR') })
-                : '')
-              + (owner && !p.canReopen ? ' ' + t('pd.reopenLate') : '')
-            }
-          />
-        </View>
-      )}
-
-      <View style={s.switcher}>
-        <Tabs items={tabs} value={tab} onChange={setTab} scrollable />
-      </View>
+      {/* Autres onglets : en-tête compact et fixe (celui des tâches défile avec la liste). */}
+      {tab !== 'tasks' && <ProjectHeader p={p} compact />}
+      {tab !== 'tasks' && closedBanner}
 
       {/* Rafraîchissement en échec mais projet à l'écran : on le dit sans vider. */}
       {!!pd.err && <View style={s.pad}><Banner tone="danger" icon="alert" text={pd.err} /></View>}
@@ -232,8 +238,17 @@ export default function ProjectDetailScreen() {
           me={me}
           statuses={statuses}
           data={pd}
-          newOpen={newTask}
-          onCloseNew={() => setNewTask(false)}
+          top={(
+            <>
+              <ProjectHeader
+                p={p}
+                onMeet={() => setTab('meet')}
+                onClose={manage && !closed ? () => setCloseOpen(true) : undefined}
+                onReopen={owner && closed && p.canReopen ? reopenProject : undefined}
+              />
+              {closedBanner}
+            </>
+          )}
         />
       )}
       {tab === 'meet' && <MeetingTab p={p} me={me} statuses={statuses} onChanged={pd.reload} />}
@@ -242,11 +257,9 @@ export default function ProjectDetailScreen() {
       {tab === 'polls' && <PollsTab p={p} reload={pd.reload} />}
       {tab === 'activity' && <ActivityTab projectId={p.id} />}
 
-      {/* Dernier enfant du conteneur `flex: 1` — jamais dans une liste.
-          Écran de pile : aucune barre d'onglets à franchir. */}
-      {tab === 'tasks' && !closed && (
-        <Fab onPress={() => setNewTask(true)} accessibilityLabel={t('qt.title')} tabBarHeight={0} />
-      )}
+      {/* Mobile : les onglets passent dans une barre fixe en bas (le « + » flottant vit dans l'onglet Tâches). */}
+      <ProjectTabBar value={tab} onChange={setTab} onMore={() => setMoreOpen(true)} />
+      <ActionMenu open={moreOpen} onClose={() => setMoreOpen(false)} title={t('pv.more')} items={moreItems} />
 
       <ActionMenu open={menuOpen} onClose={() => setMenuOpen(false)} title={p.name} items={menuItems} />
 
@@ -299,7 +312,6 @@ export default function ProjectDetailScreen() {
 const s = StyleSheet.create({
   screen: { flex: 1 },
   pad: { paddingHorizontal: 18 },
-  switcher: { paddingHorizontal: 18, paddingTop: 12 },
   closedBanner: { marginTop: 12, marginBottom: 0 },
   headBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   retry: { marginTop: 12, alignSelf: 'flex-start' },

@@ -281,7 +281,7 @@ export function ImportWizard({ open, onClose, projectId, onImported }: ImportWiz
                   accessibilityLabel={t('imp.drop')}
                   style={({ pressed }) => [
                     s.drop,
-                    { borderColor: c.lineStrong, backgroundColor: pressed ? c.surface2 : c.bg },
+                    { borderColor: c.lineStrong, backgroundColor: pressed ? c.surface2 : c.field },
                   ]}
                 >
                   <Ic name="folder" s={26} c={c.accent} />

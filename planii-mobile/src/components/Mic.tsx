@@ -209,7 +209,7 @@ export function MicField({
           style={[
             s.input,
             {
-              backgroundColor: c.bg,
+              backgroundColor: c.field,
               borderColor: border,
               borderWidth: focus || error || d.rec ? 1.5 : 1,
               color: c.text,
@@ -350,9 +350,9 @@ export function MicButton({ rec, size, label, onPress, round = false, disabled =
 const s = StyleSheet.create({
   /* Mêmes valeurs que `Field` — la parenté visuelle doit rester évidente. */
   wrap: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  label: { fontSize: 13.5, fontWeight: '700', marginBottom: 8 },
   row: { position: 'relative', justifyContent: 'center' },
-  input: { paddingHorizontal: 13, paddingVertical: 12, borderRadius: 11, fontSize: 16 },
+  input: { paddingHorizontal: 13, paddingVertical: 12, borderRadius: 12, fontSize: 16 },
   msg: { fontSize: 12.5, marginTop: 5, fontWeight: '600' },
 
   btn: { alignItems: 'center', justifyContent: 'center', borderWidth: 1 },

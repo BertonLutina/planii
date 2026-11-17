@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Appearance, useColorScheme } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { dark, light, type Colors } from './tokens'
+import { dark, light, pvAsColors, pvDark, pvLight, type Colors, type PvColors } from './tokens'
 
 export type Theme = 'light' | 'dark' | 'auto'
 export type Resolved = 'light' | 'dark'
@@ -63,4 +63,26 @@ export function useTheme(): Ctx {
   const v = useContext(ThemeCtx)
   if (!v) throw new Error('useTheme doit être utilisé dans <ThemeProvider>')
   return v
+}
+
+/** Portée « page projet » : palette du prototype (clair / sombre). Les composants
+ *  historiques y lisent `c` (jetons réaffectés) ; les nouveaux lisent `usePv()`. */
+const PvCtx = createContext<PvColors | null>(null)
+
+export function PvThemeScope({ children }: { children: ReactNode }) {
+  const base = useTheme()
+  const pv = base.dark ? pvDark : pvLight
+  const value = useMemo<Ctx>(() => ({ ...base, c: pvAsColors(base.c, pv) }), [base, pv])
+  return (
+    <ThemeCtx.Provider value={value}>
+      <PvCtx.Provider value={pv}>{children}</PvCtx.Provider>
+    </ThemeCtx.Provider>
+  )
+}
+
+/** Jetons --pv-* ; hors de `PvThemeScope` (ex. écran isolé) on retombe sur la palette du thème actif. */
+export function usePv(): PvColors {
+  const v = useContext(PvCtx)
+  const { dark: isDark } = useTheme()
+  return v ?? (isDark ? pvDark : pvLight)
 }

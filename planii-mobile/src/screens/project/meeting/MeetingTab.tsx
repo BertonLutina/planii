@@ -226,7 +226,7 @@ export function MeetingTab({ p, me, statuses, onChanged }: MeetingTabProps) {
             placeholderTextColor={c.hint}
             multiline
             accessibilityLabel={t('meet.write')}
-            style={[s.input, { backgroundColor: c.bg, borderColor: c.lineStrong, color: c.text }]}
+            style={[s.input, { backgroundColor: c.field, borderColor: c.lineStrong, color: c.text }]}
           />
           <Mic value={text} onChange={setText} onIssue={() => setErr(t('vw.noVoice'))} />
           <Pressable
