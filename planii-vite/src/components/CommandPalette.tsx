@@ -15,7 +15,7 @@ type Item = { icon: string; label: string; run: () => void }
 export function CommandPalette({ open, onClose, setTab, openProject, newProject }: {
   open: boolean
   onClose: () => void
-  setTab: (t: 'accueil' | 'projets' | 'calendrier' | 'classement' | 'profil') => void
+  setTab: (t: 'accueil' | 'projets' | 'calendrier' | 'classement' | 'profil' | 'mcp' | 'notes') => void
   openProject: (id: string) => void
   newProject: () => void
 }) {
@@ -39,6 +39,8 @@ export function CommandPalette({ open, onClose, setTab, openProject, newProject 
     { icon: 'calendar-days', label: tr('cmd.agenda'), run: () => setTab('calendrier') },
     { icon: 'trophy', label: tr('cmd.leaderboard'), run: () => setTab('classement') },
     { icon: 'user', label: tr('cmd.profile'), run: () => setTab('profil') },
+    { icon: 'sparkles', label: tr('nav.mcp'), run: () => setTab('mcp') },
+    { icon: 'file-text', label: tr('nav.notes'), run: () => setTab('notes') },
     { icon: 'plus', label: tr('cmd.newProject'), run: newProject },
     { icon: 'sun', label: tr('cmd.light'), run: () => applyTheme('light') },
     { icon: 'moon', label: tr('cmd.dark'), run: () => applyTheme('dark') },

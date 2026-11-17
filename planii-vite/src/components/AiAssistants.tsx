@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { Modal, toast, toastErr } from '@/lib/ui'
+import { toast, toastErr } from '@/lib/ui'
 import { getLang, t as tr, useI18n } from '@/lib/i18n'
 import type { User } from '@/lib/types'
 import { Ic } from './Icon'
@@ -39,7 +39,7 @@ function Guides({ url }: { url: string }) {
   const gemini = JSON.stringify({ mcpServers: { planii: { httpUrl: url } } })
   return (
     <div className="ai-guides">
-      <details className="ai-guide">
+      <details className="ai-guide" open>
         <summary>Claude</summary>
         <ol>
           <li>{t('ai.claude1')}</li>
@@ -83,7 +83,20 @@ function ScopeChips({ scopes }: { scopes: string[] }) {
   )
 }
 
-export function AiAssistantsModal({ onClose }: { onClose: () => void }) {
+const PROMPT_KEYS = ['ai.prompt1', 'ai.prompt2', 'ai.prompt3', 'ai.prompt4', 'ai.prompt5', 'ai.prompt6']
+const CAN_KEYS = ['ai.can1', 'ai.can2', 'ai.can3', 'ai.can4', 'ai.can5', 'ai.can6']
+
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <section className="card ai-step">
+      <h3 className="ai-step-h"><span className="ai-step-n" aria-hidden="true">{n}</span>{title}</h3>
+      {children}
+    </section>
+  )
+}
+
+/** Page « Connecteur MCP » (navigation de l'app) : guide de configuration + gestion des accès. */
+export function AiAssistantsPage() {
   const { t } = useI18n()
   const [url, setUrl] = useState('')
   const [conns, setConns] = useState<Connection[] | null>(null)
@@ -107,69 +120,99 @@ export function AiAssistantsModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal title={t('ai.title')} onClose={onClose}>
-      <p className="sub" style={{ marginTop: 0 }}>{t('ai.intro')}</p>
-      {err && <p className="sub" role="alert" style={{ color: 'var(--danger)' }}>{t('ai.loadErr')} <button className="btn ghost sm" onClick={load}>{t('ai.retry')}</button></p>}
+    <div className="settings-page ai-page">
+      <section className="card ai-hero">
+        <h2>{t('ai.heroTitle')}</h2>
+        <p className="sub">{t('ai.intro')}</p>
+        <p className="sub">{t('ai.teamNote')}</p>
+        {err && <p className="sub" role="alert" style={{ color: 'var(--danger)' }}>{t('ai.loadErr')} <button className="btn ghost sm" onClick={load}>{t('ai.retry')}</button></p>}
+      </section>
 
-      <div className="section-h">{t('ai.urlTitle')}</div>
-      <CodeLine text={url || '…'} />
+      <Step n={1} title={t('ai.s1')}>
+        <p className="sub" style={{ marginTop: 0 }}>{t('ai.s1Body')}</p>
+        <CodeLine text={url || '…'} />
+      </Step>
 
-      <div className="section-h" style={{ marginTop: 18 }}>{t('ai.connectTitle')}</div>
-      <Guides url={url || ''} />
+      <Step n={2} title={t('ai.s2')}>
+        <p className="sub" style={{ marginTop: 0 }}>{t('ai.s2Body')}</p>
+        <Guides url={url || ''} />
+      </Step>
 
-      <div className="section-h" style={{ marginTop: 18 }}>{t('ai.authorized')}</div>
-      {conns === null ? <p className="sub">{t('common.loading')}</p>
-        : conns.length === 0 ? <p className="sub">{t('ai.noneYet')}</p>
-        : (
-          <ul className="ai-conns">
-            {conns.map((c) => (
-              <li key={c.id} className="ai-conn">
-                <div className="ai-conn-main">
-                  <b>{c.clientName}</b>
-                  <ScopeChips scopes={c.scopes} />
-                  <span className="sub">{t('ai.connectedOn', { d: new Date(c.createdAt).toLocaleDateString(getLang()) })} · {c.lastUsedAt ? t('ai.lastUsed', { d: ago(c.lastUsedAt) }) : t('ai.neverUsed')}</span>
-                </div>
-                <button type="button" className="btn danger sm" onClick={() => revoke(c)}>{t('ai.revoke')}</button>
+      <Step n={3} title={t('ai.s3')}>
+        <p className="sub" style={{ marginTop: 0 }}>{t('ai.s3Body')}</p>
+      </Step>
+
+      <Step n={4} title={t('ai.s4')}>
+        <p className="sub" style={{ marginTop: 0 }}>{t('ai.s4Body')}</p>
+        <ul className="ai-prompts">
+          {PROMPT_KEYS.map((k) => (
+            <li key={k}>
+              <span>« {t(k)} »</span>
+              <button type="button" className="btn ghost sm" onClick={() => copy(t(k))} aria-label={t('ai.copy') + ' : ' + t(k)}>{t('ai.copy')}</button>
+            </li>
+          ))}
+        </ul>
+      </Step>
+
+      <section className="card">
+        <h3 className="ai-h">{t('ai.authorized')}</h3>
+        {conns === null ? <p className="sub">{t('common.loading')}</p>
+          : conns.length === 0 ? <p className="sub">{t('ai.noneYet')}</p>
+          : (
+            <ul className="ai-conns">
+              {conns.map((c) => (
+                <li key={c.id} className="ai-conn">
+                  <div className="ai-conn-main">
+                    <b>{c.clientName}</b>
+                    <ScopeChips scopes={c.scopes} />
+                    <span className="sub">{t('ai.connectedOn', { d: new Date(c.createdAt).toLocaleDateString(getLang()) })} · {c.lastUsedAt ? t('ai.lastUsed', { d: ago(c.lastUsedAt) }) : t('ai.neverUsed')}</span>
+                  </div>
+                  <button type="button" className="btn danger sm" onClick={() => revoke(c)}>{t('ai.revoke')}</button>
+                </li>
+              ))}
+            </ul>
+          )}
+      </section>
+
+      <section className="card">
+        <h3 className="ai-h">{t('ai.canTitle')}</h3>
+        <ul className="ai-data">{CAN_KEYS.map((k) => <li key={k}>{t(k)}</li>)}</ul>
+        <h3 className="ai-h" style={{ marginTop: 16 }}>{t('ai.dataTitle')}</h3>
+        <ul className="ai-data">
+          <li>{t('ai.data1')}</li>
+          <li>{t('ai.data2')}</li>
+          <li>{t('ai.data3')}</li>
+        </ul>
+      </section>
+
+      <section className="card">
+        <h3 className="ai-h">{t('ai.history')}</h3>
+        {acts === null ? null : acts.length === 0 ? <p className="sub">{t('ai.noHistory')}</p> : (
+          <ul className="ai-acts">
+            {acts.map((a) => (
+              <li key={a.id} className={a.ok ? '' : 'fail'}>
+                <span className="ai-act-tool">{a.tool.replace('planii_', '')}</span>
+                {a.write && <span className="tag client">{t('ai.scopeWrite')}</span>}
+                {!a.ok && <span className="tag late">{t('ai.failed')}</span>}
+                <span className="sub">{a.clientName || ''} · {ago(a.at)}{a.detail ? ' · ' + a.detail : ''}</span>
               </li>
             ))}
           </ul>
         )}
-
-      <div className="section-h" style={{ marginTop: 18 }}>{t('ai.dataTitle')}</div>
-      <ul className="ai-data">
-        <li>{t('ai.data1')}</li>
-        <li>{t('ai.data2')}</li>
-        <li>{t('ai.data3')}</li>
-      </ul>
-
-      <div className="section-h" style={{ marginTop: 18 }}>{t('ai.history')}</div>
-      {acts === null ? null : acts.length === 0 ? <p className="sub">{t('ai.noHistory')}</p> : (
-        <ul className="ai-acts">
-          {acts.map((a) => (
-            <li key={a.id} className={a.ok ? '' : 'fail'}>
-              <span className="ai-act-tool">{a.tool.replace('planii_', '')}</span>
-              {a.write && <span className="tag client">{t('ai.scopeWrite')}</span>}
-              {!a.ok && <span className="tag late">{t('ai.failed')}</span>}
-              <span className="sub">{a.clientName || ''} · {ago(a.at)}{a.detail ? ' · ' + a.detail : ''}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Modal>
+      </section>
+    </div>
   )
 }
 
-/** Carte du Profil : point d'entrée « Assistants IA ». */
-export function AiAssistantsEntry() {
+/** Entrée du Profil : renvoie vers la page « Connecteur MCP ». */
+export function AiAssistantsEntry({ onOpen }: { onOpen: () => void }) {
   const { t } = useI18n()
-  const [open, setOpen] = useState(false)
   return (
     <>
       <div className="section-h" style={{ marginTop: 18 }}>{t('ai.title')}</div>
-      <button type="button" className="btn ghost block" onClick={() => setOpen(true)}>
+      <button type="button" className="btn ghost block" onClick={onOpen}>
         <Ic name="sparkles" s={16} /> {t('ai.manage')}
       </button>
-      {open && <AiAssistantsModal onClose={() => setOpen(false)} />}
     </>
   )
 }

@@ -22,7 +22,9 @@ import { useI18n, LangPicker, trTerm, t as tt } from '@/lib/i18n'
 import { Admin } from './components/Admin'
 import { StyleGuide } from './components/StyleGuide'
 import { Privacy } from './components/Privacy'
-import { AiAssistantsEntry, OAuthConsent, isOAuthConsentRoute } from './components/AiAssistants'
+import { ReleaseNotes } from './components/ReleaseNotes'
+import { APP_VERSION } from './lib/releases'
+import { AiAssistantsEntry, AiAssistantsPage, OAuthConsent, isOAuthConsentRoute } from './components/AiAssistants'
 import { applyTheme, effectiveTheme, getTheme, type Theme } from '@/lib/theme'
 import { useProjectSummaries } from '@/lib/useProjects'
 import { connectRealtime, disconnectRealtime } from '@/lib/realtime'
@@ -359,7 +361,7 @@ function EditInfoModal({ me, onClose, onUpdate }: { me: User; onClose: () => voi
   )
 }
 
-function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void }) {
+function Profile({ me, onLogout, onUpdate, onAdmin, onOpenMcp, onOpenNotes }: { me: User; onLogout: () => void; onUpdate: (u: User) => void; onAdmin: () => void; onOpenMcp: () => void; onOpenNotes: () => void }) {
   const { t: tr } = useI18n()
   const [editInfo, setEditInfo] = useState(false)
   const [emailNotifsOpen, setEmailNotifsOpen] = useState(false)
@@ -448,7 +450,7 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
             <Ic name="mail" s={16} /> {tr('profile.emailNotifs')}
           </button>
 
-          <AiAssistantsEntry />
+          <AiAssistantsEntry onOpen={onOpenMcp} />
 
           <ListEditor me={me} onUpdate={onUpdate}
             title={tr('profile.roles')} field="roleLibrary" get={roleLibraryOf}
@@ -473,6 +475,9 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
             <ThemeControl />
             <div className="section-h" style={{ marginTop: 18 }}>{tr('lang.title')}</div>
             <LangPicker />
+            <button type="button" className="btn ghost block" style={{ marginTop: 18 }} onClick={onOpenNotes}>
+              <Ic name="file-text" s={16} /> {tr('nav.notes')} · v{APP_VERSION}
+            </button>
           </div>
         </div>
       </div>
@@ -480,15 +485,19 @@ function Profile({ me, onLogout, onUpdate, onAdmin }: { me: User; onLogout: () =
   )
 }
 
-type TabKey = 'accueil' | 'projets' | 'calendrier' | 'classement' | 'profil' | 'admin'
+type TabKey = 'accueil' | 'projets' | 'calendrier' | 'classement' | 'profil' | 'mcp' | 'notes' | 'admin'
 const I = {
   accueil: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></svg>,
   projets: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /></svg>,
   calendrier: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /></svg>,
   classement: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M8 21h8M12 17v4M6 4h12v5a6 6 0 0 1-12 0zM6 6H3v2a3 3 0 0 0 3 3M18 6h3v2a3 3 0 0 1-3 3" /></svg>,
   profil: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></svg>,
+  mcp: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0zM12 16v5" /></svg>,
+  notes: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h8l4 4v14H7z" /><path d="M15 3v4h4M10 12h6M10 16h6" /></svg>,
 }
 const NAV: [TabKey, string][] = [['accueil', 'Accueil'], ['projets', 'Projets'], ['calendrier', 'Agenda'], ['classement', 'Classement'], ['profil', 'Profil']]
+/** Barre latérale : la barre du bas du téléphone reste à 5 entrées ; « Connecteur MCP » s'y atteint depuis le Profil. */
+const SIDE_NAV: [TabKey, string][] = [...NAV, ['mcp', 'MCP'], ['notes', 'Release Notes']]
 const ADMIN_ICON = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" /><path d="M9.5 12l1.8 1.8L15 10" /></svg>
 
 function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onUpdate: (u: User) => void }) {
@@ -523,8 +532,8 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
   const { t: tr } = useI18n()
 
   if (openId) return <ProjectDetail id={openId} me={me} onBack={() => setOpenId(null)} />
-  const TITLES: Record<TabKey, string> = { accueil: tr('title.home'), projets: tr('title.projects'), calendrier: tr('title.agenda'), classement: tr('title.leaderboard'), profil: tr('title.profile'), admin: tr('title.admin') }
-  const MOBILE_TITLES: Record<TabKey, string> = { accueil: tr('nav.home'), projets: tr('nav.projects'), calendrier: tr('nav.agenda'), classement: tr('nav.leaderboard'), profil: tr('nav.profile'), admin: tr('nav.admin') }
+  const TITLES: Record<TabKey, string> = { accueil: tr('title.home'), projets: tr('title.projects'), calendrier: tr('title.agenda'), classement: tr('title.leaderboard'), profil: tr('title.profile'), mcp: tr('title.mcp'), notes: tr('title.notes'), admin: tr('title.admin') }
+  const MOBILE_TITLES: Record<TabKey, string> = { accueil: tr('nav.home'), projets: tr('nav.projects'), calendrier: tr('nav.agenda'), classement: tr('nav.leaderboard'), profil: tr('nav.profile'), mcp: tr('nav.mcp'), notes: tr('nav.notes'), admin: tr('nav.admin') }
   const NAVL: Record<TabKey, string> = MOBILE_TITLES
   const title = TITLES[tab]
   const HV: [typeof homeView, string, string][] = [['list', 'list', tr('view.list')], ['board', 'board', tr('view.board')], ['agenda', 'calendar-days', tr('view.agenda')]]
@@ -544,7 +553,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
           {me.admin && (
             <button className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>{ADMIN_ICON}<span>{NAVL.admin}</span></button>
           )}
-          {NAV.map(([k]) => (
+          {SIDE_NAV.map(([k]) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{I[k]}<span>{NAVL[k]}</span></button>
           ))}
         </nav>
@@ -567,6 +576,7 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
           <div className="side-brand"><span className="logo"><b /></span><span>Planii</span></div>
           <ThemeToggleButton />
         </div>
+        <button type="button" className="side-version" onClick={() => setTab('notes')} title={tr('rn.open')}>v{APP_VERSION}</button>
       </aside>
 
       <main className="shell-main">
@@ -593,7 +603,9 @@ function Shell({ me, onLogout, onUpdate }: { me: User; onLogout: () => void; onU
           {tab === 'projets' && <ProjectsList onOpen={setOpenId} onJoin={() => setJoinOpen(true)} openSignal={newSignal} onOpenSignalConsumed={() => setNewSignal(0)} />}
           {tab === 'calendrier' && <CalendarView onOpen={setOpenId} />}
           {tab === 'classement' && <Leaderboard onOpen={setOpenId} />}
-          {tab === 'profil' && <Profile me={me} onLogout={onLogout} onUpdate={onUpdate} onAdmin={() => setTab('admin')} />}
+          {tab === 'profil' && <Profile me={me} onLogout={onLogout} onUpdate={onUpdate} onAdmin={() => setTab('admin')} onOpenMcp={() => setTab('mcp')} onOpenNotes={() => setTab('notes')} />}
+          {tab === 'mcp' && <AiAssistantsPage />}
+          {tab === 'notes' && <ReleaseNotes />}
           {tab === 'admin' && me.admin && <Admin me={me} />}
         </div>
       </main>

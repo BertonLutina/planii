@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useRouter } from 'expo-router'
+import { useRouter, type Href } from 'expo-router'
 import { Button, Confirm, NATIVE_TAB_BAR, SectionHeader, Skeleton } from '@/components/ui'
 import { t, useI18n } from '@/lib/i18n'
+import { APP_VERSION } from '@/lib/releases'
 import { useSession } from '@/lib/session'
 import { roleLibraryOf, taskTypesOf } from '@/lib/tasktype'
 import { EmailNotifsSection } from '@/screens/profile/EmailNotifsSection'
@@ -93,6 +94,16 @@ export default function ProfilScreen() {
             <LangPicker />
 
             <Button
+              label={`${t('nav.notes')} · v${APP_VERSION}`}
+              icon="file-text"
+              variant="secondary"
+              block
+              // `Href` explicite : les types de routes générés ne connaissent la route qu'après le prochain `expo start`.
+              onPress={() => router.push('/release-notes' as Href)}
+              style={s.notes}
+            />
+
+            <Button
               label={t('profile.logout')}
               icon="logout"
               variant="danger"
@@ -136,7 +147,8 @@ const s = StyleSheet.create({
   title: { fontSize: 27, fontWeight: '800', letterSpacing: -0.5, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8 },
   body: { paddingHorizontal: 18, paddingBottom: 32 + NATIVE_TAB_BAR },
   admin: { marginTop: 20 },
-  logout: { marginTop: 22 },
+  notes: { marginTop: 22 },
+  logout: { marginTop: 12 },
   skel: { gap: 12 },
   skelHead: { marginTop: 8 },
 })

@@ -2,13 +2,16 @@
   "expo": {
     "name": "Planii",
     "slug": "planii",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "planii",
     "userInterfaceStyle": "automatic",
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/984e1cb0-9b27-4ae5-a014-dea6e121ca26"
     },
     "ios": {
       "supportsTablet": true,

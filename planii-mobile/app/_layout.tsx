@@ -114,6 +114,8 @@ function Root() {
         <Stack.Screen name="project/[id]" options={{ headerShown: true, title: '' }} />
         <Stack.Screen name="meeting/[projectId]" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="invite/[token]" options={{ headerShown: true, title: 'Invitation' }} />
+        <Stack.Screen name="mcp" options={{ headerShown: true, title: 'MCP' }} />
+        <Stack.Screen name="release-notes" options={{ headerShown: true, title: 'Release Notes' }} />
       </Stack>
     </>
   )

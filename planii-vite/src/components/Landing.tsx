@@ -22,6 +22,7 @@ export function Landing({ onLogin, onStart }: { onLogin: () => void; onStart: ()
           <nav className="lp-links">
             <a href="#plateforme">Plateforme</a>
             <a href="#fonctions">Fonctionnalités</a>
+            <a href="#assistants-ia">Assistants IA</a>
             <a href="#mobile">Mobile</a>
             <a href="#classement">Classement</a>
           </nav>
@@ -246,6 +247,34 @@ export function Landing({ onLogin, onStart }: { onLogin: () => void; onStart: ()
               <Msg who="Lucas K." av="ok" txt="Il faut relancer le fournisseur avant vendredi." />
               <Msg who="Sarah D." av="bl" txt="Je m'en charge — on cale la revue lundi ?" pill={<span className="lp-pill ok">✓ Tâche créée</span>} />
               <Msg who="Marc T." txt="Le budget est validé côté client." pill={<span className="lp-pill ac">＋ Créer tâche</span>} />
+            </Mock>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================ ASSISTANTS IA (MCP) ============================ */}
+      <section className="lp-sec" id="assistants-ia" style={{ paddingTop: 0 }}>
+        <div className="lp-w">
+          <div className="lp-frow">
+            <div className="lp-ftxt">
+              <span className="lp-kicker">Assistants IA · connecteur MCP</span>
+              <h3>Votre assistant IA travaille directement dans Planii.</h3>
+              <p>Connectez Claude, ChatGPT, Gemini ou tout assistant compatible MCP à votre compte. Il consulte vos projets, crée et met à jour vos tâches, planifie vos rendez-vous — avec exactement vos droits, jamais plus. Idéal quand une équipe travaille avec ses agents : la tâche est terminée, l'assistant la coche et laisse un résumé que toute l'équipe voit.</p>
+              <FList items={[
+                ['Un seul connecteur', 'la même adresse pour tous les assistants, sans clé à copier.'],
+                ['Vous gardez la main', 'lecture, écriture, suppression : vous cochez ce qui est autorisé.'],
+                ['Révocable à tout moment', 'depuis le profil, sur le web comme sur mobile.'],
+                ['Historique visible', 'chaque action de l’assistant est tracée.'],
+              ]} />
+              <p style={{ marginTop: 14 }}>
+                <span className="lp-pill ac">Claude</span>{' '}<span className="lp-pill ac">ChatGPT</span>{' '}<span className="lp-pill ac">Gemini</span>{' '}<span className="lp-pill ac">+ tout client MCP</span>
+              </p>
+            </div>
+            <Mock title="Dans votre assistant IA">
+              <Msg who="Vous" txt="Quelles tâches dois-je terminer aujourd'hui ?" />
+              <Msg who="Assistant IA" av="bl" txt="Trois tâches : « Relancer le fournisseur » (P1), « Rédiger les contenus » (P2) et « Valider le budget » (P3)." pill={<span className="lp-pill ac">Planii connecté</span>} />
+              <Msg who="Vous" txt="Termine la première et note que c'est fait." />
+              <Msg who="Assistant IA" av="bl" txt="C'est fait, et j'ai ajouté un commentaire pour l'équipe." pill={<span className="lp-pill ok">✓ Tâche terminée</span>} />
             </Mock>
           </div>
         </div>
