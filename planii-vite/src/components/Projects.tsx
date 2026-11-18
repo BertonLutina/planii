@@ -7,6 +7,7 @@ import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
 import type { InviteInfo, ProjectLabel, ProjectSummary, PaginatedResponse } from '@/lib/types'
 import { LoadMoreButton } from '@/lib/usePagination'
 import { Ic } from './Icon'
+import { PvAvatar } from './PvBits'
 import { useI18n, t as tt, trTerm } from '@/lib/i18n'
 
 const TYPE_SHORT: Record<string, string> = new Proxy({}, { get: (_o, k) => tt('proj.type' + String(k)[0].toUpperCase() + String(k).slice(1)) }) as Record<string, string>
@@ -251,7 +252,17 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
                   <div className="pj-nums"><span>{h.done}/{h.total} {tr('projects.tasks')}</span><b>{h.pct}%</b></div>
                   <div className={'pj-track' + (full ? ' full' : '')}><i style={{ width: h.pct + '%' }} /></div>
                 </div>
-                <div className="pj-ft"><span><Ic name="users" s={15} />{memberCount === 1 ? tr('pj.member1') : tr('pj.members', { n: memberCount })}</span></div>
+                <div className="pj-ft">
+                  {(p.memberPreview?.length ?? 0) > 0
+                    ? (
+                      <span className="pj-stack">
+                        {p.memberPreview!.slice(0, 3).map((m) => <PvAvatar key={m.id} name={m.name} src={mediaUrl(m.avatarUrl)} />)}
+                        {memberCount > 3 && <span className="pj-more" role="img" aria-label={tr('pj.others', { n: memberCount - 3 })} title={tr('pj.others', { n: memberCount - 3 })}>+{memberCount - 3}</span>}
+                      </span>
+                    )
+                    : <Ic name="users" s={15} />}
+                  <small>{memberCount === 1 ? tr('pj.member1') : tr('pj.members', { n: memberCount })}</small>
+                </div>
                 {canDrag && <span className="drag-handle pj-drag" aria-hidden="true"><Ic name="grip" s={14} /></span>}
               </button>
               {canDrag && (

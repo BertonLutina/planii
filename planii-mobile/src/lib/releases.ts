@@ -20,6 +20,13 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.7.0', date: '2026-11-18',
+    title: { fr: 'Équipes visibles sur les projets', en: 'Teams visible on projects' },
+    items: [
+      c('Les cartes de projet montrent les photos des membres (ou leurs initiales), trois au plus, puis une pastille « +N » qui compte les autres.', 'Project cards show member photos (or initials), three at most, then a “+N” badge counting the others.', 'web'),
+    ],
+  },
+  {
     version: '1.6.0', date: '2026-11-18',
     title: { fr: 'Accueil repensé', en: 'Redesigned Home' },
     items: [
