@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api'
 import { toast, toastErr } from '@/lib/ui'
-import { formatDue, isOverdue, isoLocal } from '@/lib/dates'
-import { useMyTasks } from '@/lib/useProjects'
+import { addDays, formatDue, isOverdue, isoLocal, parseISO, startOfWeekMon, todayMid } from '@/lib/dates'
+import { useMyTasks, useProjectSummaries } from '@/lib/useProjects'
 import { useRealtime } from '@/lib/realtime'
 import { taskPoints, levelOf, pointsFor } from '@/lib/points'
 import { prio, prioMeta } from '@/lib/priority'
 import { Ic } from './Icon'
+import { PvDropdown } from './PvDropdown'
 import { CalendarView } from './Calendar'
 import { TaskDrawer } from './TaskDrawer'
-import type { Project, Task, TaskStatus, TodayPayload, TodayTask, User } from '@/lib/types'
-import { useI18n, t as tt, trTerm } from '@/lib/i18n'
+import type { ApiCalEvent, Project, Task, TaskStatus, TodayPayload, TodayTask, User } from '@/lib/types'
+import { useI18n, t as tt, trTerm, getLang } from '@/lib/i18n'
+
+type TodayKey = 'overdue' | 'dueToday' | 'highPriority' | 'transferred' | 'review'
 
 export function LevelCard({ points, name }: { points: number; name?: string }) {
   const l = levelOf(points)
@@ -34,11 +37,20 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
   const { projects, reload } = useMyTasks()
   const [drawerId, setDrawerId] = useState<string | null>(null)
   const [today, setToday] = useState<TodayPayload | null>(null)
-  const [draggingTask, setDraggingTask] = useState<{ t: Task; p: Project } | null>(null)
-  const pressRef = useRef<{ timer: number; item: { t: Task; p: Project }; x: number; y: number } | null>(null)
+  const { projects: summaries } = useProjectSummaries()
+  const [filter, setFilter] = useState<TodayKey | null>(null)
+  const [showAll, setShowAll] = useState(false)
+  const [skip, setSkip] = useState(0)
+  const [weekEvents, setWeekEvents] = useState<ApiCalEvent[]>([])
+  const [dayIdx, setDayIdx] = useState(() => (new Date().getDay() + 6) % 7)
   const loadToday = () => api<{ today: TodayPayload }>('GET', '/today').then((r) => setToday(r.today)).catch((e: any) => toastErr(e.message))
   useEffect(() => { if (refreshKey) reload() }, [refreshKey, reload])
   useEffect(() => { loadToday() }, [])
+  const weekStart = useMemo(() => startOfWeekMon(todayMid()), [])
+  useEffect(() => {
+    api<{ events: ApiCalEvent[] }>('GET', `/calendar?from=${isoLocal(weekStart)}&to=${isoLocal(addDays(weekStart, 6))}`)
+      .then((r) => setWeekEvents(r.events || [])).catch(() => setWeekEvents([]))
+  }, [weekStart, refreshKey])
   useRealtime((m) => { if (m.type === 'project' || m.type === 'notif') { reload(); loadToday() } })
   if (!projects) return <div className="empty">{tt('common.loading')}</div>
 
@@ -64,14 +76,6 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
   for (const p of projects) for (const s of p.statuses || []) statusMap.set(s.key, s)
   const statusOf = (t: Task) => t.statusKey || (t.done ? 'done' : 'todo')
   const statuses = [...statusMap.values()].sort((a, b) => a.position - b.position || a.label.localeCompare(b.label))
-  const tasksByStatus = statuses
-    .map((s) => ({
-      status: s,
-      items: mine
-        .filter((x) => statusOf(x.t) === s.key)
-        .sort((a, b) => (a.t.done ? 1 : 0) - (b.t.done ? 1 : 0) || prio(a.t.priority) - prio(b.t.priority) || (a.t.due || '9999').localeCompare(b.t.due || '9999')),
-    }))
-    .filter((g) => g.items.length > 0 || ['todo', 'in_progress', 'review', 'transferred', 'done'].includes(g.status.key))
 
   async function toggle(t: Task) {
     try {
@@ -81,7 +85,7 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
         const when = !t.due ? '' : gained >= 20 ? tt('home.early') : gained <= 5 ? tt('home.late') : tt('home.onTime')
         toast(`Bravo ! +${gained} pts 🎉${when}`)
       }
-      reload()
+      reload(); loadToday()
     } catch (e: any) { toastErr(e.message) }
   }
 
@@ -96,58 +100,86 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
     try {
       await api('PATCH', '/tasks/' + t.id, body)
       toast(statusKey === 'transferred' ? tt('pd.taskTransferred') : tt('pd.statusOk'))
-      reload()
+      reload(); loadToday()
     } catch (e: any) { toastErr(e.message) }
-  }
-
-  function clearPress() {
-    if (pressRef.current) window.clearTimeout(pressRef.current.timer)
-    pressRef.current = null
-  }
-
-  function startPress(e: React.PointerEvent<HTMLElement>, item: { t: Task; p: Project }) {
-    if (e.pointerType === 'mouse' && e.button !== 0) return
-    const el = e.currentTarget
-    el.setPointerCapture?.(e.pointerId)
-    clearPress()
-    const timer = window.setTimeout(() => {
-      pressRef.current = null
-      setDraggingTask(item)
-    }, 450)
-    pressRef.current = { timer, item, x: e.clientX, y: e.clientY }
-  }
-
-  function movePress(e: React.PointerEvent<HTMLElement>) {
-    const press = pressRef.current
-    if (!press) return
-    if (Math.abs(e.clientX - press.x) > 10 || Math.abs(e.clientY - press.y) > 10) clearPress()
-  }
-
-  function endPress(e: React.PointerEvent<HTMLElement>, item: { t: Task; p: Project }) {
-    const press = pressRef.current
-    if (press) {
-      clearPress()
-      setDrawerId(item.t.id)
-      return
-    }
-    if (draggingTask?.t.id === item.t.id) {
-      const drop = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-home-status]')
-      const statusKey = drop?.dataset.homeStatus
-      setDraggingTask(null)
-      if (statusKey) moveHomeTask(item.t, item.p, statusKey)
-    }
   }
 
   const boardCols = projects
     .map((p) => ({ p, tasks: mine.filter((x) => x.p.id === p.id).map((x) => x.t).sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || prio(a.priority) - prio(b.priority)) }))
     .filter((c) => c.tasks.length > 0)
 
-  const openTodayTask = (t: TodayTask) => onOpen(t.projectId)
+  // --- Accueil : ta journée, la semaine, les filtres et une seule liste ---
+  const lang = getLang()
+  const first = me.firstName || me.name.split(' ')[0]
+  const byId = new Map<string, { t: Task; p: Project }>()
+  projects.forEach((p) => p.tasks.forEach((t) => byId.set(t.id, { t, p })))
+  const rowsOf = (list: TodayTask[]) => list.map((x) => byId.get(x.id)).filter(Boolean) as { t: Task; p: Project }[]
+  const TILES: { key: TodayKey; title: string; tone: string; icon: string }[] = [
+    { key: 'overdue', title: tt('today.overdue'), tone: 'dg', icon: 'alert' },
+    { key: 'dueToday', title: tt('today.dueToday'), tone: '', icon: 'clock' },
+    { key: 'highPriority', title: tt('today.highPrio'), tone: 'wn', icon: 'flag' },
+    { key: 'transferred', title: tt('today.transferred'), tone: '', icon: 'transfer' },
+    { key: 'review', title: tt('today.review'), tone: 'ok', icon: 'eye' },
+  ]
+  const countOf = (k: TodayKey) => (today ? today[k].length : 0)
+  const watch = today ? countOf('overdue') + countOf('dueToday') + countOf('highPriority') : 0
+  const autoKey = (['overdue', 'dueToday', 'highPriority'] as TodayKey[]).find((k) => countOf(k) > 0)
+  /* Rien d'urgent : la liste montre directement toutes les tâches à faire, sans filtre à choisir. */
+  const allMode = showAll || (filter === null && !autoKey)
+  const activeKey: TodayKey = filter ?? autoKey ?? 'highPriority'
+  const listRows = allMode ? todo : rowsOf(today ? today[activeKey] : [])
+  const listTitle = allMode ? tr('home.todo') : TILES.find((x) => x.key === activeKey)!.title
+
+  // Ta journée : en retard puis à faire aujourd'hui, la première tâche d'abord
+  const queue = rowsOf([...(today?.overdue || []), ...(today?.dueToday || [])]).filter((x) => !x.t.done)
+  const next = queue.length ? queue[skip % queue.length] : null
+  const todayIso = isoLocal(new Date())
+  const doneToday = mine.filter((x) => x.t.done && x.t.doneAt && isoLocal(new Date(x.t.doneAt)) === todayIso).length
+  const dayTotal = doneToday + queue.length
+  const ringOffset = 289 * (1 - (dayTotal ? doneToday / dayTotal : 0))
+
+  // Cette semaine
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(weekStart, i)
+    return { d, iso: isoLocal(d), ev: weekEvents.filter((e) => e.date === isoLocal(d)) }
+  })
+  const dayEvents = days[dayIdx]?.ev || []
+  const fmtD = (d: Date) => d.toLocaleDateString(lang, { day: 'numeric', month: 'short' })
+  const weekLabel = `${fmtD(days[0].d)} – ${fmtD(days[6].d)}`
+  const sumDone = (p: { taskCount: number; doneCount: number }) => (p.taskCount ? Math.round((p.doneCount / p.taskCount) * 100) : 0)
+  const activeSummaries = (summaries || []).filter((p) => p.status !== 'done').slice(0, 5)
+
+  const taskRow = ({ t, p }: { t: Task; p: Project }) => {
+    const over = isOverdue(t)
+    const pm = prioMeta(t.priority)
+    const st = statusMap.get(statusOf(t))
+    return (
+      <div key={t.id} className={'hp-row' + (t.done ? ' done' : '')} style={{ ['--c' as string]: p.labelColor || 'var(--pv-acc)' }}>
+        <button className="hp-box" onClick={() => toggle(t)} aria-label={t.done ? tr('home.reopen') : tr('home.finish')}>{t.done && <Ic name="check" s={13} c="#fff" strokeWidth={3} />}</button>
+        <button className="hp-ti" onClick={() => setDrawerId(t.id)}>
+          <b>{t.title}</b>
+          <span className="hp-sub"><i />{p.name}{t.due && <><em>·</em><span className={over ? 'late' : ''}>{formatDue(t.due)}</span></>}</span>
+        </button>
+        {st && (
+          <PvDropdown btnClass="hp-st" label={tt('hp.status')} align="right" button={<><i style={{ background: st.color }} />{trTerm(st.label)}</>}>
+            {(close) => statuses.filter((x) => x.key !== statusOf(t)).map((x) => (
+              <button key={x.key} type="button" role="menuitem" className="pv-dd-item" onClick={() => { close(); moveHomeTask(t, p, x.key) }}><i style={{ background: x.color }} />{trTerm(x.label)}</button>
+            ))}
+          </PvDropdown>
+        )}
+        <span className={'pv-pr p' + pm.n}><Ic name="flag" s={13} />{pm.tag}</span>
+      </div>
+    )
+  }
 
   return (
-    <div>
-      <LevelCard points={myPoints} />
-      <TodayDashboard today={today} onOpenTask={openTodayTask} onOpenProject={onOpen} />
+    <div className="hp">
+      <header className="hp-hello">
+        <p className="eyebrow">{new Date().toLocaleDateString(lang, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        <h1>{tt('hp.hello', { n: first })}</h1>
+        <p>{!today ? tt('today.loading') : watch ? tt('today.watch', { n: watch }) : tt('today.calm')}</p>
+      </header>
+
       <div className="home-toolbar only-mobile-flex">
         <div className="viewseg">
           <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}><Ic name="list" s={15} />{tr('view.list')}</button>
@@ -157,59 +189,93 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
       </div>
 
       {view === 'list' && <>
-        <div className="grp-h">{tr('home.todo')} · {todo.length}</div>
-        <div className="priority-legend"><b>{tr('home.priority')}</b>
-          <span><i className="p-dot p1" />P1</span>
-          <span><i className="p-dot p2" />P2</span>
-          <span><i className="p-dot p3" />P3</span>
-          <span><i className="p-dot p4" />P4</span>
-          <span><i className="p-dot p5" />P5</span>
-          <span><i className="p-dot p6" />P6</span>
-        </div>
-        {mine.length === 0 && <div className="empty"><div className="big"><Ic name="circle-check" s={30} /></div>{tr('home.allDone')}</div>}
-        <div className={'home-status-list' + (draggingTask ? ' dragging' : '')}>
-          {tasksByStatus.map(({ status, items }) => (
-            <section key={status.key} className={'home-status-group' + (draggingTask ? ' drop-ready' : '')} data-home-status={status.key}>
-              <div className="home-status-head">
-                <span><i style={{ background: status.color }} />{trTerm(status.label)}</span>
-                <b>{items.length}</b>
-              </div>
-              {items.length === 0 && <div className="home-status-empty">{draggingTask ? tt('pd.dropHere') : tr('home.noTasks')}</div>}
-              {items.map((item) => {
-                const { t, p } = item
-                const over = isOverdue(t)
-                const pm = prioMeta(t.priority)
-                const hasHours = t.spentHours != null || t.estHours != null
-                return (
-                  <div
-                    key={t.id}
-                    className={'home-task' + (t.done ? ' done' : '') + (over ? ' overdue' : '') + (draggingTask?.t.id === t.id ? ' dragging' : '')}
-                    onPointerDown={(e) => startPress(e, item)}
-                    onPointerMove={movePress}
-                    onPointerUp={(e) => endPress(e, item)}
-                    onPointerCancel={() => { clearPress(); setDraggingTask(null) }}
-                  >
-                    <button className={'check-big ' + (t.done ? 'done' : pm.ringCls)} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); toggle(t) }} aria-label={t.done ? tr('home.reopen') : tr('home.finish')}>{t.done ? <Ic name="check" s={14} c="#fff" /> : null}</button>
-                    <div className="ht-body">
-                      <div className="ht-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        {pm.n < 6 && <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>}
-                        <span style={{ flex: 1, minWidth: 0 }}>{t.title}</span>
-                      </div>
-                      {t.description && <div className="sub" style={{ marginTop: 2 }}>{t.description}</div>}
-                      <div className="ht-project-name">{p.name}</div>
-                    </div>
-                    <div className="ht-meta">
-                      <span className="chip-proj">{p.name}</span>
-                      {t.due && <span className={'hm' + (over ? ' red' : '')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Ic name="calendar" s={12} />{formatDue(t.due)}</span>}
-                      {hasHours && <span className="hm">⏱ {t.spentHours != null ? t.spentHours + 'h' : '0h'}{t.estHours != null ? `/~${t.estHours}h` : ''}</span>}
-                      {t.done && <span className="hm">+{taskPoints(t)} pts</span>}
-                    </div>
+        <section className="hp-top">
+          <article className="hp-day">
+            <div className="hp-ring" role="img" aria-label={`${doneToday}/${dayTotal}`}>
+              <svg viewBox="0 0 112 112" aria-hidden="true"><circle className="t" cx="56" cy="56" r="46" /><circle className="v" cx="56" cy="56" r="46" style={{ strokeDashoffset: ringOffset }} /></svg>
+              <b className="pv-tnum">{doneToday}/{dayTotal}<small>{tt('hp.done')}</small></b>
+            </div>
+            <div className="hp-day-body">
+              <h2>{tt('hp.day')}</h2>
+              {next ? (
+                <>
+                  <p className="hp-next">{next.t.title}</p>
+                  <div className="hp-meta"><span className="hp-sub" style={{ ['--c' as string]: next.p.labelColor || 'var(--pv-acc)' }}><i />{next.p.name}</span>{next.t.due && <span className={'hp-sub' + (isOverdue(next.t) ? ' late' : '')}>· {formatDue(next.t.due)}</span>}</div>
+                  <div className="hp-act">
+                    <button className="pv-btn acc sm" onClick={() => toggle(next.t)}><Ic name="check" s={16} />{tr('home.finish')}</button>
+                    {queue.length > 1 && <button className="pv-btn ghost sm" onClick={() => setSkip((n) => n + 1)}>{tt('hp.skip')}</button>}
                   </div>
-                )
-              })}
-            </section>
+                </>
+              ) : (
+                <>
+                  <p className="hp-next">{tt('hp.dayDone')}</p>
+                  <div className="hp-meta">{tt('hp.dayDoneHint')}</div>
+                </>
+              )}
+            </div>
+          </article>
+
+          <article className="hp-week">
+            <header><h3>{tt('hp.week')}</h3><span>{weekLabel}</span></header>
+            <div className="hp-days" role="group" aria-label={tt('hp.week')}>
+              {days.map((x, i) => (
+                <button key={x.iso} type="button" className={'hp-d' + (x.iso === todayIso ? ' today' : '') + (dayIdx === i ? ' on' : '')} aria-pressed={dayIdx === i} onClick={() => setDayIdx(i)}>
+                  <small>{x.d.toLocaleDateString(lang, { weekday: 'narrow' })}</small>
+                  <b className="pv-tnum">{x.d.getDate()}</b>
+                  <i>{x.ev.slice(0, 3).map((e) => <u key={e.id} className={e.done ? '' : (!e.deadline && parseISO(e.date)! < todayMid() ? 'dg' : '')} />)}</i>
+                </button>
+              ))}
+            </div>
+            <ul className="hp-wl">
+              {dayEvents.length === 0 && <li className="none">{tt('hp.nothingDay')}</li>}
+              {dayEvents.slice(0, 4).map((e) => <li key={e.id}><Ic name={e.deadline ? 'flag' : 'calendar'} s={14} />{e.title}{e.projectName ? <small>{e.projectName}</small> : null}</li>)}
+            </ul>
+          </article>
+        </section>
+
+        <section className="hp-tiles" aria-label={tt('hp.filter')}>
+          {TILES.map((x) => (
+            <button key={x.key} type="button" className={'hp-tile ' + x.tone + (!allMode && activeKey === x.key ? ' on' : '')} aria-pressed={!allMode && activeKey === x.key}
+              onClick={() => { setFilter(x.key); setShowAll(false) }}>
+              <span className="t"><span><Ic name={x.icon} s={15} /></span>{x.title}</span>
+              <strong className="pv-tnum">{countOf(x.key)}</strong>
+            </button>
           ))}
-        </div>
+        </section>
+
+        <section className="hp-cols">
+          <article className="hp-list">
+            <div className="hp-lh"><h3>{listTitle}</h3><span className="hp-cnt pv-tnum">{listRows.length}</span></div>
+            {listRows.length === 0
+              ? <div className="hp-empty"><b>{mine.length === 0 ? tr('home.allDone') : tt('hp.none')}</b></div>
+              : <div>{listRows.slice(0, allMode ? 50 : 8).map(taskRow)}</div>}
+            {(showAll || autoKey || filter !== null) && todo.length > 0 && (
+              <button className="hp-more" onClick={() => { setShowAll((v) => !v); if (showAll) setFilter((f) => f ?? autoKey ?? null) }}>{showAll ? tt('hp.backFilter') : tt('hp.seeAll', { n: todo.length })}</button>
+            )}
+          </article>
+          <div className="hp-side">
+            <LevelCard points={myPoints} />
+            <article className="hp-card">
+              <h3>{tt('hp.projects')}</h3>
+              {activeSummaries.length === 0 && <p className="hp-quiet">{tt('hp.none')}</p>}
+              {activeSummaries.map((p) => (
+                <button key={p.id} className="hp-pj" style={{ ['--c' as string]: p.labelColor || 'var(--pv-acc)' }} onClick={() => onOpen(p.id)}>
+                  <span className="hp-logo">{p.name.slice(0, 2).toUpperCase()}</span>
+                  <span className="nm"><b>{p.name}</b><span className="hp-track"><i style={{ width: sumDone(p) + '%' }} /></span></span>
+                  <em className="pv-tnum">{sumDone(p)}%</em>
+                </button>
+              ))}
+            </article>
+            <article className="hp-card">
+              <h3>{tt('today.discussions')}</h3>
+              {!today || today.activeDiscussions.length === 0
+                ? <p className="hp-quiet">{tt('today.noMeeting')}</p>
+                : today.activeDiscussions.map((d) => (
+                  <button key={d.projectId} className="hp-disc" onClick={() => onOpen(d.projectId)}><span>{d.projectName}</span><small>{d.count} {tt('today.messages')}</small></button>
+                ))}
+            </article>
+          </div>
+        </section>
       </>}
 
       {view === 'board' && (
@@ -251,63 +317,5 @@ export function Home({ me, onOpen, refreshKey, view, setView }: { me: User; onOp
         />
       )}
     </div>
-  )
-}
-
-function TodayDashboard({ today, onOpenTask, onOpenProject }: { today: TodayPayload | null; onOpenTask: (t: TodayTask) => void; onOpenProject: (id: string) => void }) {
-  if (!today) return <div className="today-board"><div className="today-head"><div><h2>{tt('today.title')}</h2><p>{tt('today.loading')}</p></div></div></div>
-  const sections: { key: keyof TodayPayload; title: string; tone: string; empty: string }[] = [
-    { key: 'overdue', title: tt('today.overdue'), tone: 'danger', empty: tt('today.noOverdue') },
-    { key: 'dueToday', title: tt('today.dueToday'), tone: 'accent', empty: tt('today.noDueToday') },
-    { key: 'highPriority', title: tt('today.highPrio'), tone: 'warn', empty: tt('today.noHighPrio') },
-    { key: 'transferred', title: tt('today.transferred'), tone: 'blue', empty: tt('today.noTransferred') },
-    { key: 'review', title: tt('today.review'), tone: 'ok', empty: tt('today.noReview') },
-  ]
-  const total = sections.reduce((sum, s) => sum + (today[s.key] as TodayTask[]).length, 0)
-  return (
-    <section className="today-board">
-      <div className="today-head">
-        <div>
-          <h2 id="today-title">{tt('today.title')}</h2>
-          <p>{total ? tt('today.watch', { n: total }) : tt('today.calm')}</p>
-        </div>
-        <span className="today-pill">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}</span>
-      </div>
-      {/* Horizontally scrollable on phones: must be keyboard-focusable and named (WCAG 2.1.1). */}
-      <div className="today-grid" role="group" aria-labelledby="today-title" tabIndex={0}>
-        {sections.map((s) => {
-          const items = today[s.key] as TodayTask[]
-          return (
-            <div key={s.key} className={'today-section ' + s.tone}>
-              <div className="today-section-head"><b>{s.title}</b><span>{items.length}</span></div>
-              {items.length === 0 ? <div className="today-empty">{s.empty}</div> : items.slice(0, 5).map((t) => <TodayTaskCard key={s.key + t.id} t={t} onOpen={() => onOpenTask(t)} />)}
-            </div>
-          )
-        })}
-        <div className="today-section discussions">
-          <div className="today-section-head"><b>{tt('today.discussions')}</b><span>{today.activeDiscussions.length}</span></div>
-          {today.activeDiscussions.length === 0 ? <div className="today-empty">{tt('today.noMeeting')}</div> : today.activeDiscussions.map((d) => (
-            <button key={d.projectId} className="today-discussion" onClick={() => onOpenProject(d.projectId)}>
-              <span>{d.projectName}</span>
-              <small>{d.count} {tt('today.messages')}</small>
-            </button>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function TodayTaskCard({ t, onOpen }: { t: TodayTask; onOpen: () => void }) {
-  const pm = prioMeta(t.priority)
-  return (
-    <button className="today-task-card" onClick={onOpen}>
-      <span className={'pflag ' + pm.flagCls}>{pm.tag}</span>
-      <span className="today-task-main">
-        <b>{t.title}</b>
-        <small>{t.projectName}{t.due ? ' · ' + formatDue(t.due) : ''}</small>
-      </span>
-      {t.statusKey === 'transferred' && <span className="today-transfer">⇄</span>}
-    </button>
   )
 }

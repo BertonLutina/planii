@@ -20,6 +20,16 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.6.0', date: '2026-11-18',
+    title: { fr: 'Accueil repensé', en: 'Redesigned Home' },
+    items: [
+      c('Accueil plus simple : « Ta journée » avec ta prochaine tâche et un anneau de progression, une bande de la semaine, et des tuiles qui filtrent une seule liste de tâches.', 'Simpler Home: “Your day” with your next task and a progress ring, a week strip, and tiles that filter a single task list.', 'web'),
+      c('Le statut d’une tâche se change depuis sa ligne (menu sur la pastille de statut), à la place de l’appui long avec glisser-déposer.', 'A task’s status is changed from its row (menu on the status pill), instead of long-press and drag.', 'web'),
+      a('« Mes projets » : l’avancement de chaque projet actif, à un clic de son ouverture.', '“My projects”: the progress of each active project, one click from opening it.', 'web'),
+      c('Les vues Tableau et Agenda de l’accueil et le score restent disponibles, avec les couleurs et les polices de la page projet, en clair et en sombre.', 'The Board and Agenda views of Home and the score are still there, with the colours and fonts of the project page, in light and dark.', 'web'),
+    ],
+  },
+  {
     version: '1.5.0', date: '2026-11-18',
     title: { fr: 'Page Projets repensée', en: 'Redesigned Projects page' },
     items: [

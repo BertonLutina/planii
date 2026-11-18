@@ -83,6 +83,9 @@ const fr: Dict = {
   'pv.newStatus': 'Nouveau statut…', 'pv.viewTable': 'Tableau', 'pv.byPerson': 'Filtrer par personne', 'pv.lateN': '{n} tâche(s) en retard', 'pv.all': 'Tout',
   'pv.noTaskT': 'Aucune tâche pour l’instant', 'pv.addIn': 'Ajouter dans {s}', 'pv.moreDone': '+ {n} autres tâches terminées', 'pv.lessDone': 'Réduire',
   'pd.chooseOne': '— Choisir une personne', 'pv.projectActions': 'Actions du projet',
+  'hp.hello': 'Bonjour, {n}', 'hp.day': 'Ta journée', 'hp.done': 'faites', 'hp.skip': 'Passer à la suivante', 'hp.dayDone': 'Tout est fait pour aujourd’hui.', 'hp.dayDoneHint': 'Profite, ou avance sur tes priorités fortes.',
+  'hp.week': 'Cette semaine', 'hp.nothingDay': 'Rien de prévu ce jour.', 'hp.filter': 'Filtrer mes tâches', 'hp.none': 'Rien ici.', 'hp.seeAll': 'Voir toutes mes tâches à faire ({n})', 'hp.backFilter': 'Revenir au filtre',
+  'hp.projects': 'Mes projets', 'hp.status': 'Changer le statut',
   'pj.search': 'Rechercher un projet', 'pj.members': '{n} membres', 'pj.member1': '1 membre', 'pj.none': 'Aucun projet ici', 'pj.noneHint': 'Change de filtre ou crée un nouveau projet.',
 }
 const en: Dict = {
@@ -146,6 +149,9 @@ const en: Dict = {
   'pv.newStatus': 'New status…', 'pv.viewTable': 'Table', 'pv.byPerson': 'Filter by person', 'pv.lateN': '{n} task(s) late', 'pv.all': 'All',
   'pv.noTaskT': 'No tasks yet', 'pv.addIn': 'Add to {s}', 'pv.moreDone': '+ {n} more done tasks', 'pv.lessDone': 'Show less',
   'pd.chooseOne': '— Choose a person', 'pv.projectActions': 'Project actions',
+  'hp.hello': 'Hello, {n}', 'hp.day': 'Your day', 'hp.done': 'done', 'hp.skip': 'Skip to the next', 'hp.dayDone': 'Everything is done for today.', 'hp.dayDoneHint': 'Enjoy, or get ahead on your high priorities.',
+  'hp.week': 'This week', 'hp.nothingDay': 'Nothing planned this day.', 'hp.filter': 'Filter my tasks', 'hp.none': 'Nothing here.', 'hp.seeAll': 'See all my tasks to do ({n})', 'hp.backFilter': 'Back to the filter',
+  'hp.projects': 'My projects', 'hp.status': 'Change status',
   'pj.search': 'Search a project', 'pj.members': '{n} members', 'pj.member1': '1 member', 'pj.none': 'No project here', 'pj.noneHint': 'Change the filter or create a new project.',
 }
 const nl: Dict = {
