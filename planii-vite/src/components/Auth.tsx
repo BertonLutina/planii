@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { api, setTok } from '@/lib/api'
 import { toast, toastErr } from '@/lib/ui'
-import { MicInput } from './Mic'
+import { applyTheme, effectiveTheme, getTheme } from '@/lib/theme'
+import { Ic } from './Icon'
 import type { User } from '@/lib/types'
 import { useI18n, LangPicker, getLang, t as tt } from '@/lib/i18n'
 
@@ -12,6 +13,8 @@ type Providers = Partial<Record<ProviderKey, boolean>>
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset'
 
 const PROVIDER_ORDER: ProviderKey[] = ['google', 'microsoft', 'linkedin', 'yahoo']
+
+const PROVIDER_NAME: Record<ProviderKey, string> = { google: 'Google', microsoft: 'Microsoft', linkedin: 'LinkedIn', yahoo: 'Yahoo' }
 
 const PROVIDER_LABEL: Record<ProviderKey, string> = {
   google: 'auth.continueGoogle',
@@ -74,6 +77,9 @@ export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }:
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
   const [providers, setProviders] = useState<Providers>({})
+  const [showPw, setShowPw] = useState(false)
+  const [dark, setDark] = useState(() => effectiveTheme(getTheme()) === 'dark')
+  const flip = () => { const next = dark ? 'light' : 'dark'; applyTheme(next); setDark(next === 'dark') }
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value })
 
   useEffect(() => {
@@ -86,6 +92,7 @@ export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }:
     setBusy(false)
     setLinkBad(false)
     setFieldErr(null)
+    setShowPw(false)
   }
 
   // Le champ e-mail est le même nœud DOM en connexion et en « oublié » : autoFocus ne se redéclencherait pas.
@@ -142,117 +149,165 @@ export function Auth({ onAuth, initialMode = 'login', onBack, resetToken = '' }:
     : mode === 'reset' ? () => { go('login'); onBack?.() }
     : onBack
 
+  const signup = mode === 'signup'
+  const pwType = showPw ? 'text' : 'password'
+  const eye = (
+    <button type="button" tabIndex={-1} className="au-eye" onClick={() => setShowPw((v) => !v)} aria-pressed={showPw}
+      aria-label={showPw ? tr('au.hidePw') : tr('au.showPw')} title={showPw ? tr('au.hidePw') : tr('au.showPw')}>
+      <Ic name={showPw ? 'eye-off' : 'eye'} s={18} />
+    </button>
+  )
+  const strength = (() => {
+    const v = f.password
+    if (!v) return 0
+    let n = 0
+    if (v.length >= 8) n++
+    if (/\d/.test(v)) n++
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) n++
+    if (v.length >= 12) n++
+    return Math.max(1, n)
+  })()
+
   return (
-    <div className="auth-screen">
-      <div className="auth-bg" aria-hidden>
-        <img src="/auth-bg.png" alt="" />
-      </div>
-      <div className="auth auth-glass">
-        {back && (
-          <button type="button" className="btn-link auth-back" onClick={back}>{tt('pd.back')}</button>
-        )}
+    <div className="lp au">
+      <div className="lp-glow" aria-hidden><i className="a" /><i className="b" /><i className="c" /></div>
+      <div className="au-page">
+        <header className="au-bar">
+          <span className="lp-brand" aria-label="Planii">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <defs><linearGradient id="au-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="var(--lp-logo-a)" /><stop offset="1" stopColor="var(--lp-logo-b)" /></linearGradient></defs>
+              <rect x="12" y="10" width="58" height="21" rx="10.5" fill="url(#au-logo)" />
+              <rect x="15.5" y="43" width="69" height="14" rx="7" fill="none" stroke="url(#au-logo)" strokeWidth="7" />
+              <rect x="12" y="69" width="40" height="21" rx="10.5" fill="url(#au-logo)" />
+            </svg>
+            <span>Planii</span>
+          </span>
+          <span className="au-sp" />
+          {back && <button type="button" className="au-link auth-back" onClick={back}>{tt('pd.back')}</button>}
+          <LangPicker />
+          <button type="button" className="lp-tbtn" onClick={flip} aria-label={tr('theme.title')} title={tr('theme.title')}>
+            <Ic name={dark ? 'sun' : 'moon'} s={17} />
+          </button>
+        </header>
 
-        {/* Verrou de marque : tuile et nom solidaires, centrés — identique au mobile. */}
-        <div className="auth-lockup">
-          <span className="logo"><b /></span>
-          <h1>Planii</h1>
-        </div>
-
-        {/* Le titre porte l'action ; la ligne en dessous accueille, elle n'explique
-            pas le produit. L'accroche est sur la page d'accueil publique. */}
-        <div className="auth-head">
-          <h2>{title}</h2>
-          <p>{sub}</p>
-        </div>
-
-        {/* La langue avant les fournisseurs : c'est le seul moment où quelqu'un
-            arrivé dans la mauvaise langue peut en sortir. */}
-        <LangPicker />
-
-        {mode !== 'forgot' && mode !== 'reset' && enabled.length > 0 && (
-          <div className="auth-social">
-            <div className="auth-social-row" role="group" aria-label={tr('auth.login')}>
-              {enabled.map((provider) => (
-                <button
-                  key={provider}
-                  type="button"
-                  className={`auth-social-btn auth-${provider}`}
-                  aria-label={tr(PROVIDER_LABEL[provider])}
-                  title={tr(PROVIDER_LABEL[provider])}
-                  onClick={() => startOAuth(provider)}
-                >
-                  <ProviderIcon provider={provider} />
-                </button>
-              ))}
+        <div className="au-main">
+          <section className="au-hero">
+            <span className="lp-eyebrow"><i />{tr('au.badge')}</span>
+            <h1>{signup ? tr('au.s1') : tr('au.h1')} <em>{signup ? tr('au.s2') : tr('au.h2')}</em></h1>
+            <p className="au-lead">{tr('au.lead')}</p>
+            <div className="au-trust"><span>{tr('au.t1')}</span><span>{tr('au.t2')}</span><span>{tr('au.t3')}</span></div>
+            <div className="au-wins" aria-hidden>
+              <div className="au-win">
+                <header><i /><i /><i /><span>{tr('au.win1')}</span></header>
+                <div className="bd">
+                  <div className="au-tags"><span className="dg">{tr('au.tagLate')}</span><span className="wn">{tr('au.tagToday')}</span><span className="ok">{tr('au.tagDone')}</span></div>
+                  <div className="au-tk"><span className="ck" /><span className="t">{tr('au.task1')}</span><span className="p p1">P1</span><span className="av">AM</span></div>
+                  <div className="au-tk"><span className="ck" /><span className="t">{tr('au.task2')}</span><span className="p p2">P2</span><span className="av">LK</span></div>
+                </div>
+              </div>
+              <div className="au-win au-score">
+                <header><i /><i /><i /><span>{tr('au.win2')}</span></header>
+                <div className="bd">
+                  <small>{tr('au.win2')}</small>
+                  <strong>1 240<sup>pts</sup></strong>
+                  <div className="pb"><i /></div>
+                  <em>{tr('au.next')}</em>
+                </div>
+              </div>
             </div>
-            <div className="auth-or"><span>{tr('auth.orEmail')}</span></div>
-          </div>
-        )}
+          </section>
 
-        {mode === 'forgot' && sent ? (
-          <p className="auth-sent" role="status">{tr('auth.forgotSent')}</p>
-        ) : mode === 'reset' && (linkBad || !resetToken) ? (
-          <>
-            <p className="auth-sent auth-error" role="alert">{tr('auth.resetInvalid')}</p>
-            <button type="button" className="btn primary block" autoFocus onClick={() => go('forgot')}>{tr('auth.resetNewLink')}</button>
-          </>
-        ) : (
-          <>
-            {mode === 'signup' && (
-              <div className="field"><label>{tr('auth.name')}</label>
-                <MicInput value={f.name} onChange={(v) => setF({ ...f, name: v })} placeholder="Ex. Awa Ndiaye" /></div>
+          <main className="au-card">
+            {mode !== 'forgot' && mode !== 'reset' && (
+              <div className="au-tabs">
+                <button type="button" aria-pressed={mode === 'login'} onClick={() => go('login')}>{tr('auth.login')}</button>
+                <button type="button" aria-pressed={mode === 'signup'} onClick={() => go('signup')}>{tr('auth.register')}</button>
+              </div>
             )}
-            {mode !== 'reset' && (
-              <div className="field"><label>{tr('auth.email')}</label>
-                <input type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" autoComplete="email" ref={emailRef} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
-            )}
-            {(mode === 'login' || mode === 'signup') && (
-              <div className="field"><label>{tr('auth.password')}</label>
-                <input type="password" value={f.password} onChange={set('password')} placeholder="••••••••" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
-            )}
-            {mode === 'login' && (
-              <p className="auth-forgot">
-                <button type="button" className="btn-link" onClick={() => go('forgot')}>{tr('auth.forgot')}</button>
-              </p>
-            )}
-            {mode === 'reset' && (
+
+            <div className="au-head">
+              <h2>{title}</h2>
+              <p>{sub}</p>
+            </div>
+
+            {mode === 'forgot' && sent ? (
+              <p className="au-sent" role="status"><Ic name="mail" s={18} /><span>{tr('auth.forgotSent')}</span></p>
+            ) : mode === 'reset' && (linkBad || !resetToken) ? (
               <>
-                <div className="field"><label>{tr('auth.resetPassword')}</label>
-                  <input type="password" value={f.password} onChange={set('password')} placeholder="••••••••" autoComplete="new-password" autoFocus aria-describedby="pw-hint" aria-invalid={!!fieldErr || undefined} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
-                <p id="pw-hint" className="auth-hint">{tr('auth.resetHint')}</p>
-                <div className="field"><label>{tr('auth.resetConfirm')}</label>
-                  <input type="password" value={f.confirm} onChange={set('confirm')} placeholder="••••••••" autoComplete="new-password" aria-invalid={!!fieldErr || undefined} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div>
+                <p className="au-sent bad" role="alert">{tr('auth.resetInvalid')}</p>
+                <button type="button" className="lp-btn pri au-go" autoFocus onClick={() => go('forgot')}>{tr('auth.resetNewLink')}</button>
+              </>
+            ) : (
+              <>
+                {mode === 'signup' && (
+                  <div className="au-fld"><label htmlFor="au-name">{tr('auth.name')}</label>
+                    <div className="au-inp"><input id="au-name" type="text" value={f.name} onChange={set('name')} placeholder="Ex. Awa Ndiaye" autoComplete="name" /></div></div>
+                )}
+                {mode !== 'reset' && (
+                  <div className="au-fld"><label htmlFor="au-email">{tr('auth.email')}</label>
+                    <div className="au-inp"><input id="au-email" type="email" value={f.email} onChange={set('email')} placeholder="vous@exemple.com" autoComplete="email" ref={emailRef} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div></div>
+                )}
+                {(mode === 'login' || mode === 'signup') && (
+                  <div className="au-fld">
+                    <label htmlFor="au-pw">{tr('auth.password')}</label>
+                    <div className="au-inp pw"><input id="au-pw" type={pwType} value={f.password} onChange={set('password')} placeholder={signup ? tr('au.pwPh') : '••••••••'} autoComplete={signup ? 'new-password' : 'current-password'} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} />{eye}</div>
+                    {mode === 'login' && <p className="au-forgot"><button type="button" className="au-link sm" onClick={() => go('forgot')}>{tr('auth.forgot')}</button></p>}
+                    {signup && (
+                      <>
+                        <div className="au-meter" data-s={strength} aria-hidden><i /><i /><i /><i /></div>
+                        <p className="au-hint">{tr('au.pwHint')}</p>
+                      </>
+                    )}
+                  </div>
+                )}
+                {mode === 'reset' && (
+                  <>
+                    <div className="au-fld"><label htmlFor="au-new">{tr('auth.resetPassword')}</label>
+                      <div className="au-inp pw"><input id="au-new" type={pwType} value={f.password} onChange={set('password')} placeholder="••••••••" autoComplete="new-password" autoFocus aria-describedby="pw-hint" aria-invalid={!!fieldErr || undefined} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} />{eye}</div>
+                      <p id="pw-hint" className="au-hint">{tr('auth.resetHint')}</p></div>
+                    <div className="au-fld"><label htmlFor="au-confirm">{tr('auth.resetConfirm')}</label>
+                      <div className="au-inp"><input id="au-confirm" type={pwType} value={f.confirm} onChange={set('confirm')} placeholder="••••••••" autoComplete="new-password" aria-invalid={!!fieldErr || undefined} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} /></div></div>
+                  </>
+                )}
+                {mode === 'reset' && fieldErr && <p className="au-err" role="alert">{fieldErr}</p>}
+                <button type="button" className="lp-btn pri au-go" disabled={busy} onClick={submit}>
+                  {busy ? '…' : <>{mode === 'signup' ? tr('auth.signup')
+                    : mode === 'forgot' ? tr('auth.forgotSubmit')
+                    : mode === 'reset' ? tr('auth.resetSubmit')
+                    : tr('auth.login')}{(mode === 'login' || mode === 'signup') && <Ic name="arrow-right" s={17} />}</>}
+                </button>
               </>
             )}
-            {mode === 'reset' && fieldErr && <p className="auth-error" role="alert">{fieldErr}</p>}
-            <button className="btn primary block" disabled={busy} onClick={submit}>
-              {busy ? '…' : mode === 'signup' ? tr('auth.signup')
-                : mode === 'forgot' ? tr('auth.forgotSubmit')
-                : mode === 'reset' ? tr('auth.resetSubmit')
-                : tr('auth.login')}
-            </button>
-          </>
-        )}
 
-        {mode !== 'forgot' && mode !== 'reset' && (
-          <p className="switch">
-            {mode === 'login'
-              ? <>{tr('auth.noAccount')} <button className="btn-link" onClick={() => go('signup')}>{tr('auth.register')}</button></>
-              : <>{tr('auth.hasAccount')} <button className="btn-link" onClick={() => go('login')}>{tr('auth.login')}</button></>}
-          </p>
-        )}
+            {mode !== 'forgot' && mode !== 'reset' && enabled.length > 0 && (
+              <div className="au-social">
+                <div className="au-or"><span>{tr('auth.orEmail')}</span></div>
+                <div className="au-prov" role="group" aria-label={tr('auth.login')}>
+                  {enabled.map((provider) => (
+                    <button key={provider} type="button" className={`au-pbtn auth-${provider}`} aria-label={tr(PROVIDER_LABEL[provider])} title={tr(PROVIDER_LABEL[provider])} onClick={() => startOAuth(provider)}>
+                      <ProviderIcon provider={provider} />{PROVIDER_NAME[provider]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {mode === 'forgot' && sent && (
-          <p className="switch">
-            <button type="button" className="btn-link" onClick={() => go('login')}>{tr('auth.forgotBack')}</button>
-          </p>
-        )}
+            {mode === 'forgot' && sent && (
+              <p className="au-note">
+                <button type="button" className="au-link sm" onClick={() => go('login')}>{tr('auth.forgotBack')}</button>
+              </p>
+            )}
+            {mode === 'forgot' && !sent && (
+              <p className="au-note">
+                <button type="button" className="au-link sm" onClick={() => go('login')}>{tr('auth.forgotBack')}</button>
+              </p>
+            )}
 
-        {/* Mentions : après l'action, sur une seule ligne. */}
-        <div className="auth-foot">
-          <a href="/confidentialite">{tr('auth.privacy')}</a>
-          <i aria-hidden />
-          <a href="mailto:info@planii.app">{tr('auth.help')}</a>
+            <div className="au-foot">
+              <a href="/confidentialite">{tr('auth.privacy')}</a>
+              <a href="mailto:info@planii.app">{tr('auth.help')}</a>
+            </div>
+          </main>
         </div>
       </div>
     </div>

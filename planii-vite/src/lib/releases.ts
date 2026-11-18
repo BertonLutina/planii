@@ -20,6 +20,15 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.10.0', date: '2026-11-18',
+    title: { fr: 'Connexion et inscription repensées', en: 'Redesigned sign in and sign up' },
+    items: [
+      c('Nouvelle page de connexion et d’inscription, dans l’univers de la page d’accueil : un discours à gauche, le formulaire à droite, onglets « Se connecter » / « Créer un compte », clair et sombre.', 'New sign in and sign up page, in the look of the home page: the pitch on the left, the form on the right, “Sign in” / “Sign up” tabs, light and dark.', 'web'),
+      a('Œil pour afficher ou masquer le mot de passe, et jauge de solidité à l’inscription.', 'Eye button to show or hide the password, and a strength meter when signing up.', 'web'),
+      c('Les quatre fournisseurs (Google, Microsoft, LinkedIn, Yahoo) s’affichent avec leur nom.', 'The four providers (Google, Microsoft, LinkedIn, Yahoo) now show their name.', 'web'),
+    ],
+  },
+  {
     version: '1.9.1', date: '2026-11-18',
     title: { fr: 'Équipes visibles sans attendre le serveur', en: 'Teams visible without waiting for the server' },
     items: [

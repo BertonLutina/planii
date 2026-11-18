@@ -86,6 +86,13 @@ const fr: Dict = {
   'hp.hello': 'Bonjour, {n}', 'hp.day': 'Ta journée', 'hp.done': 'faites', 'hp.skip': 'Passer à la suivante', 'hp.dayDone': 'Tout est fait pour aujourd’hui.', 'hp.dayDoneHint': 'Profite, ou avance sur tes priorités fortes.',
   'hp.week': 'Cette semaine', 'hp.nothingDay': 'Rien de prévu ce jour.', 'hp.filter': 'Filtrer mes tâches', 'hp.none': 'Rien ici.', 'hp.seeAll': 'Voir toutes mes tâches à faire ({n})', 'hp.backFilter': 'Revenir au filtre',
   'hp.projects': 'Mes projets', 'hp.status': 'Changer le statut',
+  /* Connexion / inscription v4 */
+  'au.badge': 'Temps réel · Web, iOS et Android', 'au.h1': 'Vos projets avancent.', 'au.h2': 'Vous gardez la main.', 'au.s1': 'Votre équipe alignée', 'au.s2': 'en deux minutes.',
+  'au.lead': 'Planii réunit vos projets partagés, vos tâches, votre agenda et vos réunions dans un seul espace de travail. Chaque échéance suivie, chaque décision tracée, chaque équipe alignée.',
+  'au.t1': 'Aucune carte bancaire', 'au.t2': 'Forfait gratuit illimité', 'au.t3': 'Données hébergées en Europe',
+  'au.win1': 'Accueil — mes tâches', 'au.win2': 'Mon score', 'au.tagLate': '3 en retard', 'au.tagToday': '5 aujourd’hui', 'au.tagDone': '12 terminées',
+  'au.task1': 'Livrer la maquette du site vitrine', 'au.task2': 'Valider le devis fournisseur', 'au.next': 'Plus que 160 pts pour le niveau 8',
+  'au.showPw': 'Afficher le mot de passe', 'au.hidePw': 'Masquer le mot de passe', 'au.pwPh': '8 caractères minimum', 'au.pwHint': 'Mélangez majuscules, chiffres et au moins 12 caractères pour un mot de passe solide.',
   'pj.search': 'Rechercher un projet', 'pj.members': '{n} membres', 'pj.member1': '1 membre', 'pj.others': '{n} autres membres', 'pj.none': 'Aucun projet ici', 'pj.noneHint': 'Change de filtre ou crée un nouveau projet.',
 }
 const en: Dict = {
@@ -152,6 +159,13 @@ const en: Dict = {
   'hp.hello': 'Hello, {n}', 'hp.day': 'Your day', 'hp.done': 'done', 'hp.skip': 'Skip to the next', 'hp.dayDone': 'Everything is done for today.', 'hp.dayDoneHint': 'Enjoy, or get ahead on your high priorities.',
   'hp.week': 'This week', 'hp.nothingDay': 'Nothing planned this day.', 'hp.filter': 'Filter my tasks', 'hp.none': 'Nothing here.', 'hp.seeAll': 'See all my tasks to do ({n})', 'hp.backFilter': 'Back to the filter',
   'hp.projects': 'My projects', 'hp.status': 'Change status',
+  /* Sign in / sign up v4 */
+  'au.badge': 'Real time · Web, iOS and Android', 'au.h1': 'Your projects move forward.', 'au.h2': 'You stay in control.', 'au.s1': 'Your team aligned', 'au.s2': 'in two minutes.',
+  'au.lead': 'Planii brings your shared projects, tasks, calendar and meetings into one workspace. Every deadline tracked, every decision recorded, every team aligned.',
+  'au.t1': 'No credit card', 'au.t2': 'Unlimited free plan', 'au.t3': 'Data hosted in Europe',
+  'au.win1': 'Home — my tasks', 'au.win2': 'My score', 'au.tagLate': '3 late', 'au.tagToday': '5 today', 'au.tagDone': '12 done',
+  'au.task1': 'Deliver the showcase site mockup', 'au.task2': 'Approve the supplier quote', 'au.next': 'Only 160 pts to level 8',
+  'au.showPw': 'Show password', 'au.hidePw': 'Hide password', 'au.pwPh': 'At least 8 characters', 'au.pwHint': 'Mix upper and lower case, digits and at least 12 characters for a strong password.',
   'pj.search': 'Search a project', 'pj.members': '{n} members', 'pj.member1': '1 member', 'pj.others': '{n} more members', 'pj.none': 'No project here', 'pj.noneHint': 'Change the filter or create a new project.',
 }
 const nl: Dict = {
