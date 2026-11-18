@@ -20,6 +20,15 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.11.0', date: '2026-11-18',
+    title: { fr: 'Connexion et inscription mobiles repensées', en: 'Redesigned mobile sign in and sign up' },
+    items: [
+      c('Nouvel écran de connexion et d’inscription, dans l’univers de la page d’accueil : halos, titre « Vos projets avancent. Vous gardez la main. », onglets « Se connecter » / « S’inscrire », clair et sombre.', 'New sign in and sign up screen, in the look of the home page: glows, “Your projects move forward. You stay in control.” headline, “Sign in” / “Sign up” tabs, light and dark.', 'mobile'),
+      a('Jauge de solidité du mot de passe à l’inscription, et bouton pour changer de thème et de langue dès l’écran de connexion.', 'Password strength meter when signing up, and a button to change theme and language right from the sign in screen.', 'mobile'),
+      c('Les quatre fournisseurs (Google, Microsoft, LinkedIn, Yahoo) s’affichent avec leur nom.', 'The four providers (Google, Microsoft, LinkedIn, Yahoo) now show their name.', 'mobile'),
+    ],
+  },
+  {
     version: '1.10.0', date: '2026-11-18',
     title: { fr: 'Connexion et inscription repensées', en: 'Redesigned sign in and sign up' },
     items: [
