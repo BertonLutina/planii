@@ -20,6 +20,16 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.5.0', date: '2026-11-18',
+    title: { fr: 'Page Projets repensée', en: 'Redesigned Projects page' },
+    items: [
+      c('Page Projets plus simple : recherche, onglets Actifs / Terminés, puces de libellés qui filtrent la liste, tri et bascule cartes / tableau sur une seule barre.', 'Simpler Projects page: search, Active / Done tabs, label chips that filter the list, sort and cards / table switch on a single bar.', 'web'),
+      c('Nouvelles cartes de projet : icône teintée par le libellé, avancement en grand, échéance, et une pastille rouge quand la livraison est dépassée.', 'New project cards: label-tinted icon, large progress, due date, and a red badge when delivery is overdue.', 'web'),
+      a('Recherche d’un projet par son nom.', 'Search a project by name.', 'web'),
+      c('Vue tableau remise au même style, clair et sombre.', 'Table view restyled to match, light and dark.', 'web'),
+    ],
+  },
+  {
     version: '1.4.0', date: '2026-11-17',
     title: { fr: 'Écran projet mobile redessiné', en: 'Redesigned mobile project screen' },
     items: [
