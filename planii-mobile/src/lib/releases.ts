@@ -20,6 +20,16 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.9.0', date: '2026-11-18',
+    title: { fr: 'Accueil mobile repensé', en: 'Redesigned mobile Home' },
+    items: [
+      c('Accueil plus simple, comme sur le web : « Ta journée » avec ta prochaine tâche et un anneau de progression, la semaine, et des tuiles qui filtrent une seule liste de tâches.', 'Simpler Home, like the web: “Your day” with your next task and a progress ring, the week, and tiles that filter a single task list.', 'mobile'),
+      c('Le statut d’une tâche se change depuis le menu « … » de sa ligne.', 'A task’s status is changed from the “…” menu on its row.', 'mobile'),
+      a('« Mes projets » : l’avancement de chaque projet actif, à un appui de son ouverture.', '“My projects”: the progress of each active project, one tap from opening it.', 'mobile'),
+      c('Couleurs et polices de la page projet, en clair et en sombre ; le score et les vues Tableau et Agenda restent disponibles.', 'Colours and fonts of the project page, in light and dark; the score and the Board and Agenda views are still there.', 'mobile'),
+    ],
+  },
+  {
     version: '1.8.0', date: '2026-11-18',
     title: { fr: 'Écran Projets mobile repensé', en: 'Redesigned mobile Projects screen' },
     items: [
