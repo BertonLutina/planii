@@ -20,6 +20,13 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.11.1', date: '2026-11-18',
+    title: { fr: 'Listes de sélection plus lisibles', en: 'Clearer drop-down lists' },
+    items: [
+      f('Les listes de sélection (langue, tri, statut, priorité…) affichent un chevron à distance du bord du cadre, à la couleur du thème, au lieu d’une flèche collée au contour.', 'Drop-down lists (language, sort, status, priority…) show a chevron set back from the frame’s edge, in the theme colour, instead of an arrow stuck to the border.', 'web'),
+    ],
+  },
+  {
     version: '1.11.0', date: '2026-11-18',
     title: { fr: 'Connexion et inscription mobiles repensées', en: 'Redesigned mobile sign in and sign up' },
     items: [

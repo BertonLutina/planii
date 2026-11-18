@@ -2252,3 +2252,16 @@ textarea:focus-visible,[tabindex]:focus-visible,[role="button"]:focus-visible,[c
   padding:10px 12px;font:inherit;font-size:15px;
 }
 :where(input,textarea)::placeholder{color:var(--hint);opacity:1}
+
+/* ==========================================================================
+   Listes de sélection : le chevron natif colle au bord du cadre (et prend la couleur du navigateur).
+   Toutes les listes <select> reçoivent le même chevron dessiné, à 12 px du bord, avec la place pour le texte.
+   Les !important gardent l'image face aux raccourcis `background:` des styles de champs ; le fond (couleur) reste
+   celui de chaque composant.
+   ========================================================================== */
+select{appearance:none!important;-webkit-appearance:none!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236a6784' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;
+  background-position:right 12px center!important;background-size:16px 16px!important}
+:root[data-theme="dark"] select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23aaa4c8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important}
+.meet-side select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important}
+:where(select){padding-right:38px}
