@@ -1,4 +1,5 @@
 export { useProjectsList, DEFAULT_PROJECT_LABELS, type ProjTab } from './useProjectsList'
+export { useMemberFallback } from './useMemberFallback'
 export { ProjectCard, type ProjectCardProps } from './ProjectCard'
 export {
   EditProjectSheet, NewProjectSheet,

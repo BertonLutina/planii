@@ -16,7 +16,7 @@ import { HelpButton } from '@/screens/guide'
 import { afterSheet, errMsg, toastAfterSheet, toastErrAfterSheet } from '@/screens/project/lib/flow'
 import {
   EditProjectSheet, NewProjectSheet, ProjectCard, ProjectsSkeleton, ReorderRail,
-  useProjectsList,
+  useMemberFallback, useProjectsList,
 } from '@/screens/projects'
 import { PvThemeScope, usePv, useTheme } from '@/theme/ThemeProvider'
 
@@ -54,9 +54,10 @@ function Projets() {
   const q = search.trim().toLowerCase()
   const filtering = !!q || !!labelFilter
   const labelKey = (x?: string | null) => (x || '').trim().toLowerCase()
-  const list = useMemo(() => (P.list ? P.list.filter((p) => (
+  const withMembers = useMemberFallback(P.list)
+  const list = useMemo(() => (withMembers ? withMembers.filter((p) => (
     (!q || p.name.toLowerCase().includes(q)) && (!labelFilter || labelKey(p.labelName) === labelFilter)
-  )) : P.list), [P.list, q, labelFilter])
+  )) : withMembers), [withMembers, q, labelFilter])
   const labels = P.labels
   /* L'ordre manuel se calcule sur la liste complète : jamais pendant une recherche ou un filtre. */
   const canReorder = P.canReorder && !filtering

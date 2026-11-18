@@ -20,6 +20,13 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.9.1', date: '2026-11-18',
+    title: { fr: 'Équipes visibles sans attendre le serveur', en: 'Teams visible without waiting for the server' },
+    items: [
+      f('Les cartes de projet affichent les avatars de l’équipe (initiales, trois au plus, puis « +N ») même quand le serveur n’envoie pas encore les photos : l’appli lit alors les membres de chaque projet.', 'Project cards show the team avatars (initials, three at most, then “+N”) even when the server does not send the photos yet: the app then reads each project’s members.', 'mobile'),
+    ],
+  },
+  {
     version: '1.9.0', date: '2026-11-18',
     title: { fr: 'Accueil mobile repensé', en: 'Redesigned mobile Home' },
     items: [
