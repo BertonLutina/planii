@@ -1,14 +1,14 @@
 import { useCallback, useMemo, useState } from 'react'
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import {
-  ActionMenu, Banner, Button, Confirm, EmptyState, Fab, NATIVE_TAB_BAR, Tabs,
-  type ActionItem, type TabItem,
+  ActionMenu, Banner, Button, Confirm, EmptyState, Fab, Ic, NATIVE_TAB_BAR,
+  type ActionItem,
 } from '@/components/ui'
 import { NotifBell } from '@/components/NotifBell'
 import { api } from '@/lib/api'
-import { t, useI18n } from '@/lib/i18n'
+import { t, trTerm, useI18n } from '@/lib/i18n'
 import { useSession } from '@/lib/session'
 import type { Dir, ProjSort } from '@/lib/sort'
 import type { ProjectSummary } from '@/lib/types'
@@ -16,9 +16,9 @@ import { HelpButton } from '@/screens/guide'
 import { afterSheet, errMsg, toastAfterSheet, toastErrAfterSheet } from '@/screens/project/lib/flow'
 import {
   EditProjectSheet, NewProjectSheet, ProjectCard, ProjectsSkeleton, ReorderRail,
-  useProjectsList, type ProjTab,
+  useProjectsList,
 } from '@/screens/projects'
-import { useTheme } from '@/theme/ThemeProvider'
+import { PvThemeScope, usePv, useTheme } from '@/theme/ThemeProvider'
 
 /* Projets — portage de `ProjectsList` (planii-vite/src/components/Projects.tsx).
  * (`JoinModal` est déjà porté en écran de pile : app/invite/[token].tsx.)
@@ -34,15 +34,32 @@ import { useTheme } from '@/theme/ThemeProvider'
  * pastille de couleur et son nom — une légende séparée ne ferait que répéter.
  */
 
+/** La page Projets vit dans la palette du prototype (clair et sombre), comme la page projet. */
 export default function ProjetsScreen() {
+  return <PvThemeScope><Projets /></PvThemeScope>
+}
+
+function Projets() {
   const { c } = useTheme()
+  const pv = usePv()
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { me } = useSession()
   useI18n()
 
   const P = useProjectsList()
-  const { list, labels, counts, canReorder } = P
+  const { counts } = P
+  const [search, setSearch] = useState('')
+  const [labelFilter, setLabelFilter] = useState('')
+  const q = search.trim().toLowerCase()
+  const filtering = !!q || !!labelFilter
+  const labelKey = (x?: string | null) => (x || '').trim().toLowerCase()
+  const list = useMemo(() => (P.list ? P.list.filter((p) => (
+    (!q || p.name.toLowerCase().includes(q)) && (!labelFilter || labelKey(p.labelName) === labelFilter)
+  )) : P.list), [P.list, q, labelFilter])
+  const labels = P.labels
+  /* L'ordre manuel se calcule sur la liste complète : jamais pendant une recherche ou un filtre. */
+  const canReorder = P.canReorder && !filtering
 
   const [newOpen, setNewOpen] = useState(false)
   const [menuFor, setMenuFor] = useState<ProjectSummary | null>(null)
@@ -109,20 +126,60 @@ export default function ProjetsScreen() {
     return out
   }, [menuFor, list, me, canReorder, move, openProject])
 
-  const tabs: TabItem<ProjTab>[] = [
-    { key: 'active', label: `${t('projects.active')} (${counts.active})`, icon: 'folder' },
-    { key: 'done', label: `${t('projects.done')} (${counts.done})`, icon: 'circle-check' },
-  ]
+  /* Libellés réellement portés par les projets chargés (+ ceux du compte). */
+  const chipLabels = useMemo(() => {
+    const by = new Map<string, { id: string; label: string; color: string }>()
+    labels.forEach((l) => { if (!by.has(labelKey(l.label))) by.set(labelKey(l.label), { id: l.id, label: l.label, color: l.color }) })
+    ;(P.list || []).forEach((p) => {
+      if (p.labelName && p.labelColor && !by.has(labelKey(p.labelName))) by.set(labelKey(p.labelName), { id: p.labelId || p.labelName, label: p.labelName, color: p.labelColor })
+    })
+    return [...by.values()]
+  }, [labels, P.list])
 
   const header = (
-    <View style={s.tools}>
-      <Button
-        label={sortLabel}
-        icon="sort"
-        size="sm"
-        accessibilityLabel={`${t('projects.sort')} — ${sortLabel}`}
-        onPress={() => setSortOpen(true)}
-      />
+    <View>
+      <View style={s.toolsTop}>
+        <View style={[s.search, { backgroundColor: pv.raised, borderColor: pv.line2 }]}>
+          <Ic name="search" s={18} c={pv.hint} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder={t('pj.search')}
+            placeholderTextColor={pv.hint}
+            accessibilityLabel={t('pj.search')}
+            returnKeyType="search"
+            autoCorrect={false}
+            style={[s.searchInput, { color: pv.text }]}
+          />
+        </View>
+        <Pressable
+          onPress={() => setSortOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('projects.sort')} — ${sortLabel}`}
+          style={({ pressed }) => [s.sortBtn, { borderColor: pv.line2, backgroundColor: pressed ? pv.col : 'transparent' }]}
+        >
+          <Ic name="sort" s={18} c={pv.text} />
+        </Pressable>
+      </View>
+      {chipLabels.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} accessibilityLabel={t('proj.labelList')}>
+          {chipLabels.map((l) => {
+            const on = labelFilter === labelKey(l.label)
+            return (
+              <Pressable
+                key={l.id}
+                onPress={() => setLabelFilter((f) => (f === labelKey(l.label) ? '' : labelKey(l.label)))}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                style={[s.chip, { borderColor: on ? pv.acc : pv.line, backgroundColor: on ? pv.accBg : 'transparent' }]}
+              >
+                <View style={[s.chipDot, { backgroundColor: l.color }]} />
+                <Text style={[s.chipTxt, { color: on ? pv.accFg : pv.muted }]}>{trTerm(l.label)}</Text>
+              </Pressable>
+            )
+          })}
+        </ScrollView>
+      )}
       {!!P.error && !!list?.length && (
         <Banner tone="danger" icon="alert" text={P.error} style={s.banner} />
       )}
@@ -153,7 +210,23 @@ export default function ProjetsScreen() {
 
   const switcher = (
     <View style={s.switcher}>
-      <Tabs items={tabs} value={P.tab} onChange={P.setTab} />
+      <View style={[s.seg, { backgroundColor: pv.raised, borderColor: pv.line2 }]} accessibilityRole="tablist">
+        {([['active', t('projects.active'), counts.active], ['done', t('projects.done'), counts.done]] as const).map(([k, label, n]) => {
+          const on = P.tab === k
+          return (
+            <Pressable
+              key={k}
+              onPress={() => P.setTab(k)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              style={[s.segBtn, on && { backgroundColor: pv.col2 }]}
+            >
+              <Text style={[s.segTxt, { color: on ? pv.text : pv.muted }]}>{label}</Text>
+              <Text style={[s.segN, { color: pv.hint }]}>{n}</Text>
+            </Pressable>
+          )
+        })}
+      </View>
     </View>
   )
 
@@ -172,6 +245,7 @@ export default function ProjetsScreen() {
       <FlatList
         data={list}
         keyExtractor={(p) => p.id}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item, index }) => (
           <View style={[s.item, canReorder && s.itemReorder]}>
             <View style={s.grow}>
@@ -194,7 +268,9 @@ export default function ProjetsScreen() {
         ListHeaderComponent={header}
         ListFooterComponent={footer}
         ListEmptyComponent={
-          P.tab === 'done'
+          filtering
+            ? <EmptyState icon="search" title={t('pj.none')} message={t('pj.noneHint')} />
+            : P.tab === 'done'
             ? <EmptyState icon="circle-check" title={t('proj.noneDone')} message={t('g.projets.intro')} />
             : (
               <EmptyState
@@ -216,7 +292,7 @@ export default function ProjetsScreen() {
   }
 
   return (
-    <View style={[s.screen, { backgroundColor: c.bg, paddingTop: insets.top }]}>
+    <View style={[s.screen, { backgroundColor: pv.bg, paddingTop: insets.top }]}>
       {head}
       {switcher}
       {body}
@@ -280,9 +356,20 @@ const s = StyleSheet.create({
   switcher: { paddingHorizontal: 18, paddingBottom: 14 },
   pad: { paddingHorizontal: 18 },
   list: { paddingHorizontal: 18 },
-  tools: { paddingBottom: 12, alignItems: 'flex-start' },
+  toolsTop: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 12 },
+  search: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 42, paddingHorizontal: 14, borderWidth: 1, borderRadius: 12 },
+  searchInput: { flex: 1, fontSize: 14, fontWeight: '500', padding: 0 },
+  sortBtn: { width: 42, height: 42, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  chips: { gap: 8, paddingBottom: 16, paddingRight: 18 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 36, paddingHorizontal: 15, borderRadius: 18, borderWidth: 1 },
+  chipDot: { width: 9, height: 9, borderRadius: 5 },
+  chipTxt: { fontSize: 14, fontWeight: '700' },
+  seg: { flexDirection: 'row', padding: 4, gap: 2, borderWidth: 1, borderRadius: 14, alignSelf: 'flex-start' },
+  segBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 34, paddingHorizontal: 14, borderRadius: 10 },
+  segTxt: { fontSize: 14, fontWeight: '700' },
+  segN: { fontSize: 12, fontWeight: '700' },
   banner: { marginTop: 10, alignSelf: 'stretch' },
-  item: { marginBottom: 12 },
+  item: { marginBottom: 16 },
   itemReorder: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   grow: { flex: 1, minWidth: 0 },
   more: { marginTop: 6, alignSelf: 'center' },

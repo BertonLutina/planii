@@ -20,6 +20,16 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.8.0', date: '2026-11-18',
+    title: { fr: 'Écran Projets mobile repensé', en: 'Redesigned mobile Projects screen' },
+    items: [
+      c('Écran Projets plus simple, comme sur le web : recherche, onglets Actifs / Terminés, puces de libellés qui filtrent la liste et tri en un bouton.', 'Simpler Projects screen, like the web: search, Active / Done tabs, label chips that filter the list and a one-button sort.', 'mobile'),
+      c('Nouvelles cartes de projet : icône teintée par le libellé, avancement en grand, échéance, pastille rouge quand la livraison est dépassée.', 'New project cards: label-tinted icon, large progress, due date, red badge when delivery is overdue.', 'mobile'),
+      a('L’équipe apparaît en photos (ou initiales), trois au plus, puis une pastille « +N » qui compte les autres.', 'The team shows as photos (or initials), three at most, then a “+N” badge counting the others.', 'mobile'),
+      a('Recherche d’un projet par son nom.', 'Search a project by name.', 'mobile'),
+    ],
+  },
+  {
     version: '1.7.0', date: '2026-11-18',
     title: { fr: 'Équipes visibles sur les projets', en: 'Teams visible on projects' },
     items: [

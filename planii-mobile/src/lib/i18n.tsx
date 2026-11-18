@@ -80,6 +80,7 @@ const fr: Dict = {
   'pv.doneN': '{n} tâches terminées', 'pv.doneOne': '1 tâche terminée', 'pv.leftN': '{n} restantes', 'pv.leftOne': '1 restante',
   'pv.filter': 'Filtrer', 'pv.search': 'Rechercher une tâche', 'pv.byPerson': 'Filtrer par personne', 'pv.lateN': '{n} tâche(s) en retard', 'pv.all': 'Tout',
   'pv.noTaskT': 'Aucune tâche pour l’instant', 'pv.addIn': 'Ajouter dans {s}', 'pv.photoBtn': 'Photothèque', 'pv.fileBtn': 'Fichiers', 'pv.filesUp': 'Envoi des fichiers…',
+  'pj.search': 'Rechercher un projet', 'pj.members': '{n} membres', 'pj.member1': '1 membre', 'pj.others': '{n} autres membres', 'pj.none': 'Aucun projet ici', 'pj.noneHint': 'Change de filtre ou crée un nouveau projet.',
   'pd.chooseOne': '— Choisir une personne', 'pv.moreActions': 'Importer ou dicter des tâches',
   'pv.tabAppt': 'RDV', 'pv.more': 'Plus', 'pv.projectNav': 'Navigation du projet',
 }
@@ -139,6 +140,7 @@ const en: Dict = {
   'pv.doneN': '{n} tasks done', 'pv.doneOne': '1 task done', 'pv.leftN': '{n} left', 'pv.leftOne': '1 left',
   'pv.filter': 'Filter', 'pv.search': 'Search a task', 'pv.byPerson': 'Filter by person', 'pv.lateN': '{n} task(s) late', 'pv.all': 'All',
   'pv.noTaskT': 'No tasks yet', 'pv.addIn': 'Add to {s}', 'pv.photoBtn': 'Photo library', 'pv.fileBtn': 'Files', 'pv.filesUp': 'Uploading files…',
+  'pj.search': 'Search a project', 'pj.members': '{n} members', 'pj.member1': '1 member', 'pj.others': '{n} more members', 'pj.none': 'No project here', 'pj.noneHint': 'Change the filter or create a new project.',
   'pd.chooseOne': '— Choose a person', 'pv.moreActions': 'Import or dictate tasks',
   'pv.tabAppt': 'Appts', 'pv.more': 'More', 'pv.projectNav': 'Project navigation',
 }
