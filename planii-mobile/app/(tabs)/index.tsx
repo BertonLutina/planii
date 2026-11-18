@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { ActionMenu, Banner, Button, Fab, GroupHeader, NATIVE_TAB_BAR, Tabs, type TabItem } from '@/components/ui'
+import { ActionMenu, Banner, Button, Fab, Ic, NATIVE_TAB_BAR } from '@/components/ui'
 import { NotifBell } from '@/components/NotifBell'
 import { QuickAppointment } from '@/components/QuickAppointment'
 import { QuickTask } from '@/components/QuickTask'
@@ -12,14 +12,14 @@ import { useSession } from '@/lib/session'
 import type { ProjectLabel } from '@/lib/types'
 import { HelpButton } from '@/screens/guide'
 import {
-  HomeAgenda, HomeBoard, HomeList, HomeSkeleton, LevelCard, TodayBoard,
+  HomeAgenda, HomeBoard, HomeFocus, HomeSkeleton,
   useHome, type MyTask,
 } from '@/screens/home'
 import { afterSheet } from '@/screens/project/lib/flow'
 import { statusOf } from '@/screens/project/lib/statuses'
 import { TaskSheet } from '@/screens/project/tasks/TaskSheet'
 import { DEFAULT_PROJECT_LABELS, NewProjectSheet } from '@/screens/projects'
-import { useTheme } from '@/theme/ThemeProvider'
+import { PvThemeScope, usePv, useTheme } from '@/theme/ThemeProvider'
 
 /* Accueil — portage de `Home` (planii-vite/src/components/Home.tsx).
  *
@@ -40,8 +40,14 @@ import { useTheme } from '@/theme/ThemeProvider'
 
 type HomeView = 'list' | 'board' | 'agenda'
 
+/** L'accueil vit dans la palette du prototype (clair et sombre), comme la page projet. */
 export default function AccueilScreen() {
+  return <PvThemeScope><Accueil /></PvThemeScope>
+}
+
+function Accueil() {
   const { c } = useTheme()
+  const pv = usePv()
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { me } = useSession()
@@ -110,27 +116,25 @@ export default function AccueilScreen() {
   /* Le bas des listes doit dégager le bouton flottant (56 pt + sa marge). */
   const padBottom = insets.bottom + NATIVE_TAB_BAR + 88
 
-  const items: TabItem<HomeView>[] = [
-    { key: 'list', label: t('view.list'), icon: 'list' },
-    { key: 'board', label: t('view.board'), icon: 'board' },
-    { key: 'agenda', label: t('view.agenda'), icon: 'calendar-days' },
-  ]
-
-  const listHeader = (
-    <View>
-      <LevelCard points={home.myPoints} style={s.level} />
-      <TodayBoard
-        today={home.today}
-        error={home.todayError}
-        onOpen={openProject}
-        onOpenTask={openTodayTask}
-        style={s.today}
-      />
-      <GroupHeader title={t('home.todo')} count={home.todo.length} />
-      {/* Données à l'écran mais rechargement en échec : on le dit sans vider la vue. */}
-      {!!home.error && home.mine.length > 0 && (
-        <Banner tone="danger" icon="alert" text={home.error} style={s.banner} />
-      )}
+  const switcher = (
+    <View style={s.switcher}>
+      <View style={[s.seg, { backgroundColor: pv.raised, borderColor: pv.line2 }]} accessibilityRole="tablist">
+        {([['list', t('view.list'), 'list'], ['board', t('view.board'), 'board'], ['agenda', t('view.agenda'), 'calendar-days']] as const).map(([k, label, icon]) => {
+          const on = view === k
+          return (
+            <Pressable
+              key={k}
+              onPress={() => setView(k)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              style={[s.segBtn, on && { backgroundColor: pv.col2 }]}
+            >
+              <Ic name={icon} s={15} c={on ? pv.text : pv.muted} />
+              <Text style={[s.segTxt, { color: on ? pv.text : pv.muted }]}>{label}</Text>
+            </Pressable>
+          )
+        })}
+      </View>
     </View>
   )
 
@@ -161,24 +165,20 @@ export default function AccueilScreen() {
     body = <HomeAgenda onOpen={openProject} contentPaddingBottom={padBottom} />
   } else {
     body = (
-      <HomeList
-        groups={home.groups}
-        empty={home.mine.length === 0}
-        refreshing={home.refreshing}
-        onRefresh={home.refresh}
+      <HomeFocus
+        me={me}
+        home={home}
         onOpen={openProject}
         onOpenTask={openKnownTask}
-        onToggle={home.toggle}
         onMenu={setMenuFor}
         onCreate={() => setNewOpen(true)}
-        header={listHeader}
         contentPaddingBottom={padBottom}
       />
     )
   }
 
   return (
-    <View style={[s.screen, { backgroundColor: c.bg, paddingTop: insets.top }]}>
+    <View style={[s.screen, { backgroundColor: pv.bg, paddingTop: insets.top }]}>
       <View style={s.head}>
         <Text accessibilityRole="header" numberOfLines={1} style={[s.title, { color: c.text }]}>
           {t('nav.home')}
@@ -187,9 +187,7 @@ export default function AccueilScreen() {
         <HelpButton tab="accueil" />
       </View>
 
-      <View style={s.switcher}>
-        <Tabs items={items} value={view} onChange={setView} />
-      </View>
+      {switcher}
 
       {body}
 
@@ -258,9 +256,9 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8 },
   title: { flex: 1, fontSize: 27, fontWeight: '800', letterSpacing: -0.5 },
   switcher: { paddingHorizontal: 18, paddingBottom: 14 },
+  seg: { flexDirection: 'row', padding: 4, gap: 2, borderWidth: 1, borderRadius: 14, alignSelf: 'flex-start' },
+  segBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 34, paddingHorizontal: 14, borderRadius: 10 },
+  segTxt: { fontSize: 14, fontWeight: '700' },
   pad: { paddingHorizontal: 18 },
-  level: { marginTop: 2 },
-  today: { marginTop: 18 },
-  banner: { marginBottom: 10 },
   retry: { marginTop: 12, alignSelf: 'flex-start' },
 })

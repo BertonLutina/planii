@@ -16,7 +16,7 @@ export { TimeField, type TimeFieldProps } from './controls/TimeField'
 export { useSheetBody } from './controls/useSheetBody'
 
 export { Tag, type TagProps } from './tasks/Tag'
-export { TaskRow, type TaskRowProps } from './tasks/TaskRow'
+export { TaskCard, type TaskCardProps } from './tasks/TaskCard'
 export { TaskComments } from './tasks/TaskComments'
 export { TaskHistory } from './tasks/TaskHistory'
 export { TasksTab, type TasksTabProps } from './tasks/TasksTab'

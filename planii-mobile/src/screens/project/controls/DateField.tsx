@@ -58,7 +58,7 @@ export function DateField({
           style={({ pressed }) => [
             s.box,
             {
-              backgroundColor: pressed && editable ? c.surface2 : c.bg,
+              backgroundColor: pressed && editable ? c.surface2 : c.field,
               borderColor: open ? c.accent : border,
               borderWidth: open || error ? 1.5 : 1,
               opacity: editable ? 1 : 0.6,
@@ -106,11 +106,11 @@ export function DateField({
 
 const s = StyleSheet.create({
   wrap: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  label: { fontSize: 13.5, fontWeight: '700', marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   box: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9,
-    minHeight: 46, paddingHorizontal: 13, borderRadius: 11,
+    minHeight: 46, paddingHorizontal: 13, borderRadius: 12,
   },
   value: { fontSize: 16, flex: 1 },
   clear: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },

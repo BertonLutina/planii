@@ -177,6 +177,8 @@ export interface ProjectSummary {
   owner_id: string
   my_role: Role
   memberCount: number
+  /** Les premiers membres (nom, photo) pour les pastilles d'équipe. */
+  memberPreview?: { id: string; name: string; avatarUrl?: string | null }[]
   labelId?: string | null
   labelName?: string | null
   labelColor?: string | null

@@ -51,7 +51,7 @@ export function ChipSelect<K extends string>({
 
 const s = StyleSheet.create({
   wrap: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
+  label: { fontSize: 13.5, fontWeight: '700', marginBottom: 8 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   rowScroll: { flexDirection: 'row', gap: 7, paddingRight: 18 },
 })

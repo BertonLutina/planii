@@ -91,7 +91,7 @@ export function SelectBox({
           s.field,
           open && s.fieldOpen,
           {
-            backgroundColor: pressed ? c.surface2 : c.bg,
+            backgroundColor: pressed ? c.surface2 : c.field,
             borderColor: error ? c.danger : open ? c.accentOn : c.lineStrong,
           },
         ]}
@@ -106,7 +106,7 @@ export function SelectBox({
       {open && (
         <View style={[s.list, { borderColor: c.accentOn, backgroundColor: c.surface }]}>
           {searchable && (
-            <View style={[s.search, { backgroundColor: c.bg, borderColor: c.lineStrong }]}>
+            <View style={[s.search, { backgroundColor: c.field, borderColor: c.lineStrong }]}>
               <Ic name="search" s={16} c={c.muted} />
               <TextInput
                 value={q}
@@ -170,7 +170,7 @@ export function SelectBox({
 
 const s = StyleSheet.create({
   wrap: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  label: { fontSize: 13.5, fontWeight: '700', marginBottom: 8 },
   field: {
     minHeight: 48, borderWidth: 1, borderRadius: radius.control,
     paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10,

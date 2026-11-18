@@ -20,6 +20,97 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.11.1', date: '2026-11-18',
+    title: { fr: 'Listes de sélection plus lisibles', en: 'Clearer drop-down lists' },
+    items: [
+      f('Les listes de sélection (langue, tri, statut, priorité…) affichent un chevron à distance du bord du cadre, à la couleur du thème, au lieu d’une flèche collée au contour.', 'Drop-down lists (language, sort, status, priority…) show a chevron set back from the frame’s edge, in the theme colour, instead of an arrow stuck to the border.', 'web'),
+    ],
+  },
+  {
+    version: '1.11.0', date: '2026-11-18',
+    title: { fr: 'Connexion et inscription mobiles repensées', en: 'Redesigned mobile sign in and sign up' },
+    items: [
+      c('Nouvel écran de connexion et d’inscription, dans l’univers de la page d’accueil : halos, titre « Vos projets avancent. Vous gardez la main. », onglets « Se connecter » / « S’inscrire », clair et sombre.', 'New sign in and sign up screen, in the look of the home page: glows, “Your projects move forward. You stay in control.” headline, “Sign in” / “Sign up” tabs, light and dark.', 'mobile'),
+      a('Jauge de solidité du mot de passe à l’inscription, et bouton pour changer de thème et de langue dès l’écran de connexion.', 'Password strength meter when signing up, and a button to change theme and language right from the sign in screen.', 'mobile'),
+      c('Les quatre fournisseurs (Google, Microsoft, LinkedIn, Yahoo) s’affichent avec leur nom.', 'The four providers (Google, Microsoft, LinkedIn, Yahoo) now show their name.', 'mobile'),
+    ],
+  },
+  {
+    version: '1.10.0', date: '2026-11-18',
+    title: { fr: 'Connexion et inscription repensées', en: 'Redesigned sign in and sign up' },
+    items: [
+      c('Nouvelle page de connexion et d’inscription, dans l’univers de la page d’accueil : un discours à gauche, le formulaire à droite, onglets « Se connecter » / « Créer un compte », clair et sombre.', 'New sign in and sign up page, in the look of the home page: the pitch on the left, the form on the right, “Sign in” / “Sign up” tabs, light and dark.', 'web'),
+      a('Œil pour afficher ou masquer le mot de passe, et jauge de solidité à l’inscription.', 'Eye button to show or hide the password, and a strength meter when signing up.', 'web'),
+      c('Les quatre fournisseurs (Google, Microsoft, LinkedIn, Yahoo) s’affichent avec leur nom.', 'The four providers (Google, Microsoft, LinkedIn, Yahoo) now show their name.', 'web'),
+    ],
+  },
+  {
+    version: '1.9.1', date: '2026-11-18',
+    title: { fr: 'Équipes visibles sans attendre le serveur', en: 'Teams visible without waiting for the server' },
+    items: [
+      f('Les cartes de projet affichent les avatars de l’équipe (initiales, trois au plus, puis « +N ») même quand le serveur n’envoie pas encore les photos : l’appli lit alors les membres de chaque projet.', 'Project cards show the team avatars (initials, three at most, then “+N”) even when the server does not send the photos yet: the app then reads each project’s members.', 'mobile'),
+    ],
+  },
+  {
+    version: '1.9.0', date: '2026-11-18',
+    title: { fr: 'Accueil mobile repensé', en: 'Redesigned mobile Home' },
+    items: [
+      c('Accueil plus simple, comme sur le web : « Ta journée » avec ta prochaine tâche et un anneau de progression, la semaine, et des tuiles qui filtrent une seule liste de tâches.', 'Simpler Home, like the web: “Your day” with your next task and a progress ring, the week, and tiles that filter a single task list.', 'mobile'),
+      c('Le statut d’une tâche se change depuis le menu « … » de sa ligne.', 'A task’s status is changed from the “…” menu on its row.', 'mobile'),
+      a('« Mes projets » : l’avancement de chaque projet actif, à un appui de son ouverture.', '“My projects”: the progress of each active project, one tap from opening it.', 'mobile'),
+      c('Couleurs et polices de la page projet, en clair et en sombre ; le score et les vues Tableau et Agenda restent disponibles.', 'Colours and fonts of the project page, in light and dark; the score and the Board and Agenda views are still there.', 'mobile'),
+    ],
+  },
+  {
+    version: '1.8.0', date: '2026-11-18',
+    title: { fr: 'Écran Projets mobile repensé', en: 'Redesigned mobile Projects screen' },
+    items: [
+      c('Écran Projets plus simple, comme sur le web : recherche, onglets Actifs / Terminés, puces de libellés qui filtrent la liste et tri en un bouton.', 'Simpler Projects screen, like the web: search, Active / Done tabs, label chips that filter the list and a one-button sort.', 'mobile'),
+      c('Nouvelles cartes de projet : icône teintée par le libellé, avancement en grand, échéance, pastille rouge quand la livraison est dépassée.', 'New project cards: label-tinted icon, large progress, due date, red badge when delivery is overdue.', 'mobile'),
+      a('L’équipe apparaît en photos (ou initiales), trois au plus, puis une pastille « +N » qui compte les autres.', 'The team shows as photos (or initials), three at most, then a “+N” badge counting the others.', 'mobile'),
+      a('Recherche d’un projet par son nom.', 'Search a project by name.', 'mobile'),
+    ],
+  },
+  {
+    version: '1.7.0', date: '2026-11-18',
+    title: { fr: 'Équipes visibles sur les projets', en: 'Teams visible on projects' },
+    items: [
+      c('Les cartes de projet montrent les photos des membres (ou leurs initiales), trois au plus, puis une pastille « +N » qui compte les autres.', 'Project cards show member photos (or initials), three at most, then a “+N” badge counting the others.', 'web'),
+    ],
+  },
+  {
+    version: '1.6.0', date: '2026-11-18',
+    title: { fr: 'Accueil repensé', en: 'Redesigned Home' },
+    items: [
+      c('Accueil plus simple : « Ta journée » avec ta prochaine tâche et un anneau de progression, une bande de la semaine, et des tuiles qui filtrent une seule liste de tâches.', 'Simpler Home: “Your day” with your next task and a progress ring, a week strip, and tiles that filter a single task list.', 'web'),
+      c('Le statut d’une tâche se change depuis sa ligne (menu sur la pastille de statut), à la place de l’appui long avec glisser-déposer.', 'A task’s status is changed from its row (menu on the status pill), instead of long-press and drag.', 'web'),
+      a('« Mes projets » : l’avancement de chaque projet actif, à un clic de son ouverture.', '“My projects”: the progress of each active project, one click from opening it.', 'web'),
+      c('Les vues Tableau et Agenda de l’accueil et le score restent disponibles, avec les couleurs et les polices de la page projet, en clair et en sombre.', 'The Board and Agenda views of Home and the score are still there, with the colours and fonts of the project page, in light and dark.', 'web'),
+    ],
+  },
+  {
+    version: '1.5.0', date: '2026-11-18',
+    title: { fr: 'Page Projets repensée', en: 'Redesigned Projects page' },
+    items: [
+      c('Page Projets plus simple : recherche, onglets Actifs / Terminés, puces de libellés qui filtrent la liste, tri et bascule cartes / tableau sur une seule barre.', 'Simpler Projects page: search, Active / Done tabs, label chips that filter the list, sort and cards / table switch on a single bar.', 'web'),
+      c('Nouvelles cartes de projet : icône teintée par le libellé, avancement en grand, échéance, et une pastille rouge quand la livraison est dépassée.', 'New project cards: label-tinted icon, large progress, due date, and a red badge when delivery is overdue.', 'web'),
+      a('Recherche d’un projet par son nom.', 'Search a project by name.', 'web'),
+      c('Vue tableau remise au même style, clair et sombre.', 'Table view restyled to match, light and dark.', 'web'),
+    ],
+  },
+  {
+    version: '1.4.0', date: '2026-11-17',
+    title: { fr: 'Écran projet mobile redessiné', en: 'Redesigned mobile project screen' },
+    items: [
+      c('Écran projet redessiné comme sur le web : en-tête compact avec barre de progression et pastille de retard, pastilles de statut et de personnes qui défilent, tâches groupées par statut (statuts vides masqués).', 'Project screen redesigned like the web: compact header with progress bar and late badge, scrolling status and people pills, tasks grouped by status (empty statuses hidden).', 'mobile'),
+      c('Nouvelles cartes de tâche : pastille de statut, priorité, titre, échéance, avatar du responsable, et recherche, filtre de statut et tri en haut de la liste.', 'New task cards: status pill, priority, title, due date, assignee avatar, with search, status filter and sort above the list.', 'mobile'),
+      a('Un trombone avec le nombre de fichiers apparaît sur les tâches qui en contiennent.', 'A paperclip with the file count shows on tasks that have files.', 'mobile'),
+      a('Bouton flottant « + » avec le micro et l’import au-dessus, et barre d’onglets du projet en bas de l’écran.', 'Floating “+” button with the microphone and import above it, and a project tab bar at the bottom of the screen.', 'mobile'),
+      a('« Nouvelle tâche » s’ouvre en feuille du bas : titre, description, photos et fichiers, responsable, statut, priorité, type, échéance et heures.', '“New task” opens as a bottom sheet: title, description, photos and files, assignee, status, priority, type, due date and hours.', 'mobile'),
+      f('Thème sombre : les champs de formulaire suivent la couleur du thème au lieu d’être plus foncés que leur feuille.', 'Dark theme: form fields now follow the theme colour instead of being darker than their sheet.', 'mobile'),
+    ],
+  },
+  {
     version: '1.3.0', date: '2026-11-17',
     title: { fr: 'Page projet redessinée', en: 'Redesigned project page' },
     items: [

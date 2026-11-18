@@ -48,7 +48,7 @@ export function TimeField({ label, value, onChange, editable = true, error, styl
         style={({ pressed }) => [
           s.box,
           {
-            backgroundColor: pressed && editable ? c.surface2 : c.bg,
+            backgroundColor: pressed && editable ? c.surface2 : c.field,
             borderColor: error ? c.danger : open ? c.accent : c.lineStrong,
             borderWidth: open || error ? 1.5 : 1,
             opacity: editable ? 1 : 0.6,
@@ -79,10 +79,10 @@ export function TimeField({ label, value, onChange, editable = true, error, styl
 
 const s = StyleSheet.create({
   wrap: { flex: 1 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  label: { fontSize: 13.5, fontWeight: '700', marginBottom: 8 },
   box: {
     flexDirection: 'row', alignItems: 'center', gap: 9,
-    minHeight: 46, paddingHorizontal: 13, borderRadius: 11,
+    minHeight: 46, paddingHorizontal: 13, borderRadius: 12,
   },
   value: { fontSize: 16, fontWeight: '600' },
   ios: { borderWidth: 1, borderRadius: radius.control, marginTop: 8, paddingBottom: 8, alignItems: 'center' },

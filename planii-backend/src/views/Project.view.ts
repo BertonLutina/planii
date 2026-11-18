@@ -4,6 +4,8 @@ export const listItem = (row: Record<string, unknown>) => ({
   ...row,
   my_role: row.my_role,
   memberCount: row.memberCount,
+  /** Les 4 premiers membres (nom, photo) pour les pastilles d'équipe de la liste. */
+  memberPreview: row.memberPreview ?? [],
   taskCount: row.taskCount,
   doneCount: row.doneCount,
 })

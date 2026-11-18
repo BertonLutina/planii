@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, apiUpload, mediaUrl } from '@/lib/api'
 import { toast, toastErr, Modal, health, Avatar, readableOn } from '@/lib/ui'
-import { ROLE_LABEL } from '@/lib/dates'
+import { ROLE_LABEL, formatDue, parseISO, todayMid } from '@/lib/dates'
 import { MicInput } from './Mic'
 import { projectComparator, type ProjSort, type Dir } from '@/lib/sort'
 import type { InviteInfo, ProjectLabel, ProjectSummary, PaginatedResponse } from '@/lib/types'
 import { LoadMoreButton } from '@/lib/usePagination'
 import { Ic } from './Icon'
+import { PvAvatar } from './PvBits'
 import { useI18n, t as tt, trTerm } from '@/lib/i18n'
 
 const TYPE_SHORT: Record<string, string> = new Proxy({}, { get: (_o, k) => tt('proj.type' + String(k)[0].toUpperCase() + String(k).slice(1)) }) as Record<string, string>
@@ -35,6 +36,8 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
   const [tab, setTab] = useState<'active' | 'done'>('active')
   const [pSort, setPSort] = useState<ProjSort>('title')
   const [pDir, setPDir] = useState<Dir>('asc')
+  const [search, setSearch] = useState('')
+  const [labelFilter, setLabelFilter] = useState('')
   const [view, setView] = useState<ProjView>(() => {
     try { return (localStorage.getItem('planii.projView') as ProjView) || 'cards' } catch { return 'cards' }
   })
@@ -95,8 +98,13 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
   if (!projects) return <div className="empty">{tt('common.loading')}</div>
   const activeCount = counts.active
   const doneCount = counts.done
-  const list = projects.slice().sort(projectComparator(pSort, pDir))
-  const canDrag = pSort === 'manual' && tab === 'active' && view === 'cards'
+  const sorted = projects.slice().sort(projectComparator(pSort, pDir))
+  const q = search.trim().toLowerCase()
+  const filtering = !!q || !!labelFilter
+  const labelOf = (p: ProjectSummary) => labelKey(p.labelName || '')
+  const list = sorted.filter((p) => (!q || p.name.toLowerCase().includes(q)) && (!labelFilter || labelOf(p) === labelFilter))
+  /* L'ordre manuel se calcule sur la liste complète : jamais pendant une recherche ou un filtre. */
+  const canDrag = pSort === 'manual' && tab === 'active' && view === 'cards' && !filtering
   const legendLabels = (() => {
     const byKey = new Map<string, ProjectLabel>()
     labels.forEach((l) => {
@@ -140,131 +148,135 @@ export function ProjectsList({ onOpen, onJoin, openSignal, onOpenSignalConsumed 
     persistOrder(ids)
   }
 
+  const rows = list.map((p) => {
+    const h = health(p.taskCount, p.doneCount, p.status)
+    const typeShort = TYPE_SHORT[p.type] || p.type
+    const memberCount = Number.isFinite(Number(p.memberCount)) ? Number(p.memberCount) : 1
+    const role = p.type !== 'group' ? (ROLE_LABEL[p.my_role] || p.my_role) : ''
+    const label = legendLabels.find((l) => l.id === p.labelId || l.label === p.labelName) || legendLabels[0]
+    const labelName = p.labelName || label?.label || 'Travail'
+    const labelColor = p.labelColor || label?.color || '#f59e0b'
+    const dl = parseISO(p.deadline || null)
+    const late = !!dl && dl < todayMid() && p.status !== 'done'
+    const full = p.status === 'done' || h.pct === 100
+    return { p, h, typeShort, memberCount, role, labelName, labelColor, late, full }
+  })
+  const avatarOf = (p: ProjectSummary, color: string, cls: string) => mediaUrl(p.imageUrl)
+    ? <span className={cls + ' pj-av-img'}><img src={mediaUrl(p.imageUrl)!} alt="" /></span>
+    : <span className={cls} style={{ ['--c' as string]: color }}>{initialsOf(p.name)}</span>
+
   return (
-    <div>
-      <div className="proj-head">
-        <div className="tabs" style={{ margin: 0, maxWidth: 280 }}>
-          <button className={tab === 'active' ? 'on' : ''} onClick={() => setTab('active')}>{tr('projects.active')} ({activeCount})</button>
-          <button className={tab === 'done' ? 'on' : ''} onClick={() => setTab('done')}>{tr('projects.done')} ({doneCount})</button>
+    <div className="pj">
+      <div className="pj-bar">
+        <div className="pj-seg" role="group" aria-label={tr('projects.active')}>
+          <button type="button" className={tab === 'active' ? 'on' : ''} aria-pressed={tab === 'active'} onClick={() => setTab('active')}>{tr('projects.active')} <em>{activeCount}</em></button>
+          <button type="button" className={tab === 'done' ? 'on' : ''} aria-pressed={tab === 'done'} onClick={() => setTab('done')}>{tr('projects.done')} <em>{doneCount}</em></button>
         </div>
-        <button className="btn-link" onClick={onJoin}>{tr('projects.join')}</button>
-      </div>
-      <div className="project-controls">
-        <div className="list-tools">
-          <div className="viewseg proj-viewseg">
-            <button className={view === 'cards' ? 'on' : ''} onClick={() => setViewP('cards')} title={tr('view.cards')}><Ic name="board" s={15} /> {tr('view.cards')}</button>
-            <button className={view === 'table' ? 'on' : ''} onClick={() => setViewP('table')} title={tr('view.table')}><Ic name="list" s={15} /> {tr('view.table')}</button>
-          </div>
-          <label className="lt-lbl">{tr('projects.sort')}</label>
+        <label className="pj-search"><Ic name="search" s={18} />
+          <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tr('pj.search')} aria-label={tr('pj.search')} /></label>
+        <span className="pj-sp" />
+        <button className="pj-join" onClick={onJoin}>{tr('projects.join')}</button>
+        <div className="pj-sort">
+          <span>{tr('projects.sort')}</span>
           <select value={pSort} onChange={(e) => setPSort(e.target.value as ProjSort)} aria-label="Trier les projets par">
             <option value="title">{tr('projects.sortTitle')}</option>
             <option value="manual">{tr('projects.sortManual')}</option>
           </select>
-          <button className="btn sm" onClick={() => setPDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri">{pDir === 'asc' ? '↑ A→Z' : '↓ Z→A'}</button>
+          <button type="button" onClick={() => setPDir((d) => (d === 'asc' ? 'desc' : 'asc'))} title="Sens du tri" aria-label="Sens du tri">{pDir === 'asc' ? '↑ A→Z' : '↓ Z→A'}</button>
         </div>
-        <div className="project-legend" aria-label="Légende des libellés">
-          {legendLabels.map((l) => (
-            <span key={l.id} className="project-legend-item"><i style={{ background: l.color }} />{trTerm(l.label)}</span>
-          ))}
+        <div className="pj-seg icons" role="group" aria-label={tr('view.cards')}>
+          <button type="button" className={view === 'cards' ? 'on' : ''} aria-pressed={view === 'cards'} onClick={() => setViewP('cards')} title={tr('view.cards')} aria-label={tr('view.cards')}><Ic name="grid" s={18} /></button>
+          <button type="button" className={view === 'table' ? 'on' : ''} aria-pressed={view === 'table'} onClick={() => setViewP('table')} title={tr('view.table')} aria-label={tr('view.table')}><Ic name="list" s={18} /></button>
         </div>
       </div>
-      {canDrag && <div className="sub" style={{ margin: '0 2px 8px' }}>{tr('proj.dragHint')}</div>}
-      {(() => {
-        const rows = list.map((p) => {
-          const h = health(p.taskCount, p.doneCount, p.status)
-          const typeShort = TYPE_SHORT[p.type] || p.type
-          const memberCount = Number.isFinite(Number(p.memberCount)) ? Number(p.memberCount) : 1
-          const role = p.type !== 'group' ? (ROLE_LABEL[p.my_role] || p.my_role) : ''
-          const label = legendLabels.find((l) => l.id === p.labelId || l.label === p.labelName) || legendLabels[0]
-          const labelName = p.labelName || label?.label || 'Travail'
-          const labelColor = p.labelColor || label?.color || '#f59e0b'
-          const barColor = p.status === 'done' ? 'var(--ok)' : 'var(--accent)'
-          return { p, h, typeShort, memberCount, role, labelName, labelColor, barColor }
-        })
+      {legendLabels.length > 0 && (
+        <div className="pj-chips" role="group" aria-label="Libellés">
+          {legendLabels.map((l) => (
+            <button type="button" key={l.id} className={'pj-chip' + (labelFilter === labelKey(l.label) ? ' on' : '')} aria-pressed={labelFilter === labelKey(l.label)}
+              onClick={() => setLabelFilter((f) => (f === labelKey(l.label) ? '' : labelKey(l.label)))}><i style={{ background: l.color }} />{trTerm(l.label)}</button>
+          ))}
+        </div>
+      )}
+      {canDrag && <div className="pj-hint">{tr('proj.dragHint')}</div>}
 
-        if (view === 'table') {
-          return (
-            <div className="ptable-wrap">
-              <table className="ptable">
-                <thead>
-                  <tr>
-                    <th>{tr('proj.thProject')}</th><th>{tr('proj.thType')}</th><th>{tr('proj.thRole')}</th><th className="ta-c">{tr('proj.thMembers')}</th>
-                    <th className="ta-c">{tr('proj.thTasks')}</th><th>{tr('proj.thProgress')}</th><th>{tr('proj.thLabel')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(({ p, h, typeShort, memberCount, role, labelName, labelColor, barColor }) => (
-                    <tr key={p.id} onClick={() => onOpen(p.id)} tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === 'Enter') onOpen(p.id) }}>
-                      <td className="pt-name">
-                        {mediaUrl(p.imageUrl)
-                          ? <span className="pt-avatar pt-avatar-img"><img src={mediaUrl(p.imageUrl)!} alt="" /></span>
-                          : <span className="pt-avatar" style={{ background: labelColor, color: readableOn(labelColor) }}>{initialsOf(p.name)}</span>}
-                        <span className="pt-name-txt">{p.name}</span>
-                      </td>
-                      <td><span className="pt-type"><Ic name={TYPE_ICON[p.type] || 'folder'} s={13} /> {typeShort}</span></td>
-                      <td className="pt-muted">{role || '—'}</td>
-                      <td className="ta-c">{memberCount}</td>
-                      <td className="ta-c">{h.done}/{h.total}</td>
-                      <td>
-                        <div className="pt-prog">
-                          <div className="pt-bar"><i style={{ width: h.pct + '%', background: barColor }} /></div>
-                          <span className="pt-pct">{h.pct}%</span>
-                        </div>
-                      </td>
-                      <td><span className="pt-chip" style={{ color: 'var(--text)', background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}><i style={{ background: labelColor }} />{trTerm(labelName)}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {tab === 'active' && <button className="pt-newrow" onClick={() => setNewOpen(true)}><Ic name="plus" s={15} /> {tr('projects.newProject')}</button>}
-            </div>
-          )
-        }
+      {view === 'table' && rows.length > 0 && (
+        <div className="pj-tbl">
+          <table className="ptable">
+            <thead>
+              <tr>
+                <th>{tr('proj.thProject')}</th><th>{tr('proj.thLabel')}</th><th>{tr('proj.thProgress')}</th><th className="ta-c">{tr('proj.thTasks')}</th>
+                <th className="ta-c">{tr('proj.thMembers')}</th><th>{tr('proj.thRole')}</th><th>{tr('pd.delivery').replace(/^./, (c) => c.toUpperCase())}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ p, h, memberCount, role, labelName, labelColor, late, full }) => (
+                <tr key={p.id} onClick={() => onOpen(p.id)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(p.id) }}>
+                  <td><div className="pj-tn">{avatarOf(p, labelColor, 'pj-av sm')}<span>{p.name}</span></div></td>
+                  <td><span className="pj-pill" style={{ ['--c' as string]: labelColor }}><i />{trTerm(labelName)}</span></td>
+                  <td><div className="pj-tp"><div className={'pj-track' + (full ? ' full' : '')}><i style={{ width: h.pct + '%' }} /></div><b>{h.pct}%</b></div></td>
+                  <td className="ta-c">{h.done}/{h.total}</td>
+                  <td className="ta-c">{memberCount}</td>
+                  <td className="pt-muted">{role || '—'}</td>
+                  <td>{late ? <span className="pj-late"><Ic name="alert" s={13} />{formatDue(p.deadline)}</span> : p.deadline && p.status !== 'done' ? <span className="pj-due">{formatDue(p.deadline)}</span> : <span className="pt-muted">—</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {tab === 'active' && <button className="pj-newrow" onClick={() => setNewOpen(true)}><Ic name="plus" s={15} /> {tr('projects.newProject')}</button>}
+        </div>
+      )}
 
-        return (
-          <div className="pcard-grid">
-            {rows.map(({ p, h, typeShort, memberCount, role, labelName, labelColor, barColor }, idx) => (
-              <div key={p.id} className="pcard-slot">
-              <button className={'pcard' + (canDrag ? ' draggable' : '') + (dragId === p.id ? ' dragging' : '')} onClick={() => onOpen(p.id)}
+      {view === 'cards' && (
+        <div className="pj-grid">
+          {rows.map(({ p, h, typeShort, memberCount, role, labelName, labelColor, late, full }, idx) => (
+            <div key={p.id} className="pj-slot">
+              <button className={'pj-card' + (canDrag ? ' draggable' : '') + (dragId === p.id ? ' dragging' : '')} style={{ ['--c' as string]: labelColor }} onClick={() => onOpen(p.id)}
                 draggable={canDrag}
                 onDragStart={canDrag ? () => setDragId(p.id) : undefined}
                 onDragOver={canDrag ? (e) => e.preventDefault() : undefined}
                 onDrop={canDrag ? (e) => { e.preventDefault(); dropOn(p.id) } : undefined}>
-                <span className="pcard-accent" style={{ background: labelColor }} />
-                <div className="pcard-head">
-                  {mediaUrl(p.imageUrl)
-                    ? <span className="pcard-avatar pcard-avatar-img"><img src={mediaUrl(p.imageUrl)!} alt="" /></span>
-                    : <span className="pcard-avatar" style={{ background: labelColor, color: readableOn(labelColor) }}>{initialsOf(p.name)}</span>}
-                  <div className="pcard-titles">
-                    <b className="pcard-name">{p.name}</b>
-                    <span className="pcard-type"><Ic name={TYPE_ICON[p.type] || 'folder'} s={12} /> {typeShort}{role ? ' · ' + role : ''}</span>
+                <div className="pj-hd">
+                  {avatarOf(p, labelColor, 'pj-av')}
+                  <div className="pj-ti">
+                    <b>{p.name}</b>
+                    <span><Ic name={TYPE_ICON[p.type] || 'folder'} s={13} />{typeShort}{role ? ' · ' + role : ''}</span>
                   </div>
-                  <span className="pcard-chip" style={{ color: 'var(--text)', background: 'color-mix(in srgb,' + labelColor + ' 14%, transparent)', borderColor: 'color-mix(in srgb,' + labelColor + ' 40%, transparent)' }}>{trTerm(labelName)}</span>
                 </div>
-                <div className="pcard-stats">
-                  <span className="pcard-stat"><Ic name="users" s={14} /> {memberCount}</span>
-                  <span className="pcard-stat"><Ic name="tasks" s={14} /> {h.done}/{h.total} {tr('projects.tasks')}</span>
-                  {p.status === 'done' && <span className="pcard-stat pcard-done"><Ic name="circle-check" s={14} c="var(--ok)" /> {tr('projects.done')}</span>}
+                <div className="pj-mid">
+                  <span className="pj-pill"><i />{trTerm(labelName)}</span>
+                  {late && <span className="pj-late"><Ic name="alert" s={13} />{formatDue(p.deadline)}</span>}
+                  {!late && p.deadline && p.status !== 'done' && <span className="pj-due"><Ic name="calendar" s={14} />{formatDue(p.deadline)}</span>}
+                  {p.status === 'done' && <span className="pj-due ok"><Ic name="circle-check" s={14} />{tr('projects.done')}</span>}
                 </div>
-                <div className="pcard-prog">
-                  <div className="pcard-bar"><i style={{ width: h.pct + '%', background: barColor }} /></div>
-                  <span className="pcard-pct" style={{ color: barColor }}>{h.pct}%</span>
+                <div className="pj-prog">
+                  <div className="pj-nums"><span>{h.done}/{h.total} {tr('projects.tasks')}</span><b>{h.pct}%</b></div>
+                  <div className={'pj-track' + (full ? ' full' : '')}><i style={{ width: h.pct + '%' }} /></div>
                 </div>
-                {canDrag && <span className="drag-handle pcard-drag" aria-hidden="true"><Ic name="grip" s={14} /></span>}
+                <div className="pj-ft">
+                  {(p.memberPreview?.length ?? 0) > 0
+                    ? (
+                      <span className="pj-stack">
+                        {p.memberPreview!.slice(0, 3).map((m) => <PvAvatar key={m.id} name={m.name} src={mediaUrl(m.avatarUrl)} />)}
+                        {memberCount > 3 && <span className="pj-more" role="img" aria-label={tr('pj.others', { n: memberCount - 3 })} title={tr('pj.others', { n: memberCount - 3 })}>+{memberCount - 3}</span>}
+                      </span>
+                    )
+                    : <Ic name="users" s={15} />}
+                  <small>{memberCount === 1 ? tr('pj.member1') : tr('pj.members', { n: memberCount })}</small>
+                </div>
+                {canDrag && <span className="drag-handle pj-drag" aria-hidden="true"><Ic name="grip" s={14} /></span>}
               </button>
               {canDrag && (
-                <div className="pcard-move" role="group" aria-label={tr('proj.moveGroup', { n: p.name })}>
+                <div className="pj-move" role="group" aria-label={tr('proj.moveGroup', { n: p.name })}>
                   <button type="button" disabled={idx === 0} onClick={() => moveBy(p.id, -1)} aria-label={tr('proj.moveEarlier', { n: p.name })} title={tr('proj.moveEarlier', { n: p.name })}><Ic name="chevron-up" s={14} /></button>
                   <button type="button" disabled={idx === rows.length - 1} onClick={() => moveBy(p.id, 1)} aria-label={tr('proj.moveLater', { n: p.name })} title={tr('proj.moveLater', { n: p.name })}><Ic name="chevron-down" s={14} /></button>
                 </div>
               )}
-              </div>
-            ))}
-            {tab === 'active' && <button className="pcard pcard-new" onClick={() => setNewOpen(true)}><Ic name="plus" s={18} /> {tr('projects.newProject')}</button>}
-          </div>
-        )
-      })()}
+            </div>
+          ))}
+          {tab === 'active' && <button className="pj-card pj-new" onClick={() => setNewOpen(true)}><Ic name="plus" s={18} /> {tr('projects.newProject')}</button>}
+        </div>
+      )}
+      {rows.length === 0 && filtering && <div className="pj-none"><b>{tr('pj.none')}</b>{tr('pj.noneHint')}</div>}
       <LoadMoreButton
         hasMore={hasMore && pSort !== 'manual'}
         loading={loadingMore}

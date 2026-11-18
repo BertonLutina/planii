@@ -83,7 +83,7 @@ export const RefField = forwardRef<TextInput, RefFieldProps>(function RefField({
           style={[
             s.input,
             {
-              backgroundColor: c.bg,
+              backgroundColor: c.field,
               borderColor: border,
               borderWidth: focus || error ? 1.5 : 1,
               color: c.text,
@@ -113,11 +113,11 @@ export const RefField = forwardRef<TextInput, RefFieldProps>(function RefField({
 
 const s = StyleSheet.create({
   wrap: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  label: { fontSize: 13.5, fontWeight: '600', marginBottom: 7 },
   row: { position: 'relative', justifyContent: 'center' },
   input: {
     paddingHorizontal: 13, paddingVertical: 12,
-    borderRadius: 11, fontSize: 16, minHeight: 46,
+    borderRadius: 12, fontSize: 16, minHeight: 48,
   },
   eye: { position: 'absolute', right: 6, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   msg: { fontSize: 12.5, marginTop: 5, fontWeight: '600' },

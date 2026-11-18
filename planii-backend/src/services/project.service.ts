@@ -318,6 +318,10 @@ export async function listProjects(userId: string, query: Record<string, unknown
   const select = `SELECT p.*, m.role AS my_role, m.position AS position,
       pl.id AS "labelId", pl.label AS "labelName", pl.color AS "labelColor",
       (SELECT count(*) FROM memberships mm WHERE mm.project_id=p.id)::int AS "memberCount",
+      (SELECT coalesce(json_agg(x), '[]'::json) FROM (
+        SELECT u.id, u.name, u.avatar_url AS "avatarUrl"
+        FROM memberships mm JOIN users u ON u.id=mm.user_id
+        WHERE mm.project_id=p.id ORDER BY mm.joined_at LIMIT 4) x) AS "memberPreview",
       (SELECT count(*) FROM tasks t WHERE t.project_id=p.id)::int AS "taskCount",
       (SELECT count(*) FROM tasks t WHERE t.project_id=p.id AND t.done)::int AS "doneCount",
       (SELECT coalesce(sum(

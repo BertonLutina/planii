@@ -5,7 +5,7 @@ import {
   TriangleAlert, Flame, TrendingUp, Settings, Mail, LogOut, Filter, ArrowUpDown, GripVertical,
   Megaphone, Sparkles, Target, Inbox, MessageSquare, Hand, PieChart, ChartBar, Circle, CircleCheck,
   Clock4, ArrowUpRight, Repeat, ListChecks, Vote, Activity, CircleHelp, ChevronLeft, ChevronUp, Paperclip, FileText, FileSpreadsheet, FileImage, FileArchive, File as FileIcon,
-  Download, Upload, ExternalLink, Menu, LayoutPanelLeft, Columns3, Table2, type LucideIcon,
+  Download, Upload, ExternalLink, Menu, LayoutPanelLeft, Columns3, Table2, Eye, EyeOff, ArrowRight, type LucideIcon,
 } from 'lucide-react'
 
 const MAP: Record<string, LucideIcon> = {
@@ -24,6 +24,7 @@ const MAP: Record<string, LucideIcon> = {
   paperclip: Paperclip, 'file-text': FileText, 'file-sheet': FileSpreadsheet, 'file-image': FileImage,
   'file-zip': FileArchive, file: FileIcon, download: Download, upload: Upload, external: ExternalLink,
   menu: Menu, table: Table2, columns: Columns3, grid: LayoutGrid, panel: LayoutPanelLeft,
+  eye: Eye, 'eye-off': EyeOff, 'arrow-right': ArrowRight,
 }
 
 /** Icône en trait (lucide), taille et épaisseur cohérentes.

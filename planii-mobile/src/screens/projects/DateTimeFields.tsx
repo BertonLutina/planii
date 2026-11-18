@@ -83,7 +83,7 @@ export function DateTimeField({
           style={({ pressed }) => [
             s.box,
             {
-              backgroundColor: pressed ? c.surface2 : c.bg,
+              backgroundColor: pressed ? c.surface2 : c.field,
               borderColor: error ? c.danger : open ? c.accent : c.lineStrong,
               borderWidth: error || open ? 1.5 : 1,
             },
@@ -123,13 +123,13 @@ export function DateTimeField({
 
 const s = StyleSheet.create({
   wrap: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  label: { fontSize: 13.5, fontWeight: '700', marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   box: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9,
-    minHeight: 46, paddingHorizontal: 13, borderRadius: 11,
+    minHeight: 46, paddingHorizontal: 13, borderRadius: 12,
   },
   value: { flex: 1, fontSize: 16 },
-  clear: { width: 44, height: 44, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  clear: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   msg: { fontSize: 12.5, marginTop: 5, fontWeight: '600' },
 })
