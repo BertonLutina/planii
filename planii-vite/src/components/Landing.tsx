@@ -60,36 +60,37 @@ export function Landing({ onLogin, onStart }: { onLogin: () => void; onStart: ()
         <div className="lp-w lp-art">
           <div className="lp-collage">
             <div className="lp-col">
-              <Mock title="Accueil — mes tâches">
-                <div style={{ display: 'flex', gap: 9, marginBottom: 15, flexWrap: 'wrap' }}>
-                  <span className="lp-pill dg">3 en retard</span>
-                  <span className="lp-pill wn">5 aujourd'hui</span>
-                  <span className="lp-pill ok">12 terminées</span>
+              <Mock title="Accueil">
+                <div className="lp-hello">Bonjour, Alice</div>
+                <div className="lp-hello-sub">5 points à surveiller maintenant.</div>
+                <div className="lp-day">
+                  <svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
+                    <circle cx="31" cy="31" r="26" fill="none" stroke="var(--lp-line2)" strokeWidth="6" />
+                    <circle cx="31" cy="31" r="26" fill="none" stroke="var(--accent)" strokeWidth="6" strokeLinecap="round"
+                      strokeDasharray="163" strokeDashoffset="109" transform="rotate(-90 31 31)" />
+                    <text x="31" y="35" textAnchor="middle" fontSize="13" fontWeight="800" fill="var(--lp-text)">1/3</text>
+                  </svg>
+                  <div className="lp-day-t">
+                    <small>Ta journée</small>
+                    <b>Envoyer le devis au client</b>
+                    <span>Refonte du site · <em>en retard de 2 j</em></span>
+                    <i className="lp-minibtn">✓ Terminer</i>
+                  </div>
                 </div>
-                <Row title="Livrer la maquette du site vitrine" p="p1" av="AM" />
-                <Row title="Valider le devis fournisseur" p="p2" av="LK" tone="ok" />
-                <Row title="Préparer la réunion de lancement" p="p3" av="SD" tone="bl" done />
-                <Row title="Relire le contrat de prestation" p="p4" av="MT" />
-                <Row title="Envoyer le rapport hebdomadaire" p="p5" av="AM" />
+                <div className="lp-kpis">
+                  <div className="dg"><span>En retard</span><b>1</b></div>
+                  <div><span>Aujourd'hui</span><b>1</b></div>
+                  <div><span>Priorités</span><b>3</b></div>
+                </div>
               </Mock>
 
-              <Mock title="Refonte site — tableau">
-                <div className="lp-kb">
-                  <div>
-                    <div className="lp-kbh"><i style={{ background: 'var(--hint)' }} />À faire</div>
-                    <div className="lp-c">Rédiger les contenus<div><span className="lp-p p2">P2</span><span className="lp-a ok">LK</span></div></div>
-                    <div className="lp-c">Choisir les photos<div><span className="lp-p p4">P4</span><span className="lp-a bl">SD</span></div></div>
-                  </div>
-                  <div>
-                    <div className="lp-kbh"><i style={{ background: 'var(--blue)' }} />En cours</div>
-                    <div className="lp-c">Intégration desktop<div><span className="lp-p p1">P1</span><span className="lp-a">MT</span></div></div>
-                  </div>
-                  <div>
-                    <div className="lp-kbh"><i style={{ background: 'var(--ok)' }} />Terminé</div>
-                    <div className="lp-c">Charte graphique<div><span className="lp-p p3">P3</span><span className="lp-a">AM</span></div></div>
-                    <div className="lp-c">Arborescence<div><span className="lp-p p5">P5</span><span className="lp-a ok">LK</span></div></div>
-                  </div>
-                </div>
+              <Mock title="Refonte du site — tâches">
+                <div className="lp-gh"><i style={{ background: 'var(--hint)' }} />À faire<em>2</em></div>
+                <TaskLine title="Relire le contrat" sub="Travail" p="p3" due="26 nov." />
+                <TaskLine title="Réserver la salle" sub="Travail" p="p4" due="29 nov." />
+                <div className="lp-gh" style={{ marginTop: 14 }}><i style={{ background: 'var(--blue)' }} />En cours<em>2</em></div>
+                <TaskLine title="Envoyer le devis au client" sub="Travail · 2 commentaires" p="p1" due="en retard de 2 j" late />
+                <TaskLine title="Préparer la maquette d'accueil" sub="Bug" p="p2" due="dans 3 j" />
               </Mock>
             </div>
 
@@ -445,6 +446,17 @@ function Row({ title, p, av, tone, done }: { title: string; p?: string; av?: str
   )
 }
 
+function TaskLine({ title, sub, p, due, late }: { title: string; sub: string; p: string; due: string; late?: boolean }) {
+  return (
+    <div className="lp-trow">
+      <span className="lp-ck" />
+      <span className="lp-ttl"><b>{title}</b><em>{sub}</em></span>
+      <span className={'lp-p ' + p}>{p.toUpperCase()}</span>
+      <span className={'lp-due' + (late ? ' late' : '')}>{due}</span>
+    </div>
+  )
+}
+
 function Msg({ who, txt, av, pill }: { who: string; txt: string; av?: string; pill?: React.ReactNode }) {
   return (
     <div className="lp-r" style={{ alignItems: 'flex-start' }}>
@@ -581,101 +593,105 @@ function WeekGrid() {
   )
 }
 
-/* --- visuel « tableau de projet » --- */
+/* --- visuel « page projet » (fidèle à l'écran actuel de l'app) --- */
+type PRow = { title: string; sub: string; who?: string; av?: string; tone?: string; st: string; p: string; due: string; late?: boolean }
+
 function ProjectBoard() {
-  const rail = [
-    <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></>,
-    <><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M8 9h8M8 14h5" /></>,
-    <><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M8 3v4M16 3v4M3 11h18" /></>,
-    <><path d="M6 21v-7M12 21V5M18 21v-10" /></>,
+  const nav: [string, React.ReactNode][] = [
+    ['Accueil', <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></>],
+    ['Projets', <><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M8 9h8M8 14h5" /></>],
+    ['Agenda', <><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M8 3v4M16 3v4M3 11h18" /></>],
+    ['Classement', <><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" /></>],
+    ['Profil', <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>],
   ]
-  const tasks: [string, string, string, string, string][] = [
-    ['56%', 'AM', '', 'b', 'Demain'],
-    ['44%', 'LK', 'ok', 'b2', 'Jeu. 6 mars'],
-    ['62%', 'SD', 'bl', 'b', 'Ven. 7 mars'],
-    ['38%', 'MT', '', 'b2', 'Lun. 10 mars'],
-    ['52%', 'AM', '', 'b', 'Mer. 12 mars'],
+  const projects: [string, string][] = [['Refonte du site', '#6d5cff'], ['Acheter une maison', '#3b82f6'], ['Evoyamwana', '#10b981']]
+  const todo: PRow[] = [
+    { title: 'Relire le contrat', sub: 'Travail · 0/1', who: 'Chloé Dubois', av: 'CD', tone: 'bl', st: 'À faire', p: 'p3', due: '26 nov.' },
+    { title: 'Réserver la salle', sub: 'Travail', st: 'À faire', p: 'p4', due: '29 nov.' },
   ]
-  const people: [string, string, string, string][] = [
-    ['Céline Thomas', 'Cheffe de projet', 'g', '12'],
-    ['Édouard Collins', 'Développeur', 'g2', '8'],
-    ['Laura Müller', 'Rédactrice', 'g', '6'],
-    ['Carmen Rodríguez', 'Cliente', 'g2', '3'],
-    ['Jamal Benali', 'Designer', 'g', '9'],
+  const doing: PRow[] = [
+    { title: 'Envoyer le devis au client', sub: 'Travail · 2 commentaires', who: 'Alice Martin', av: 'AM', st: 'En cours', p: 'p1', due: 'en retard de 2 j', late: true },
+    { title: "Préparer la maquette de la page d'accueil", sub: 'Bug', who: 'Bruno Leroy', av: 'BL', tone: 'ok', st: 'En cours', p: 'p2', due: 'dans 3 j' },
   ]
-  const prios = ['p1', 'p2', 'p3', 'p2', 'p4']
+  const group = (label: string, dot: string, n: number, rows: PRow[]) => (
+    <div className="lp-grp">
+      <div className="lp-grph"><i style={{ background: dot }} /><b>{label}</b><span>{n} tâches</span></div>
+      <div className="lp-tbl">
+        {rows.map((r) => (
+          <div className="lp-tr" key={r.title}>
+            <div className="lp-td"><span className="lp-ck" /><span className="lp-ttl"><b>{r.title}</b><em>{r.sub}</em></span></div>
+            <div className="lp-td">
+              {r.who
+                ? <><span className={'lp-a' + (r.tone ? ' ' + r.tone : '')}>{r.av}</span><span className="lp-nm">{r.who}</span></>
+                : <span className="lp-txt lp-mute">✋ À prendre</span>}
+            </div>
+            <div className="lp-td"><span className="lp-st"><i />{r.st}</span></div>
+            <div className="lp-td"><span className={'lp-p ' + r.p}>{r.p.toUpperCase()}</span></div>
+            <div className="lp-td"><span className={'lp-txt' + (r.late ? ' late' : '')}>{r.late ? '⚠ ' : ''}{r.due}</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 
   return (
     <div className="lp-screen">
-      <nav className="lp-rail">
-        <Logo id="rail" />
-        {rail.map((d, i) => (
-          <span key={i} className={'lp-ri' + (i === 1 ? ' on' : '')}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+      <nav className="lp-side">
+        <div className="lp-brand"><Logo id="rail" /><b>Planii</b></div>
+        {nav.map(([label, d]) => (
+          <span key={label} className={'lp-ni' + (label === 'Projets' ? ' on' : '')}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+            {label}
           </span>
         ))}
-        <hr />
+        <div className="lp-sidelbl">Projets</div>
+        {projects.map(([n, c]) => (
+          <span key={n} className="lp-np"><i style={{ background: c }} />{n}</span>
+        ))}
       </nav>
 
-      <aside className="lp-pcol">
-        <span className="lp-pt" style={{ background: 'linear-gradient(150deg,#5cb0ff,#2f7fd6)' }}>CQ</span>
-        <span className="lp-pt sel" style={{ background: 'linear-gradient(150deg,#a08fff,#6d5cff)' }}>RS</span>
-        <span className="lp-pt" style={{ background: 'linear-gradient(150deg,#4ae9b8,#0f8f6a)' }}>AM</span>
-        <span className="lp-pt" style={{ background: 'linear-gradient(150deg,#ffd27a,#c98a12)' }}>AV</span>
-        <hr />
-        <em>···</em>
-      </aside>
-
       <main className="lp-bd">
-        <h4>Refonte site vitrine</h4>
+        <div className="lp-pj-h">
+          <span className="lp-pj-ic">RD</span>
+          <div className="lp-pj-m">
+            <h4>Refonte du site</h4>
+            <div className="lp-pj-c">
+              <span className="lp-chip">Équipe · leader + prestataires</span>
+              <span className="lp-chip lp-n">120 pts</span>
+              <span className="lp-chip dg">⚠ Livraison hier</span>
+            </div>
+          </div>
+          <div className="lp-pj-r">
+            <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--lp-line2)" strokeWidth="4" />
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round"
+                strokeDasharray="100.5" strokeDashoffset="86" transform="rotate(-90 20 20)" />
+            </svg>
+            <span className="lp-pj-k"><b>1 tâche terminée</b><em>6 restantes</em></span>
+            <span className="lp-btn-s pri">Meeting</span>
+          </div>
+        </div>
+
         <div className="lp-btabs">
-          <a className="on" href="#fonctions">Tableau principal</a>
-          <a href="#fonctions">Kanban</a>
-          <a href="#fonctions">Agenda</a>
-          <span className="sp" />
-          <span className="tl">Équipe
-            <span className="lp-stack">
-              <i style={{ background: 'linear-gradient(150deg,#a08fff,#6d5cff)' }}>AM</i>
-              <i style={{ background: 'linear-gradient(150deg,#4ae9b8,#0f8f6a)' }}>LK</i>
-              <i style={{ background: 'linear-gradient(150deg,#5cb0ff,#2f7fd6)' }}>SD</i>
-              <i style={{ background: 'var(--surface-2)', color: 'var(--lp-muted)' }}>+3</i>
-            </span>
-          </span>
+          <a className="on" href="#fonctions">Tâches<i>7</i></a>
+          <a href="#fonctions">Rendez-vous</a>
+          <a href="#fonctions">Équipe</a>
+          <a href="#fonctions">Membres<i>3</i></a>
+          <a href="#fonctions">Sondages</a>
+          <a href="#fonctions">Activité</a>
         </div>
 
-        <div className="lp-grp">
-          <div className="lp-grph">
-            <b style={{ color: 'var(--lp-bl-fg)' }}>Tâches en cours</b>
-            <span>Responsable</span><span>Statut</span><span>Échéance</span>
-          </div>
-          <div className="lp-tbl">
-            {tasks.map(([w, av, tone, cell, due], i) => (
-              <div className="lp-tr" key={i}>
-                <div className="lp-td"><span className="lp-edge" style={{ background: 'var(--blue)' }} /><span className="lp-sk" style={{ width: w }} /></div>
-                <div className="lp-td mid"><span className={'lp-a' + (tone ? ' ' + tone : '')}>{av}</span><span className={'lp-p ' + prios[i]}>{prios[i].toUpperCase()}</span></div>
-                <div className={'lp-cell ' + cell}>En cours</div>
-                <div className="lp-td mid"><span className="lp-txt">{due}</span></div>
-              </div>
-            ))}
-          </div>
+        <div className="lp-tools">
+          <span className="lp-btn-s pri">＋ Nouvelle tâche</span>
+          <span className="lp-pill-f on">Tout le monde</span>
+          <span className="lp-pill-f"><b style={{ background: 'var(--accent)' }}>AM</b>Alice</span>
+          <span className="lp-pill-f"><b style={{ background: 'var(--accent)' }}>BL</b>Bruno</span>
+          <span className="lp-pill-f">À prendre</span>
         </div>
 
-        <div className="lp-grp">
-          <div className="lp-grph">
-            <b style={{ color: 'var(--lp-acc-fg)' }}>Membres du projet</b>
-            <span>Rôle</span><span>Invitation</span><span>Tâches</span>
-          </div>
-          <div className="lp-tbl">
-            {people.map(([n, role, cell, cnt]) => (
-              <div className="lp-tr" key={n}>
-                <div className="lp-td"><span className="lp-edge" style={{ background: 'var(--accent)' }} /><span className="lp-nm">{n}</span></div>
-                <div className="lp-td mid"><span className="lp-txt">{role}</span></div>
-                <div className={'lp-cell ' + cell}>Acceptée</div>
-                <div className="lp-td mid"><span className="lp-txt lp-n">{cnt}</span></div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <div className="lp-colh"><span>Tâches</span><span>Responsable</span><span>Statut</span><span>Priorité</span><span>Échéance</span></div>
+        {group('À faire', 'var(--hint)', 2, todo)}
+        {group('En cours', 'var(--blue)', 2, doing)}
       </main>
 
       {/* panneau : dictée guidée */}
@@ -768,8 +784,14 @@ function Step({ tone, label, val, done, d }: { tone: string; label: string; val?
   )
 }
 
-/* --- téléphones (clair + sombre) --- */
+/* --- téléphones (clair + sombre) : écrans Projets et Accueil de l'app mobile --- */
 function Phones() {
+  const cards: [string, string, string, string, string, number, string, boolean][] = [
+    // initiales, titre, type, étiquette, couleur étiquette, progression %, compteur, en retard
+    ['RD', 'Refonte du site', 'Équipe · Propriétaire', 'Travail', '#3b82f6', 72, '34/47 tâches', true],
+    ['AM', 'Acheter une maison', 'Groupe · Membre', 'Privé', '#ef4444', 0, '0/1 tâche', false],
+    ['EV', 'Evoyamwana', 'Groupe · Propriétaire', 'Travail Congo', '#10b981', 40, '2/5 tâches', false],
+  ]
   return (
     <div className="lp-phones">
       <div className="lp-phone back lt">
@@ -778,11 +800,18 @@ function Phones() {
           <div className="lp-sbar"><span>9:41</span><em>▮▮▮ ⌁ ▰</em></div>
           <div className="lp-pbody">
             <div className="lp-phd"><h6>Projets</h6><span className="lp-bell"><BellIcon /><i>2</i></span></div>
-            {[['#6d5cff', 'Refonte site vitrine', '6'], ['#1f6fc9', 'Campagne Q2', '4'], ['#0f8f6a', 'Dupont & Fils', '1'], ['#a5680a', 'Association Vélo', '9']].map(([c, n, k]) => (
-              <div className="lp-prow" key={n}>
-                <span style={{ width: 9, height: 9, borderRadius: 3, background: c, flex: 'none' }} />
-                <span className="pt">{n}</span>
-                <span className="lp-pfl" style={{ background: 'var(--ps)', color: 'var(--pm)' }}>{k}</span>
+            {cards.map(([ini, n, t, lab, col, pct, cnt, late]) => (
+              <div className="lp-pcard" key={n}>
+                <div className="lp-pc-h">
+                  <span className="lp-pc-ic" style={{ background: col + '22', color: col }}>{ini}</span>
+                  <span className="lp-pc-t"><b>{n}</b><small>{t}</small></span>
+                </div>
+                <div className="lp-pc-c">
+                  <span className="lp-pfl" style={{ background: col + '1f', color: col }}>● {lab}</span>
+                  {late && <span className="lp-pfl" style={{ background: 'rgba(214,69,80,.12)', color: '#c23442' }}>⚠ en retard</span>}
+                </div>
+                <div className="lp-pc-p"><span>{cnt}</span><b>{pct}%</b></div>
+                <div className="lp-pc-b"><i style={{ width: pct + '%' }} /></div>
               </div>
             ))}
           </div>
@@ -797,24 +826,34 @@ function Phones() {
           <div className="lp-sbar"><span>9:41</span><em>▮▮▮ ⌁ ▰</em></div>
           <div className="lp-pbody">
             <div className="lp-phd"><h6>Accueil</h6><span className="lp-bell"><BellIcon /><i>3</i></span></div>
+            <div className="lp-phello">Bonjour, Alice</div>
+            <div className="lp-pday">
+              <svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true">
+                <circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="5" />
+                <circle cx="27" cy="27" r="22" fill="none" stroke="#8b7bff" strokeWidth="5" strokeLinecap="round"
+                  strokeDasharray="138" strokeDashoffset="92" transform="rotate(-90 27 27)" />
+                <text x="27" y="31" textAnchor="middle" fontSize="11" fontWeight="800" fill="#f3f1fb">1/3</text>
+              </svg>
+              <div>
+                <small>Ta journée</small>
+                <b>Envoyer le devis au client</b>
+                <i className="lp-minibtn">✓ Terminer</i>
+              </div>
+            </div>
             <div className="lp-ptiles">
-              {[['#ff8189', '3', 'En retard'], ['#ffc44d', '5', "Aujourd'hui"], ['#8b7bff', '8', 'Priorités'], ['#3ce0ab', '12', 'Terminées']].map(([c, n, l]) => (
+              {[['#ff8189', '1', 'En retard'], ['#ffc44d', '1', "Aujourd'hui"]].map(([c, n, l]) => (
                 <div className="lp-ptile" key={l}><b style={{ color: c }}>{n}</b><span>{l}</span></div>
               ))}
             </div>
-            <div className="lp-plbl">À faire</div>
-            {[['Livrer la maquette', 'P1', 'rgba(255,129,137,.15)', '#ff8189'],
-              ['Valider le devis', 'P2', 'rgba(255,196,77,.14)', '#ffc44d'],
-              ['Relire le contrat', 'P3', 'rgba(139,123,255,.17)', '#b3a5ff']].map(([n, p, bg, fg]) => (
-              <div className="lp-prow" key={n}>
-                <span className="lp-pck" /><span className="pt">{n}</span>
-                <span className="lp-pfl" style={{ background: bg, color: fg }}>{p}</span>
-              </div>
-            ))}
+            <div className="lp-plbl">En retard</div>
             <div className="lp-prow">
-              <span className="lp-pck on" />
-              <span className="pt" style={{ opacity: .5, textDecoration: 'line-through' }}>Réunion de lancement</span>
-              <span className="lp-pfl" style={{ background: 'rgba(60,224,171,.13)', color: '#3ce0ab' }}>+20</span>
+              <span className="lp-pck" /><span className="pt">Envoyer le devis au client</span>
+              <span className="lp-pfl" style={{ background: 'rgba(255,129,137,.15)', color: '#ff8189' }}>P1</span>
+            </div>
+            <div className="lp-plbl">Mes projets</div>
+            <div className="lp-prow">
+              <span className="pt">Refonte du site</span>
+              <span className="lp-pfl" style={{ background: 'var(--ps)', color: 'var(--pm)' }}>72%</span>
             </div>
           </div>
           <div className="lp-fab">＋</div>
@@ -834,13 +873,14 @@ function BottomNav({ on }: { on: string }) {
     ['Accueil', <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></>],
     ['Projets', <><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M8 9h8M8 14h5" /></>],
     ['Agenda', <><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M8 3v4M16 3v4M3 11h18" /></>],
-    ['Score', <><path d="M6 21v-7M12 21V5M18 21v-10" /></>],
+    ['Classement', <><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z" /></>],
+    ['Profil', <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>],
   ]
   return (
     <div className="lp-bnav">
       {items.map(([label, d]) => (
         <a key={label} className={label === on ? 'on' : ''}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
           {label}
         </a>
       ))}
