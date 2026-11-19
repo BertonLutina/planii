@@ -20,6 +20,13 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.11.2', date: '2026-11-19',
+    title: { fr: 'Connexion et inscription dans toutes les langues', en: 'Sign in and sign up in every language' },
+    items: [
+      f('La page de connexion et d’inscription est maintenant traduite en néerlandais, espagnol, portugais, italien, grec, russe et swahili (elle n’existait qu’en français et en anglais).', 'The sign in and sign up page is now translated into Dutch, Spanish, Portuguese, Italian, Greek, Russian and Swahili (it only existed in French and English).'),
+    ],
+  },
+  {
     version: '1.11.1', date: '2026-11-18',
     title: { fr: 'Listes de sélection plus lisibles', en: 'Clearer drop-down lists' },
     items: [

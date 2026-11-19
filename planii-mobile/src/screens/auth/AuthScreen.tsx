@@ -78,16 +78,16 @@ function Auth({ mode, resetToken = '' }: { mode: Mode; resetToken?: string }) {
 
   function validate(): boolean {
     const next: Errors = {}
-    if (mode === 'signup' && !f.name.trim()) next.name = 'Indique ton nom complet'
+    if (mode === 'signup' && !f.name.trim()) next.name = t('auth.errName')
     if (mode !== 'reset') {
-      if (!f.email.trim()) next.email = 'Indique ton e-mail'
-      else if (!EMAIL_RE.test(f.email.trim())) next.email = 'Cette adresse e-mail n’est pas valide'
+      if (!f.email.trim()) next.email = t('auth.errEmail')
+      else if (!EMAIL_RE.test(f.email.trim())) next.email = t('auth.errEmailBad')
     }
     if (mode === 'forgot') {
       setErrs(next)
       return Object.keys(next).length === 0
     }
-    if (!f.password) next.password = 'Indique ton mot de passe'
+    if (!f.password) next.password = t('auth.errPassword')
     else if (mode === 'reset' && f.password.length < 8) next.password = t('auth.resetShort')
     if (mode === 'reset' && f.password !== f.confirm) next.confirm = t('auth.resetMismatch')
     setErrs(next)
