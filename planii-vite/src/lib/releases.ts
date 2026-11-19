@@ -20,6 +20,13 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.11.3', date: '2026-11-19',
+    title: { fr: 'Connexion mobile plus sobre', en: 'Simpler mobile sign in' },
+    items: [
+      c('L’écran de connexion et d’inscription de l’appli est plus dépouillé : le logo, un titre, les champs, un seul bouton, les fournisseurs sur une ligne et le lien vers l’autre écran. Plus de carte, de halo, d’onglets ni de texte d’accroche.', 'The app’s sign in and sign up screen is simpler: the logo, a title, the fields, a single button, the providers on one row and the link to the other screen. No more card, glow, tabs or pitch text.', 'mobile'),
+    ],
+  },
+  {
     version: '1.11.2', date: '2026-11-19',
     title: { fr: 'Connexion et inscription dans toutes les langues', en: 'Sign in and sign up in every language' },
     items: [
