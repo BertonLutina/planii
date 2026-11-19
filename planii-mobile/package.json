@@ -1,6 +1,6 @@
 {
   "name": "planii-mobile",
-  "version": "1.11.4",
+  "version": "1.11.5",
   "main": "expo-router/entry",
   "private": true,
   "scripts": {
