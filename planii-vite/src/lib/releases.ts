@@ -20,6 +20,20 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.11.5', date: '2026-11-19',
+    title: { fr: 'Page d’accueil : visuels à jour', en: 'Landing page: up-to-date visuals' },
+    items: [
+      c('Les maquettes de la page d’accueil du site reprennent maintenant l’application actuelle : l’Accueil (« Ta journée », indicateurs), la page projet (onglets, filtres, tâches groupées par statut) et, sur mobile, les cartes de projets et l’Accueil. Elles suivent le thème clair et sombre.', 'The mockups on the website’s landing page now show the current app: Home (“Your day”, indicators), the project page (tabs, filters, tasks grouped by status) and, on mobile, the project cards and Home. They follow the light and dark themes.', 'web'),
+    ],
+  },
+  {
+    version: '1.11.4', date: '2026-11-19',
+    title: { fr: 'Icônes de la barre d’onglets Android', en: 'Android tab bar icons' },
+    items: [
+      f('Sur Android, la barre d’onglets du bas affiche de nouveau ses icônes (Accueil, Projets, Agenda, Classement, Profil, Admin).', 'On Android, the bottom tab bar shows its icons again (Home, Projects, Agenda, Leaderboard, Profile, Admin).', 'mobile'),
+    ],
+  },
+  {
     version: '1.11.3', date: '2026-11-19',
     title: { fr: 'Connexion mobile plus sobre', en: 'Simpler mobile sign in' },
     items: [
