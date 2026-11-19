@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView,
-  StyleSheet, Text, TextInput, View, useWindowDimensions,
+  StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { useRouter, type Href } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -13,7 +13,7 @@ import { useSession } from '@/lib/session'
 import type { User } from '@/lib/types'
 import { PvThemeScope, useTheme } from '@/theme/ThemeProvider'
 import { radius } from '@/theme/tokens'
-import { Glow, LandingLogo, lpDark, lpLight } from './lp'
+import { LandingLogo, lpDark, lpLight } from './lp'
 import { ProviderMark } from './ProviderMark'
 import { RefField } from './RefField'
 import {
@@ -36,9 +36,8 @@ export function AuthScreen(props: { mode: Mode; resetToken?: string }) {
 const PROVIDER_NAME: Record<ProviderKey, string> = { google: 'Google', microsoft: 'Microsoft', linkedin: 'LinkedIn', yahoo: 'Yahoo' }
 
 function Auth({ mode, resetToken = '' }: { mode: Mode; resetToken?: string }) {
-  const { c, dark, setPref } = useTheme()
+  const { c, dark } = useTheme()
   const lp = dark ? lpDark : lpLight
-  const { width } = useWindowDimensions()
   const [langOpen, setLangOpen] = useState(false)
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -175,43 +174,33 @@ function Auth({ mode, resetToken = '' }: { mode: Mode; resetToken?: string }) {
     if (v.length >= 12) n++
     return Math.max(1, n)
   })()
-  const showHero = !forgot && !reset
   const langLabel = langOpts.find((o) => o.value === lang)?.label ?? lang
 
+  /* Écran volontairement dépouillé : la marque, un titre, les champs, un seul bouton plein,
+     les fournisseurs sur une ligne, puis le lien vers l'autre écran. Pas de carte, de halo ni d'onglets. */
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[s.screen, { backgroundColor: lp.bg }]}
     >
-      <Glow lp={lp} width={width} />
       <ScrollView
-        contentContainerStyle={[s.body, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 28 }]}
+        contentContainerStyle={[s.body, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
-        {/* Barre du haut : marque, langue, thème. */}
         <View style={s.bar}>
-          <LandingLogo lp={lp} size={32} />
-          <Text accessibilityRole="header" style={[s.wordmark, { color: lp.text }]}>Planii</Text>
+          <LandingLogo lp={lp} size={34} />
           <View style={s.grow} />
           <Pressable
             onPress={() => setLangOpen((v) => !v)}
             accessibilityRole="button"
             accessibilityLabel={`${t('lang.title')} : ${langLabel}`}
             accessibilityState={{ expanded: langOpen }}
-            style={[s.chip, { borderColor: lp.line2, backgroundColor: lp.card }]}
+            style={s.chip}
           >
             <Text numberOfLines={1} style={[s.chipTxt, { color: lp.muted }]}>{langLabel}</Text>
             <Ic name="chevron-down" s={14} c={lp.muted} />
-          </Pressable>
-          <Pressable
-            onPress={() => setPref(dark ? 'light' : 'dark')}
-            accessibilityRole="button"
-            accessibilityLabel={t('theme.title')}
-            style={[s.theme, { borderColor: lp.line2, backgroundColor: lp.card }]}
-          >
-            <Ic name={dark ? 'sun' : 'moon'} s={17} c={lp.muted} />
           </Pressable>
         </View>
 
@@ -228,262 +217,238 @@ function Auth({ mode, resetToken = '' }: { mode: Mode; resetToken?: string }) {
           </View>
         )}
 
-        {showHero && (
-          <View style={s.hero}>
-            <View style={[s.badge, { borderColor: lp.line2, backgroundColor: lp.card }]}>
-              <View style={s.badgeDot} />
-              <Text style={[s.badgeTxt, { color: lp.accFg }]}>{t('au.badge')}</Text>
-            </View>
-            <Text accessibilityRole="header" style={[s.h1, { color: lp.text }]}>
-              {signup ? t('au.s1') : t('au.h1')}{'\n'}
-              <Text style={{ color: lp.title2 }}>{signup ? t('au.s2') : t('au.h2')}</Text>
-            </Text>
-            <Text style={[s.trust, { color: lp.muted }]}>{t('au.t1')} · {t('au.t2')} · {t('au.t3')}</Text>
-          </View>
-        )}
+        <View style={s.head}>
+          <Text accessibilityRole="header" style={[s.pageTitle, { color: lp.text }]}>{title}</Text>
+          <Text style={[s.pageSub, { color: lp.muted }]}>{sub}</Text>
+        </View>
 
-        <View style={[s.card, { backgroundColor: lp.card, borderColor: lp.line }]}>
-          {showHero && (
-            <View style={[s.tabs, { borderBottomColor: lp.line }]} accessibilityRole="tablist">
-              {([['login', t('auth.login'), '/login'], ['signup', t('auth.register'), '/register']] as const).map(([k, label, href]) => {
-                const on = mode === k
-                return (
-                  <Pressable
-                    key={k}
-                    onPress={() => { if (!on) router.replace(href) }}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: on }}
-                    style={[s.tab, { borderBottomColor: on ? '#6d5cff' : 'transparent' }]}
-                  >
-                    <Text style={[s.tabTxt, { color: on ? lp.text : lp.hint }]}>{label}</Text>
-                  </Pressable>
-                )
-              })}
-            </View>
-          )}
+        {!!formErr && <Banner tone="danger" icon="alert" text={formErr} style={s.formErr} />}
 
-          <View style={s.head}>
-            <Text accessibilityRole="header" style={[s.pageTitle, { color: lp.text }]}>{title}</Text>
-            <Text style={[s.pageSub, { color: lp.muted }]}>{sub}</Text>
-          </View>
-
-          {!!formErr && <Banner tone="danger" icon="alert" text={formErr} style={s.formErr} />}
-
-          {resetBroken ? (
-            <>
-              {!formErr && <Banner tone="danger" icon="alert" text={t('auth.resetInvalid')} style={s.formErr} />}
-              <Button
-                label={t('auth.resetRequestNew')}
-                variant="primary"
-                block
-                onPress={() => router.replace('/forgot-password' as Href)}
-                style={s.submit}
+        {resetBroken ? (
+          <>
+            {!formErr && <Banner tone="danger" icon="alert" text={t('auth.resetInvalid')} style={s.formErr} />}
+            <Button
+              label={t('auth.resetRequestNew')}
+              variant="primary"
+              block
+              onPress={() => router.replace('/forgot-password' as Href)}
+              style={s.submit}
+            />
+          </>
+        ) : forgot && sent ? (
+          <Banner tone="ok" icon="check" text={t('auth.forgotSent')} style={s.formErr} />
+        ) : (
+          <>
+            {signup && (
+              <RefField
+                label={t('auth.name')}
+                value={f.name}
+                onChangeText={set('name')}
+                placeholder="Ex. Awa Ndiaye"
+                error={errs.name}
+                maxLength={120}
+                autoCapitalize="words"
+                autoComplete="name"
+                textContentType="name"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => emailRef.current?.focus()}
               />
-            </>
-          ) : forgot && sent ? (
-            <Banner tone="ok" icon="check" text={t('auth.forgotSent')} style={s.formErr} />
-          ) : (
-            <>
-              {signup && (
-                <RefField
-                  label={t('auth.name')}
-                  value={f.name}
-                  onChangeText={set('name')}
-                  placeholder="Ex. Awa Ndiaye"
-                  error={errs.name}
-                  maxLength={120}
-                  autoCapitalize="words"
-                  autoComplete="name"
-                  textContentType="name"
-                  returnKeyType="next"
-                  blurOnSubmit={false}
-                  onSubmitEditing={() => emailRef.current?.focus()}
-                />
-              )}
+            )}
 
-              {!reset && (
-                <RefField
-                  ref={emailRef}
-                  label={t('auth.email')}
-                  value={f.email}
-                  onChangeText={set('email')}
-                  placeholder="vous@exemple.com"
-                  error={errs.email}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="email"
-                  textContentType="emailAddress"
-                  returnKeyType={forgot ? 'go' : 'next'}
-                  blurOnSubmit={forgot}
-                  onSubmitEditing={() => (forgot ? submit() : passRef.current?.focus())}
-                />
-              )}
-              {(mode === 'login' || signup) && (
+            {!reset && (
+              <RefField
+                ref={emailRef}
+                label={t('auth.email')}
+                value={f.email}
+                onChangeText={set('email')}
+                placeholder="vous@exemple.com"
+                error={errs.email}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType={forgot ? 'go' : 'next'}
+                blurOnSubmit={forgot}
+                onSubmitEditing={() => (forgot ? submit() : passRef.current?.focus())}
+              />
+            )}
+            {(mode === 'login' || signup) && (
+              <RefField
+                ref={passRef}
+                label={t('auth.password')}
+                value={f.password}
+                onChangeText={set('password')}
+                placeholder="••••••••"
+                error={errs.password}
+                hint={signup ? t('auth.resetHint') : undefined}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete={signup ? 'new-password' : 'password'}
+                textContentType={signup ? 'newPassword' : 'password'}
+                returnKeyType="go"
+                onSubmitEditing={submit}
+              />
+            )}
+            {signup && strength > 0 && (
+              <View style={s.meter} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                {[1, 2, 3, 4].map((i) => (
+                  <View
+                    key={i}
+                    style={[s.seg, { backgroundColor: i <= strength ? ['', c.danger, c.warn, '#6d5cff', c.ok][strength] : lp.line2 }]}
+                  />
+                ))}
+              </View>
+            )}
+            {mode === 'login' && (
+              <Pressable
+                onPress={() => router.push('/forgot-password' as Href)}
+                hitSlop={8}
+                accessibilityRole="link"
+                accessibilityLabel={t('auth.forgot')}
+                style={s.forgot}
+              >
+                <Text style={[s.forgotTxt, { color: lp.accFg }]}>{t('auth.forgot')}</Text>
+              </Pressable>
+            )}
+            {reset && (
+              <>
                 <RefField
                   ref={passRef}
-                  label={t('auth.password')}
+                  label={t('auth.resetPassword')}
                   value={f.password}
                   onChangeText={set('password')}
-                  placeholder={signup ? t('auth.resetHint') : '••••••••'}
+                  placeholder="••••••••"
                   error={errs.password}
+                  hint={t('auth.resetHint')}
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
-                  autoComplete={signup ? 'new-password' : 'password'}
-                  textContentType={signup ? 'newPassword' : 'password'}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => confirmRef.current?.focus()}
+                />
+                <RefField
+                  ref={confirmRef}
+                  label={t('auth.resetConfirm')}
+                  value={f.confirm}
+                  onChangeText={set('confirm')}
+                  placeholder="••••••••"
+                  error={errs.confirm}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
                   returnKeyType="go"
                   onSubmitEditing={submit}
                 />
-              )}
-              {signup && (
-                <View style={s.meter} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                  {[1, 2, 3, 4].map((i) => (
-                    <View
-                      key={i}
-                      style={[s.seg, { backgroundColor: i <= strength ? ['', c.danger, c.warn, '#6d5cff', c.ok][strength] : lp.line2 }]}
-                    />
-                  ))}
-                </View>
-              )}
-              {mode === 'login' && (
+              </>
+            )}
+
+            <Pressable
+              onPress={submit}
+              disabled={busy || !!oauthBusy}
+              accessibilityRole="button"
+              accessibilityState={{ busy, disabled: busy || !!oauthBusy }}
+              style={({ pressed }) => [s.go, { opacity: busy || oauthBusy ? 0.7 : pressed ? 0.9 : 1 }]}
+            >
+              {busy
+                ? <ActivityIndicator color="#fff" />
+                : (
+                  <Text style={s.goTxt}>
+                    {signup ? t('auth.signup') : forgot ? t('auth.forgotSubmit') : reset ? t('auth.resetSubmit') : t('auth.login')}
+                  </Text>
+                )}
+            </Pressable>
+          </>
+        )}
+
+        {!forgot && !reset && (provLoading ? (
+          <View style={s.provRow}>
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={s.provCell}><Skeleton height={50} borderRadius={14} /></View>
+            ))}
+          </View>
+        ) : enabled.length > 0 ? (
+          <View>
+            <View style={s.or}>
+              <View style={[s.orLine, { backgroundColor: lp.line }]} />
+              <Text style={[s.orTxt, { color: lp.hint }]}>{t('auth.orEmail')}</Text>
+              <View style={[s.orLine, { backgroundColor: lp.line }]} />
+            </View>
+            <View style={s.provRow}>
+              {enabled.map((p) => (
                 <Pressable
-                  onPress={() => router.push('/forgot-password' as Href)}
-                  hitSlop={8}
-                  accessibilityRole="link"
-                  accessibilityLabel={t('auth.forgot')}
-                  style={s.forgot}
+                  key={p}
+                  onPress={() => startOAuth(p)}
+                  disabled={!!oauthBusy}
+                  accessibilityRole="button"
+                  accessibilityLabel={t(PROVIDER_LABEL[p])}
+                  accessibilityState={{ disabled: !!oauthBusy, busy: oauthBusy === p }}
+                  style={({ pressed }) => [
+                    s.provCell, s.pbtn,
+                    {
+                      backgroundColor: pressed ? lp.accBg : lp.card,
+                      borderColor: lp.line2,
+                      opacity: oauthBusy && oauthBusy !== p ? 0.5 : 1,
+                    },
+                  ]}
                 >
-                  <Text style={[s.forgotTxt, { color: lp.accFg }]}>{t('auth.forgot')}</Text>
+                  <ProviderMark provider={p} size={24} />
                 </Pressable>
-              )}
-              {reset && (
-                <>
-                  <RefField
-                    ref={passRef}
-                    label={t('auth.resetPassword')}
-                    value={f.password}
-                    onChangeText={set('password')}
-                    placeholder="••••••••"
-                    error={errs.password}
-                    hint={t('auth.resetHint')}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="new-password"
-                    textContentType="newPassword"
-                    returnKeyType="next"
-                    blurOnSubmit={false}
-                    onSubmitEditing={() => confirmRef.current?.focus()}
-                  />
-                  <RefField
-                    ref={confirmRef}
-                    label={t('auth.resetConfirm')}
-                    value={f.confirm}
-                    onChangeText={set('confirm')}
-                    placeholder="••••••••"
-                    error={errs.confirm}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="new-password"
-                    textContentType="newPassword"
-                    returnKeyType="go"
-                    onSubmitEditing={submit}
-                  />
-                </>
-              )}
-
-              <Pressable
-                onPress={submit}
-                disabled={busy || !!oauthBusy}
-                accessibilityRole="button"
-                accessibilityState={{ busy, disabled: busy || !!oauthBusy }}
-                style={({ pressed }) => [s.go, { opacity: busy || oauthBusy ? 0.7 : pressed ? 0.9 : 1 }]}
-              >
-                {busy
-                  ? <ActivityIndicator color="#fff" />
-                  : (
-                    <>
-                      <Text style={s.goTxt}>
-                        {signup ? t('auth.signup') : forgot ? t('auth.forgotSubmit') : reset ? t('auth.resetSubmit') : t('auth.login')}
-                      </Text>
-                      {(mode === 'login' || signup) && <Ic name="arrow-right" s={17} c="#fff" strokeWidth={2.2} />}
-                    </>
-                  )}
-              </Pressable>
-            </>
-          )}
-
-          {!forgot && !reset && (provLoading ? (
-            <View style={s.grid}>
-              {[0, 1, 2, 3].map((i) => (
-                <View key={i} style={s.cell}><Skeleton height={44} borderRadius={12} /></View>
               ))}
             </View>
-          ) : enabled.length > 0 ? (
-            <View>
-              <View style={s.or}>
-                <View style={[s.orLine, { backgroundColor: lp.line }]} />
-                <Text style={[s.orTxt, { color: lp.hint }]}>{t('auth.orEmail')}</Text>
-                <View style={[s.orLine, { backgroundColor: lp.line }]} />
-              </View>
-              <View style={s.grid}>
-                {enabled.map((p) => (
-                  <Pressable
-                    key={p}
-                    onPress={() => startOAuth(p)}
-                    disabled={!!oauthBusy}
-                    accessibilityRole="button"
-                    accessibilityLabel={t(PROVIDER_LABEL[p])}
-                    accessibilityState={{ disabled: !!oauthBusy, busy: oauthBusy === p }}
-                    style={({ pressed }) => [
-                      s.cell, s.pbtn,
-                      {
-                        backgroundColor: pressed ? lp.accBg : lp.card,
-                        borderColor: lp.line2,
-                        opacity: oauthBusy && oauthBusy !== p ? 0.5 : 1,
-                      },
-                    ]}
-                  >
-                    <ProviderMark provider={p} size={18} />
-                    <Text style={[s.pname, { color: lp.text }]}>{PROVIDER_NAME[p]}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          ) : null)}
-
-          {(forgot || reset) && (
-            <Pressable
-              onPress={() => router.replace('/login')}
-              hitSlop={10}
-              accessibilityRole="link"
-              accessibilityLabel={t('auth.forgotBack')}
-              style={s.switch}
-            >
-              <Text style={[s.switchTxt, { color: lp.accFg, fontWeight: '700' }]}>{t('auth.forgotBack')}</Text>
-            </Pressable>
-          )}
-
-          <View style={s.footLinks}>
-            <Pressable
-              onPress={() => { Linking.openURL(PRIVACY_URL).catch(() => {}) }}
-              hitSlop={10}
-              accessibilityRole="link"
-              accessibilityLabel={t('auth.privacy')}
-            >
-              <Text style={[s.footLink, { color: lp.hint }]}>{t('auth.privacy')}</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => { Linking.openURL(`mailto:${SUPPORT_MAIL}`).catch(() => {}) }}
-              hitSlop={10}
-              accessibilityRole="link"
-              accessibilityLabel={SUPPORT_MAIL}
-            >
-              <Text style={[s.footLink, { color: lp.hint }]}>{t('auth.help')}</Text>
-            </Pressable>
           </View>
+        ) : null)}
+
+        {forgot || reset ? (
+          <Pressable
+            onPress={() => router.replace('/login')}
+            hitSlop={10}
+            accessibilityRole="link"
+            accessibilityLabel={t('auth.forgotBack')}
+            style={s.switch}
+          >
+            <Text style={[s.switchTxt, { color: lp.accFg, fontWeight: '700' }]}>{t('auth.forgotBack')}</Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={() => router.replace(signup ? '/login' : '/register')}
+            hitSlop={10}
+            accessibilityRole="link"
+            style={s.switch}
+          >
+            <Text style={[s.switchTxt, { color: lp.muted }]}>
+              {signup ? t('auth.hasAccount') : t('auth.noAccount')}{' '}
+              <Text style={{ color: lp.accFg, fontWeight: '700' }}>
+                {signup ? t('auth.login') : t('auth.register')}
+              </Text>
+            </Text>
+          </Pressable>
+        )}
+
+        <View style={s.footLinks}>
+          <Pressable
+            onPress={() => { Linking.openURL(PRIVACY_URL).catch(() => {}) }}
+            hitSlop={10}
+            accessibilityRole="link"
+            accessibilityLabel={t('auth.privacy')}
+          >
+            <Text style={[s.footLink, { color: lp.hint }]}>{t('auth.privacy')}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { Linking.openURL(`mailto:${SUPPORT_MAIL}`).catch(() => {}) }}
+            hitSlop={10}
+            accessibilityRole="link"
+            accessibilityLabel={SUPPORT_MAIL}
+          >
+            <Text style={[s.footLink, { color: lp.hint }]}>{t('auth.help')}</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -492,58 +457,40 @@ function Auth({ mode, resetToken = '' }: { mode: Mode; resetToken?: string }) {
 
 const s = StyleSheet.create({
   screen: { flex: 1 },
-  body: { paddingHorizontal: 18, flexGrow: 1 },
+  body: { paddingHorizontal: 24, flexGrow: 1 },
   grow: { flex: 1 },
 
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 56 },
-  wordmark: { fontSize: 20, fontWeight: '700', letterSpacing: -0.6 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, maxWidth: 150 },
-  chipTxt: { fontSize: 13.5, fontWeight: '600', flexShrink: 1 },
-  theme: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  langBox: { borderWidth: 1, borderRadius: 18, padding: 14, marginTop: 8 },
+  bar: { flexDirection: 'row', alignItems: 'center', height: 52 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 4, maxWidth: 160 },
+  chipTxt: { fontSize: 14, fontWeight: '600', flexShrink: 1 },
+  langBox: { borderWidth: 1, borderRadius: 16, padding: 14, marginTop: 4 },
   langTop: { marginBottom: 0 },
 
-  hero: { marginTop: 14, marginBottom: 22 },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 9, alignSelf: 'flex-start', height: 34, paddingHorizontal: 13, borderRadius: 17, borderWidth: 1 },
-  badgeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#18a97c' },
-  badgeTxt: { fontSize: 12.5, fontWeight: '600' },
-  h1: { fontSize: 36, lineHeight: 38, fontWeight: '800', letterSpacing: -1.6, marginTop: 18 },
-  trust: { fontSize: 13, marginTop: 14, lineHeight: 19 },
-
-  card: {
-    borderWidth: 1, borderRadius: 24, padding: 22, marginTop: 4,
-    shadowColor: '#0b0a12', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 3,
-  },
-  tabs: { flexDirection: 'row', gap: 26, borderBottomWidth: 1, marginBottom: 22 },
-  tab: { paddingBottom: 12, marginBottom: -1, borderBottomWidth: 3 },
-  tabTxt: { fontSize: 15, fontWeight: '700' },
-  head: { marginBottom: 20 },
-  pageTitle: { fontSize: 26, lineHeight: 29, fontWeight: '800', letterSpacing: -1 },
-  pageSub: { fontSize: 14.5, lineHeight: 21, marginTop: 6 },
+  head: { marginTop: 36, marginBottom: 28 },
+  pageTitle: { fontSize: 32, lineHeight: 36, fontWeight: '800', letterSpacing: -1.2 },
+  pageSub: { fontSize: 16, lineHeight: 23, marginTop: 8 },
 
   formErr: { marginBottom: 14 },
   meter: { flexDirection: 'row', gap: 5, marginTop: -4, marginBottom: 14 },
-  seg: { flex: 1, height: 4, borderRadius: 2 },
-  forgot: { alignSelf: 'flex-end', marginTop: -4, marginBottom: 14 },
-  forgotTxt: { fontSize: 13.5, fontWeight: '600' },
+  seg: { flex: 1, height: 3, borderRadius: 2 },
+  forgot: { alignSelf: 'flex-end', marginTop: -2, marginBottom: 18 },
+  forgotTxt: { fontSize: 14, fontWeight: '600' },
   submit: { marginTop: 2 },
   go: {
-    height: 50, borderRadius: 13, backgroundColor: '#6d5cff', marginTop: 2,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
-    shadowColor: '#6d5cff', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 6,
+    height: 52, borderRadius: 14, backgroundColor: '#6d5cff', marginTop: 4,
+    alignItems: 'center', justifyContent: 'center',
   },
-  goTxt: { color: '#fff', fontSize: 15.5, fontWeight: '700' },
+  goTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
-  or: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 22, marginBottom: 14 },
+  or: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 28, marginBottom: 18 },
   orLine: { flex: 1, height: StyleSheet.hairlineWidth },
   orTxt: { fontSize: 13, fontWeight: '500' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  cell: { width: '48%', flexGrow: 1, minWidth: 0 },
-  pbtn: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1, borderRadius: 12 },
-  pname: { fontSize: 14, fontWeight: '600' },
+  provRow: { flexDirection: 'row', gap: 10 },
+  provCell: { flex: 1, minWidth: 0 },
+  pbtn: { height: 50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 14 },
 
-  switch: { marginTop: 18, alignItems: 'center' },
-  switchTxt: { fontSize: 14, textAlign: 'center' },
-  footLinks: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginTop: 24 },
+  switch: { marginTop: 32, alignItems: 'center' },
+  switchTxt: { fontSize: 15, textAlign: 'center' },
+  footLinks: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginTop: 28 },
   footLink: { fontSize: 13, fontWeight: '500' },
 })
