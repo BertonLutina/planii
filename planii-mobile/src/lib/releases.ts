@@ -20,6 +20,13 @@ const f = (fr: string, en: string, on?: ReleaseTarget): ReleaseItem => ({ kind: 
 
 export const RELEASES: Release[] = [
   {
+    version: '1.11.4', date: '2026-11-19',
+    title: { fr: 'Icônes de la barre d’onglets Android', en: 'Android tab bar icons' },
+    items: [
+      f('Sur Android, la barre d’onglets du bas affiche de nouveau ses icônes (Accueil, Projets, Agenda, Classement, Profil, Admin).', 'On Android, the bottom tab bar shows its icons again (Home, Projects, Agenda, Leaderboard, Profile, Admin).', 'mobile'),
+    ],
+  },
+  {
     version: '1.11.3', date: '2026-11-19',
     title: { fr: 'Connexion mobile plus sobre', en: 'Simpler mobile sign in' },
     items: [
